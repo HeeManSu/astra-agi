@@ -8,6 +8,7 @@ Demonstrates:
 """
 import asyncio
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -153,7 +154,7 @@ async def main():
         model={
             "provider": "google",
             "model": "gemini-2.5-flash",
-            "api_key": "AIzaSyBdlhWIITmvhQLunWUTv9t9-V4nwvo90I8"
+            "api_key": os.getenv("GOOGLE_API_KEY")  # Set GOOGLE_API_KEY in .env file
         },
         tools=[
             get_stock_price,

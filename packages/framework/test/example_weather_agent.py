@@ -6,6 +6,7 @@ Includes observability (tracing and metrics) and saves responses to JSON file.
 """
 import asyncio
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -52,7 +53,7 @@ async def main():
         model={
             "provider": "google",
             "model": "gemini-2.5-flash",
-            "api_key": "REDACTED_GEMINI_KEY"
+            "api_key": os.getenv("GOOGLE_API_KEY")  # Set GOOGLE_API_KEY in .env file
         },
         tools=[get_weather]
     )

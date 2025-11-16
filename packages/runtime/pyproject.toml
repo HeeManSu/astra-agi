@@ -1,0 +1,13 @@
+[project]
+name = "runtime"
+version = "0.1.0"
+description = "Runtime layer for Astra: high-performance async runtime built on FastAPI with support for SDKs and REST APIs"
+requires-python = ">=3.10,<3.14"
+authors = [
+    { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
+]
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

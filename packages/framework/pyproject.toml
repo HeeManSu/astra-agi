@@ -1,0 +1,26 @@
+[project]
+name = "framework"
+version = "0.1.0"
+description = "Framework layer for Astra: APIs and abstractions for building AI agents, teams, and workflows"
+requires-python = ">=3.10,<3.14"
+authors = [
+    { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
+]
+dependencies = [
+    "pydantic>=2.12.4",
+    "observability",
+    "memorybase",
+    "pydantic-settings>=2.12.0",
+    "aiosqlite>=0.19.0",
+    "google-generativeai>=0.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/framework"]
+
+[tool.uv.sources]
+observability = { workspace = true }

@@ -1,0 +1,21 @@
+[project]
+name = "observability"
+version = "0.1.0"
+description = "Observability layer for Astra: tracing, metrics, and structured logging"
+requires-python = ">=3.10,<3.14"
+authors = [
+    { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
+]
+dependencies = [
+    "opentelemetry-api>=1.38.0",
+    "opentelemetry-sdk>=1.38.0",
+    "prometheus-client>=0.20.0",
+    "loguru>=0.7.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["observability"]

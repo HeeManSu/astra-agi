@@ -53,17 +53,14 @@ class GeminiModel(Model):
         # Configure API key
         if api_key:
             genai.configure(api_key=api_key)
-        elif not genai.api_key:
+        else:
             # Try to get from environment
             import os
             env_key = os.getenv("GOOGLE_API_KEY")
             if env_key:
                 genai.configure(api_key=env_key)
-            else:
-                raise ValueError(
-                    "Google API key required. "
-                    "Provide via api_key parameter or set GOOGLE_API_KEY environment variable."
-                )
+            # If no key found, genai might still work if configured globally elsewhere
+            # or it will fail later when making calls, which is acceptable
         
         # Initialize model - try different model name formats
         # Google Generative AI uses specific model names

@@ -1,9 +1,18 @@
 """
 Agent execution steps for Astra Framework.
 
-MVP implementation - minimal but extensible.
+This module contains the execution pipeline for agent invocations:
+1. prepare_memory_step: Adds system instructions to messages
+2. prepare_tools_step: Converts tools to model-compatible format
+3. invoke_step: Calls the model and returns response
+4. stream_step: Streams model responses
+5. map_results_step: Executes tool calls and collects results
+6. execute_tool: Executes a single tool by name
+
+The ExecutionContext object is passed between steps to maintain state.
 """
 from typing import Any, AsyncIterator, Dict, List, Optional, TYPE_CHECKING
+
 from ..models.base import Model, ModelResponse
 
 if TYPE_CHECKING:
@@ -11,7 +20,22 @@ if TYPE_CHECKING:
 
 
 class ExecutionContext:
-    """Context passed between execution steps."""
+    """
+    Context passed between execution steps.
+    
+    This object maintains the state of an agent invocation as it flows through
+    the execution pipeline. It contains messages, tools, model parameters, and
+    intermediate results.
+    
+    Attributes:
+        messages: List of message dicts with 'role' and 'content'
+        tools: List of Tool objects available to the agent
+        temperature: Sampling temperature for model (0.0-1.0)
+        max_tokens: Maximum tokens to generate
+        converted_tools: Tools converted to model-compatible JSON schema format
+        model_response: Last response from the model
+        tool_results: Results from executed tool calls
+    """
     
     def __init__(
         self,
@@ -20,10 +44,13 @@ class ExecutionContext:
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
     ):
+        # Input parameters
         self.messages = messages
         self.tools = tools or []
         self.temperature = temperature
         self.max_tokens = max_tokens
+        
+        # Intermediate state
         self.converted_tools: Optional[List[Dict[str, Any]]] = None
         self.model_response: Optional[ModelResponse] = None
         self.tool_results: List[Dict[str, Any]] = []

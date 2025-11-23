@@ -1,10 +1,22 @@
 """
 Tool decorator for Astra Framework.
 
-Provides a simple way to convert Python functions into tools that agents can use.
+This module provides the @tool decorator to convert Python functions into Tool objects
+that can be used by agents. It handles:
+- Automatic JSON Schema generation from type hints
+- Sync and async function support
+- Error handling and wrapping
+- Parameter filtering (removes framework-injected params)
+
+Example:
+    @tool
+    def add(a: int, b: int) -> int:
+        \"\"\"Add two numbers.\"\"\"
+        return a + b
 """
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Union, get_args, get_origin, get_type_hints
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, Union, get_args, get_origin, get_type_hints
 
 
 def _type_to_json_schema_type(python_type: Any) -> Dict[str, Any]:
@@ -211,7 +223,7 @@ def tool(
         - images, videos, audios, files
     """
     def decorator(f: Callable) -> Tool:
-        from functools import wraps
+        """Inner decorator that creates the Tool object."""
         
         # Wrap function to preserve metadata and handle errors
         @wraps(f)

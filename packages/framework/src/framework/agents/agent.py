@@ -1,15 +1,40 @@
 """
 Agent class for Astra Framework.
 
-Supports two initialization scenarios:
-1. Independent: Agent(name="...", instructions="...", model={...})
-2. Through Astra: Astra({'agents': [Agent(...)]})
+The Agent class is the core abstraction for creating AI agents. It supports:
+- Standalone mode: Agent creates its own infrastructure (AstraContext)
+- Managed mode: Agent shares infrastructure from Astra orchestrator
+- Lazy initialization: Resources initialized only when needed
+- Model abstraction: Supports multiple LLM providers via factory pattern
+- Tool execution: Automatic tool calling and result handling
+- Observability: Built-in tracing, metrics, and logging
+
+Initialization Scenarios:
+1. Standalone: Agent(name="...", instructions="...", model="...")
+   - Creates own AstraContext with observability
+   - Suitable for single-agent applications
+   
+2. Managed: Astra.add_agent(Agent(...))
+   - Shares AstraContext from Astra orchestrator
+   - Suitable for multi-agent systems
+   - Avoids resource duplication
+
+Example:
+    # Standalone agent
+    agent = Agent(
+        name="Assistant",
+        instructions="You are helpful",
+        model="google/gemini-1.5-flash",
+        tools=[calculator]
+    )
+    response = await agent.invoke("What is 2+2?")
 """
+import time
 import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional, Union, TYPE_CHECKING
-from observability import Observability
-from ..astra import FrameworkSettings, DependencyContainer
-from .types import AgentConfig, ModelConfig
+
+from ..astra import AstraContext
+from .types import ModelConfig
 from .execution import (
     ExecutionContext,
     prepare_tools_step,
@@ -46,120 +71,149 @@ class Agent:
     
     def __init__(
         self,
-        name: str,
-        instructions: str,
-        model: Union[ModelConfig, Dict[str, Any], str],
+        name: str = "Agent",
+        instructions: str = "You are a helpful assistant.",
+        model: Union[ModelConfig, Dict[str, Any], str, 'Model'] = "google/gemini-1.5-flash",
         id: Optional[str] = None,
         description: Optional[str] = None,
         tools: Optional[List[Any]] = None,
+        storage: Optional[Any] = None,
+        knowledge: Optional[Any] = None,
         max_retries: int = 0,
-        astra_instance: Optional['Astra'] = None
     ):
         """
         Initialize an Agent with the provided configuration.
         
-        Initialization Flow:
-        1. If astra_instance is provided: Share Astra's settings and dependencies (no duplication)
-        2. If standalone: Create own settings and dependencies (will initialize observability in startup)
+        **Initialization Patterns**:
+        
+        1. **Explicit Model Class** (Recommended):
+           ```python
+           from framework.models import Gemini
+           agent = Agent(name="Bot", model=Gemini("1.5-flash"))
+           ```
+           
+        2. **String Configuration** (Alternative):
+           ```python
+           agent = Agent(name="Bot", model="google/gemini-1.5-flash")
+           ```
         
         Args:
             name: Agent name (required)
             instructions: Agent instructions (required)
-            model: Model configuration - dict with 'provider' and 'model', or string like 'google/gemini-2.5-flash' (required)
+            model: Model instance (e.g., Gemini(...)) or config string/dict
             id: Optional agent ID (auto-generated if not provided)
             description: Optional agent description
             tools: Optional list of tools
+            storage: Optional storage backend (e.g., PostgresStorage)
+            knowledge: Optional knowledge base (e.g., PDFKnowledgeBase)
             max_retries: Maximum retry attempts (default: 0)
-            astra_instance: Optional Astra instance (if provided, shares resources to avoid duplication)
-        
-        Raises:
-            ValueError: If model is not provided or invalid
         """
-        # Share resources with Astra if provided (avoid duplication)
-        # Otherwise, create standalone resources
-        if astra_instance:
-            # Use Astra's settings and dependencies (shared resources)
-            self.settings = astra_instance.settings
-            self.dependencies = astra_instance.dependencies
-            self._astra = astra_instance
-        else:
-            # Standalone agent: create own resources
-            self.settings = FrameworkSettings()
-            self.dependencies = DependencyContainer()
-            self._astra = None
-        
+        # Context will be injected by Astra or lazily initialized
+        self._context: Optional[AstraContext] = None
+        self._astra: Optional['Astra'] = None
         self._initialized = False
         
         # Set required properties
         self.name: str = name
         # Generate unique id if not provided to ensure uniqueness across all agents
-        # Format: "agent-{uuid4}" for better readability and uniqueness
         self.id: str = id or f"agent-{uuid.uuid4().hex[:8]}"
         self.instructions: str = instructions
         
         # Optional properties
         self.description: Optional[str] = description
         self.max_retries: int = max_retries
-        # Tools are stored as a list (e.g., [PythonTool(), HttpTool()])
-        self.tools: List[Any] = tools or []
         
-        # Normalize model configuration
-        if isinstance(model, str):
+        # Dynamic resources
+        self.tools: List[Any] = tools or []
+        self.storage: Optional[Any] = storage
+        self.knowledge: Optional[Any] = knowledge
+        
+        # Handle model configuration
+        from ..models.base import Model
+        
+        if isinstance(model, Model):
+            self._model_instance = model
+            self.model = {'provider': 'custom', 'model': getattr(model, 'model_id', 'unknown')}
+        elif isinstance(model, str):
             # Simple string format: "provider/model" or just "model"
             parts = model.split('/', 1)
             if len(parts) == 2:
-                self.model: ModelConfig = {
-                    'provider': parts[0],
-                    'model': parts[1]
-                }
+                self.model = {'provider': parts[0], 'model': parts[1]}
             else:
-                # Default provider assumption (can be made configurable)
-                self.model: ModelConfig = {
-                    'provider': 'openai',  # Default, can be overridden
-                    'model': parts[0]
-                }
+                self.model = {'provider': 'openai', 'model': parts[0]}
+            self._model_instance = None
         elif isinstance(model, dict):
-            self.model: ModelConfig = model
+            self.model = model
+            self._model_instance = None
         else:
             raise ValueError(
                 f"Invalid model configuration for agent '{self.name}'. "
-                f"Expected string or dict, got {type(model)}"
+                f"Expected Model instance, string, or dict, got {type(model)}"
             )
         
         # Logger will be initialized lazily when first accessed
         self._logger: Optional[Any] = None
-        
-        # Model instance (will be initialized when needed)
-        self._model_instance: Optional['Model'] = None
     
+    @property
+    def context(self) -> 'AstraContext':
+        """
+        Get agent context (infrastructure).
+        
+        Lazily initializes a default context if one hasn't been injected.
+        This ensures the agent works in standalone mode.
+        """
+        if self._context is None:
+            # Standalone mode: create default context
+            self._context = AstraContext()
+        return self._context
+
+    def add_tool(self, tool: Any) -> None:
+        """
+        Add a tool to the agent dynamically.
+        
+        Args:
+            tool: Tool function or object
+        """
+        self.tools.append(tool)
+        
+    def set_storage(self, storage: Any) -> None:
+        """
+        Set storage backend dynamically.
+        
+        Args:
+            storage: Storage backend instance
+        """
+        self.storage = storage
+        
+    def set_knowledge(self, knowledge: Any) -> None:
+        """
+        Set knowledge base dynamically.
+        
+        Args:
+            knowledge: Knowledge base instance
+        """
+        self.knowledge = knowledge
+
+    def set_context(self, context: 'AstraContext') -> None:
+        """
+        Inject context (called by Astra).
+        
+        Args:
+            context: AstraContext instance
+        """
+        self._context = context
+
     async def startup(self) -> None:
         """
         Initialize agent components.
         
-        Initialization Flow:
-        1. If registered with Astra: Observability already initialized, just mark as initialized
-        2. If standalone: Initialize own observability (only if not already initialized)
-        
-        Note: Settings and dependencies are already shared/created in __init__,
-        so this method only handles observability initialization for standalone agents.
+        Ensures context is ready.
         """
         if self._initialized:
             return
         
-        # If registered with Astra, observability is already initialized by Astra
-        # Just ensure dependencies are synced (should already be done in _register_astra)
-        if self._astra:
-            # Ensure we're using Astra's dependencies (should already be set in _register_astra)
-            if self.dependencies is not self._astra.dependencies:
-                self.dependencies = self._astra.dependencies
-        elif not self.dependencies.observability:
-            # Standalone agent: initialize our own observability
-            self.dependencies.observability = Observability.init(
-                service_name=self.settings.service_name,
-                log_level=self.settings.observability_log_level,
-                enable_json_logs=True,
-                log_file=self.settings.observability_log_file
-            )
+        # Accessing context property triggers lazy initialization if needed
+        _ = self.context
         
         self._initialized = True
     
@@ -170,10 +224,10 @@ class Agent:
         If the agent is registered with Astra, observability shutdown is handled by Astra.
         Only standalone agents need to shutdown their own observability.
         """
-        # Only shutdown observability if this is a standalone agent (not registered with Astra)
-        # Agents registered with Astra will have their observability shutdown by Astra.shutdown()
-        if not self._astra and self.dependencies.observability:
-            self.dependencies.observability.shutdown()
+        # Only shutdown context if we own it (standalone) or if explicitly requested
+        # In managed mode, Astra handles shutdown
+        if not self._astra and self._context:
+            self._context.shutdown()
         
         self._initialized = False
     
@@ -185,26 +239,16 @@ class Agent:
         """
         Register this agent with an Astra instance.
         Called internally by Astra when agent is added.
-        
-        This method shares Astra's settings and dependencies to avoid duplication.
-        If agent was created standalone, it will now use Astra's resources.
         """
         self._astra = astra_instance
-        # Share Astra's settings and dependencies (avoid duplication)
-        self.settings = astra_instance.settings
-        self.dependencies = astra_instance.dependencies
+        # Context injection is now handled by set_context called by Astra
     
     @property
     def logger(self) -> Any:
         """Get logger instance (lazy initialization)."""
         if self._logger is None:
-            if self.dependencies.observability:
-                # Use observability logger directly (composition pattern)
-                self._logger = self.dependencies.observability.logger
-            else:
-                # Fallback logger if observability not initialized
-                import logging
-                self._logger = logging.getLogger(f"agent.{self.name}")
+            # Get logger from context
+            self._logger = self.context.logger
         return self._logger
     
     def _get_model_instance(self) -> 'Model':
@@ -221,7 +265,7 @@ class Agent:
             return self._model_instance
         
         # Import model classes
-        from ..models import GeminiFlash, GeminiPro
+        from ..models import get_model
         
         # Get model config
         if not isinstance(self.model, dict):
@@ -231,21 +275,12 @@ class Agent:
         model_id = self.model.get('model', '')
         api_key = self.model.get('api_key')
         
-        # Initialize model based on provider
-        if provider == 'google':
-            if 'flash' in model_id.lower():
-                # Use GeminiFlash for all flash models (1.5-flash, 2.5-flash, etc.)
-                self._model_instance = GeminiFlash(api_key=api_key, model_id=model_id)
-            elif model_id == 'gemini-1.5-pro' or model_id == 'gemini-pro' or 'pro' in model_id.lower():
-                # Use GeminiPro - pass model_id to allow it to use the correct one
-                self._model_instance = GeminiPro(api_key=api_key, model_id=model_id)
-            else:
-                # Default to Flash for unknown models
-                self._model_instance = GeminiFlash(api_key=api_key, model_id=model_id)
-        else:
+        # Use the model factory to create the appropriate model instance
+        try:
+            self._model_instance = get_model(provider, model_id, api_key)
+        except Exception as e:
             raise ValueError(
-                f"Unsupported model provider '{provider}' for agent '{self.name}'. "
-                f"Supported providers: google"
+                f"Failed to create model instance for provider '{provider}' with model '{model_id}': {e}"
             )
         
         return self._model_instance
@@ -262,12 +297,11 @@ class Agent:
         
         This method is automatically traced and metrics are recorded.
         """
-        import time
         start_time = time.perf_counter()
         
         # Ensure observability is initialized
         await self.startup()
-        obs = self.dependencies.observability
+        obs = self.context.observability
         
         # Trace agent run
         @obs.trace_agent_run(self.id)
@@ -307,7 +341,7 @@ class Agent:
         
         # Ensure observability is initialized
         await self.startup()
-        obs = self.dependencies.observability
+        obs = self.context.observability
         
         # Trace agent run
         @obs.trace_agent_run(self.id)
@@ -440,7 +474,7 @@ class Agent:
         
         # Ensure observability is initialized
         await self.startup()
-        obs = self.dependencies.observability
+        obs = self.context.observability
         
         # Create execution context
         context = ExecutionContext(

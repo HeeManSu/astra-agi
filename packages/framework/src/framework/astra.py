@@ -18,12 +18,12 @@ if TYPE_CHECKING:
 class FrameworkSettings(BaseSettings):
     """Framework-level settings."""
     
-    model_config = ConfigDict(env_file='.env', extra='allow')
+    model_config = ConfigDict(env_file='.env', extra='allow')  # type: ignore[assignment]
     
-    service_name: str = Field(default='astra', env='SERVICE_NAME')
-    environment: str = Field(default='development', env='ENVIRONMENT')
-    observability_log_file: Optional[str] = Field(default='./jsons/astra_observability.json', env='ASTRA_OBSERVABILITY_LOG_FILE')
-    observability_log_level: str = Field(default='INFO', env='ASTRA_LOG_LEVEL')
+    service_name: str = Field(default='astra', validation_alias='SERVICE_NAME')
+    environment: str = Field(default='development', validation_alias='ENVIRONMENT')
+    observability_log_file: Optional[str] = Field(default='./jsons/astra_observability.json', validation_alias='ASTRA_OBSERVABILITY_LOG_FILE')
+    observability_log_level: str = Field(default='INFO', validation_alias='ASTRA_LOG_LEVEL')
     
     
 class AstraContext:

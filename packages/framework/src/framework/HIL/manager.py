@@ -255,16 +255,16 @@ class HILManager:
             run_id=run_id,
             event_type="run.resumed",
             timestamp=datetime.now(),
-            data={"pause_reason": state.pause_reason.value}
+            data={"pause_reason": state.pause_reason.value if state.pause_reason else None}
         ))
         
         return ResumeResult(
             resumed=True,
             run_id=run_id,
             result={
-                "pause_reason": state.pause_reason.value,
+                "pause_reason": state.pause_reason.value if state.pause_reason else None,
                 "pause_data": state.pause_data,
-                "resume_data": resume_data.dict()
+                "resume_data": resume_data.model_dump()
             }
         )
         

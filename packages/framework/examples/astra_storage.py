@@ -41,6 +41,9 @@ async def main():
     # We can access storage directly to verify
     await storage.connect()
     
+    assert agent1.memory is not None
+    assert agent2.memory is not None
+    
     history1 = await agent1.memory.get_history(agent1.id)
     history2 = await agent2.memory.get_history(agent2.id)
     

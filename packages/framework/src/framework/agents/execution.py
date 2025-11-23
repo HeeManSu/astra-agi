@@ -151,12 +151,13 @@ async def stream_step(
     Yields:
         ModelResponse chunks
     """
-    async for chunk in model.stream(
+    stream_iter = model.stream(
         messages=context.messages,
         tools=context.converted_tools,
         temperature=context.temperature,
         max_tokens=context.max_tokens
-    ):
+    )
+    async for chunk in stream_iter:  # type: ignore[union-attr]
         yield chunk
 
 
@@ -284,8 +285,8 @@ async def execute_tool(
         )
     
     async def _execute_internal():
-        # Handle Tool object (from @tool decorator)
-        if hasattr(tool_def, "invoke") and callable(tool_def.invoke):
+        # Handle Tool object (from @tool decorator) - check this first
+        if not isinstance(tool_def, dict) and hasattr(tool_def, "invoke") and callable(tool_def.invoke):
             invoke_func = tool_def.invoke
             if inspect.iscoroutinefunction(invoke_func):
                 return await invoke_func(**arguments)

@@ -1,5 +1,8 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from ..storage.models import Message
+
+if TYPE_CHECKING:
+    from ..storage.memory import AgentMemory
 
 class ConversationManager:
     """

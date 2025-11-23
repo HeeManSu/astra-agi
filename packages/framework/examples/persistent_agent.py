@@ -39,6 +39,7 @@ async def main():
     print(f"Agent: {response}")
     
     # 4. Verify History
+    assert agent.memory is not None
     history = await agent.memory.get_history(agent.id)
     print(f"\nHistory in DB ({len(history)} messages):")
     for msg in history:

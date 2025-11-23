@@ -136,7 +136,7 @@ class Agent:
         self.max_retries: int = max_retries
         self.temperature: float = temperature
         self.max_tokens: int = max_tokens
-        self.stream: bool = stream
+        self.streaming_enabled: bool = stream
         self.context_window_size: int = context_window_size
         self.enable_summary: bool = enable_summary
         
@@ -211,8 +211,7 @@ class Agent:
             self._hil_initialized = True
             if self.storage:
                 try:
-                    from ..hil import HILManager
-                    from ..hil.state import RunStateStorage
+                    from ..HIL import HILManager, RunStateStorage  # type: ignore[import-untyped]
                     self._hil = HILManager(RunStateStorage(self.storage))
                 except ImportError:
                     # HIL module not available
@@ -334,9 +333,7 @@ class Agent:
             # Resume after external execution
             await agent.resume(run_id, result={"stdout": "success"})
         """
-        from ..hil import ResumeData
-        from ..hil.exceptions import HILNotEnabledError
-        from ..hil.models import PauseReason
+        from ..HIL import ResumeData, PauseReason, HILNotEnabledError  # type: ignore[import-untyped]
         
         if not self.hil:
             raise HILNotEnabledError("HIL not enabled (storage required)")
@@ -598,7 +595,7 @@ class Agent:
                 final_response = response
             
             # 5. Save interaction to storage if enabled
-            if self.memory:
+            if self.memory and self.storage:
                 # Ensure storage is connected
                 await self.storage.connect()
                 
@@ -772,7 +769,7 @@ class Agent:
             context.tool_results.extend(tool_results)
             
             # 5. Save interaction to storage if enabled
-            if self.memory:
+            if self.memory and self.storage:
                 print(f"DEBUG: Saving to memory for thread {self.id}")
                 # Ensure storage is connected
                 await self.storage.connect()

@@ -80,3 +80,7 @@ class AgentMemory:
     async def get_history(self, thread_id: str, limit: int = 100) -> List[Message]:
         """Get conversation history for a thread."""
         return await self.messages.get_by_thread(thread_id, limit=limit)
+    
+    async def get_message_count(self, thread_id: str) -> int:
+        """Get total count of messages in a thread."""
+        return await self.messages.count_by_thread(thread_id)

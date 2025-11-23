@@ -83,6 +83,8 @@ class Agent:
         temperature: float = 0.7,
         max_tokens: int = 4096,
         stream: bool = False,
+        context_window_size: int = 10,
+        enable_summary: bool = False,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -113,6 +115,10 @@ class Agent:
             temperature: Sampling temperature for model responses (default: 0.7, range: 0.0-2.0)
             max_tokens: Maximum tokens to generate per response (default: 4096)
             stream: Whether to stream responses by default (default: False)
+            context_window_size: Number of recent messages to keep in context (default: 10)
+                                 Higher = more context but more tokens
+            enable_summary: Whether to summarize old messages instead of dropping them (default: False)
+                           When True, messages beyond context_window_size are summarized
         """
         # Context will be injected by Astra or lazily initialized
         self._context: Optional[AstraContext] = None
@@ -131,6 +137,15 @@ class Agent:
         self.temperature: float = temperature
         self.max_tokens: int = max_tokens
         self.stream: bool = stream
+        self.context_window_size: int = context_window_size
+        self.enable_summary: bool = enable_summary
+        
+        # Conversation manager for short-term memory (context window management)
+        from .conversation import ConversationManager
+        self.conversation = ConversationManager(
+            max_messages=self.context_window_size,
+            enable_summary=self.enable_summary
+        )
         
         # Dynamic resources
         self.tools: List[Any] = tools or []
@@ -317,6 +332,7 @@ class Agent:
     async def invoke(
         self,
         messages: Union[str, List[Dict[str, str]]],
+        thread_id: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         **kwargs: Any
@@ -328,6 +344,8 @@ class Agent:
         
         Args:
             messages: User message(s) - can be string or list of message dicts
+            thread_id: Optional thread ID for conversation continuity
+                      If provided, loads recent context from storage
             temperature: Sampling temperature (uses agent default if not provided)
             max_tokens: Maximum tokens to generate (uses agent default if not provided)
             **kwargs: Additional options
@@ -338,6 +356,14 @@ class Agent:
             - tool_calls: List[Dict] - Tool calls if any
             - usage: Dict - Token usage
             - metadata: Dict - Additional metadata
+            
+        Example:
+            # Stateless (no context)
+            response = await agent.invoke("Hello")
+            
+            # Stateful (with context from previous turns)
+            response = await agent.invoke("Hello", thread_id="thread-123")
+            response = await agent.invoke("How are you?", thread_id="thread-123")
         """
         # Use instance defaults if not provided
         temperature = temperature if temperature is not None else self.temperature
@@ -349,45 +375,20 @@ class Agent:
         await self.startup()
         obs = self.context.observability
         
-        # Trace agent run
-        @obs.trace_agent_run(self.id)
-        async def _invoke_internal():
-            obs.logger.log_agent_start(
-                agent_id=self.id,
-                session_id=kwargs.get('session_id'),
-                request_id=kwargs.get('request_id')
-            )
-        """
-        Invoke agent and return complete response.
-        
-        Args:
-            messages: User message(s) - can be string or list of message dicts
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-            **kwargs: Additional options
-        
-        Returns:
-            Dict with:
-            - content: str - Generated response
-            - tool_calls: List[Dict] - Tool calls if any
-            - usage: Dict - Token usage
-            - metadata: Dict - Additional metadata
-        
-        Example:
-            ```python
-            response = await agent.invoke("What is the weather?")
-            print(response['content'])
-            ```
-        """
-        # Normalize messages
+        # Normalize messages to list format
         if isinstance(messages, str):
+            current_message = messages
             messages_list = [{"role": "user", "content": messages}]
         else:
             messages_list = messages
-        
-        # Ensure observability is initialized
-        await self.startup()
-        obs = self.context.observability
+            current_message = messages[-1].get("content", "") if messages else ""
+            
+        # Load conversation context if thread_id provided and storage available
+        # KEY OPTIMIZATION: Only load last N messages, not full history!
+        if thread_id and self.memory:
+            context_messages = await self.conversation.get_context(thread_id, self.memory)
+            # Prepend context to current messages
+            messages_list = context_messages + messages_list
         
         # Trace agent run
         @obs.trace_agent_run(self.id)
@@ -451,20 +452,19 @@ class Agent:
                 # Ensure storage is connected
                 await self.storage.connect()
                 
-                # Use agent ID as thread ID for now (or generate a session ID)
-                thread_id = self.id
+                # Use provided thread_id or fallback to agent ID
+                save_thread_id = thread_id or self.id
                 
-                # Save user message (first message)
-                user_content = messages_list[0]['content'] if messages_list else ""
+                # Save user message
                 await self.memory.add_message(
-                    thread_id=thread_id,
+                    thread_id=save_thread_id,
                     role="user",
-                    content=user_content
+                    content=current_message
                 )
                 
                 # Save assistant response
                 await self.memory.add_message(
-                    thread_id=thread_id,
+                    thread_id=save_thread_id,
                     role="assistant",
                     content=final_response.content or ""
                 )

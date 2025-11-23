@@ -59,3 +59,9 @@ class MessageStore(BaseStore[Message]):
             )
             for row in rows
         ]
+    
+    async def count_by_thread(self, thread_id: str) -> int:
+        """Count total messages in a thread."""
+        query = "SELECT COUNT(*) as count FROM messages WHERE thread_id = ?"
+        row = await self.storage.fetch_one(query, [thread_id])
+        return row['count'] if row else 0

@@ -29,7 +29,7 @@ from .manager import HILManager
 from .models import RunStatus, PauseReason, ResumeData, PauseResult
 from .state import RunState, RunStateStorage
 from .events import HILEvent, HILEventBus
-from .exceptions import SuspendExecution, HILError
+from .exceptions import SuspendExecution, HILError, HILNotEnabledError, InvalidResumeDataError, RunNotFoundError, RunNotPausedError
 
 __all__ = [
     "HILManager",
@@ -43,4 +43,8 @@ __all__ = [
     "HILEventBus",
     "SuspendExecution",
     "HILError",
+    "HILNotEnabledError",
+    "InvalidResumeDataError",
+    "RunNotFoundError",
+    "RunNotPausedError",
 ]

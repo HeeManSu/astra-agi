@@ -2,6 +2,8 @@
 HIL exceptions for execution control.
 """
 
+from typing import Optional
+
 class HILError(Exception):
     """Base exception for HIL errors."""
     pass
@@ -24,9 +26,9 @@ class SuspendExecution(HILError):
     def __init__(
         self, 
         message: str, 
-        schema: dict = None,
-        run_id: str = None,
-        tool_call_id: str = None
+        schema: Optional[dict] = None,
+        run_id: Optional[str] = None,
+        tool_call_id: Optional[str] = None
     ):
         self.message = message
         self.schema = schema or {}

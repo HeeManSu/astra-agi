@@ -6,7 +6,7 @@ Supports:
 - gemini-1.5-pro
 """
 import time
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, cast
 
 try:
     import google.generativeai as genai
@@ -52,13 +52,13 @@ class GeminiModel(Model):
         
         # Configure API key
         if api_key:
-            genai.configure(api_key=api_key)
+            genai.configure(api_key=api_key)  # type: ignore[attr-defined]
         else:
             # Try to get from environment
             import os
             env_key = os.getenv("GOOGLE_API_KEY")
             if env_key:
-                genai.configure(api_key=env_key)
+                genai.configure(api_key=env_key)  # type: ignore[attr-defined]
             # If no key found, genai might still work if configured globally elsewhere
             # or it will fail later when making calls, which is acceptable
         
@@ -83,7 +83,7 @@ class GeminiModel(Model):
         last_error = None
         for alt_model in alternatives:
             try:
-                self._model = genai.GenerativeModel(alt_model)
+                self._model = genai.GenerativeModel(alt_model)  # type: ignore[attr-defined]
                 # Update model_id to the working one
                 self.model_id = alt_model
                 break
@@ -146,7 +146,7 @@ class GeminiModel(Model):
             lambda: self._model.generate_content(
                 gemini_messages,
                 tools=gemini_tools,
-                generation_config=generation_config,
+                generation_config=cast(Any, generation_config),
                 **kwargs
             )
         )
@@ -219,7 +219,7 @@ class GeminiModel(Model):
             lambda: self._model.generate_content(
                 gemini_messages,
                 tools=gemini_tools,
-                generation_config=generation_config,
+                generation_config=cast(Any, generation_config),
                 stream=True,
                 **kwargs
             )

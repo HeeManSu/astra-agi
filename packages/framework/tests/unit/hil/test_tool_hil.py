@@ -19,7 +19,7 @@ def test_tool_external_execution():
     @tool(external_execution=True)
     def run_shell(command: str) -> str:
         """Run shell command."""
-        pass
+        return "executed"
     
     assert run_shell.external_execution is True
     assert run_shell.requires_approval is False
@@ -31,7 +31,7 @@ def test_tool_suspend_schema():
     @tool(suspend_schema={"otp": str, "amount": float})
     def verify_payment(amount: float) -> bool:
         """Verify payment."""
-        pass
+        return True
     
     assert verify_payment.suspend_schema == {"otp": str, "amount": float}
     assert verify_payment.requires_approval is False

@@ -36,6 +36,7 @@ async def test_thread_store_crud(storage):
     # Update
     await store.update(thread_id, title="Updated Title", metadata={"new": "data"})
     updated = await store.get(thread_id)
+    assert updated is not None
     assert updated.title == "Updated Title"
     assert updated.metadata == {"new": "data"} # Replaces metadata based on implementation? 
     # Implementation: updates.append("metadata = ?") -> params.append(json.dumps(metadata))

@@ -32,8 +32,10 @@ async def test_storage_queue_burst(tmp_path):
     mock_response.usage_metadata.candidates_token_count = 5
     
     # Trigger lazy init
-    _ = agent._model_instance
-    agent._model_instance._model.generate_content = MagicMock(return_value=mock_response)
+    model_instance = agent._model_instance
+    from framework.models.google.gemini import GeminiModel
+    assert isinstance(model_instance, GeminiModel)
+    model_instance._model.generate_content = MagicMock(return_value=mock_response)
     
     # Start agent (starts queue worker)
     await agent.startup()
@@ -46,6 +48,7 @@ async def test_storage_queue_burst(tmp_path):
     await asyncio.sleep(1.0)
     
     # Verify persistence
+    assert agent.memory is not None
     history = await agent.memory.get_history(agent.id, limit=200)
     
     # Should be 100 (50 user + 50 assistant)

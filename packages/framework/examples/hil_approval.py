@@ -33,7 +33,7 @@ def run_shell_command(command: str) -> str:
     Shell commands are dangerous and must be executed by humans.
     """
     # This will never execute - it's marked for external execution
-    pass
+    return "Executed externally"
 
 
 async def main():

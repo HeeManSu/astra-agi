@@ -1,8 +1,8 @@
 import pytest
 from datetime import datetime
-from framework.hil.manager import HILManager
-from framework.hil.models import RunStatus, PauseReason, ResumeData
-from framework.hil.state import RunState, RunStateStorage
+from framework.HIL.manager import HILManager
+from framework.HIL.models import RunStatus, PauseReason, ResumeData
+from framework.HIL.state import RunState, RunStateStorage
 from framework.storage import SQLiteStorage
 
 
@@ -47,11 +47,13 @@ async def test_hil_pause_for_approval(tmp_path):
     
     assert result.paused is True
     assert result.reason == PauseReason.APPROVAL
-    assert "delete_file" in result.message
+    assert result.message is not None and "delete_file" in result.message
     
     # Verify state
     state = await hil.storage.get(run_id)
+    assert state is not None
     assert state.status == RunStatus.PAUSED_APPROVAL
+    assert state.pause_data is not None
     assert state.pause_data["tool_call"] == tool_call
     
     await storage.disconnect()
@@ -78,6 +80,7 @@ async def test_hil_resume_approval(tmp_path):
     
     # Verify state
     state = await hil.storage.get(run_id)
+    assert state is not None
     assert state.status == RunStatus.RUNNING
     assert state.resumed_at is not None
     
@@ -104,6 +107,7 @@ async def test_hil_pause_for_external(tmp_path):
     
     # Verify state
     state = await hil.storage.get(run_id)
+    assert state is not None
     assert state.status == RunStatus.PAUSED_EXTERNAL
     
     await storage.disconnect()
@@ -112,7 +116,7 @@ async def test_hil_pause_for_external(tmp_path):
 @pytest.mark.asyncio
 async def test_hil_event_bus():
     """Test HIL event bus."""
-    from framework.hil.events import HILEventBus, HILEvent
+    from framework.HIL.events import HILEventBus, HILEvent
     
     bus = HILEventBus()
     events_received = []

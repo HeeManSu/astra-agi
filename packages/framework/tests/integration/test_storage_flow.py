@@ -34,8 +34,13 @@ async def test_storage_persistence_flow(tmp_path):
     
     # We need to mock the internal model instance which is created lazily
     # Accessing _model_instance triggers creation
-    _ = agent._model_instance
-    agent._model_instance._model.generate_content = MagicMock(return_value=mock_response)
+    # We need to mock the internal model instance which is created lazily
+    # Accessing _model_instance triggers creation
+    model_instance = agent._model_instance
+    # Type check for static analysis
+    from framework.models.google.gemini import GeminiModel
+    assert isinstance(model_instance, GeminiModel)
+    model_instance._model.generate_content = MagicMock(return_value=mock_response)
     
     # Invoke agent
     await agent.invoke("Hello, save this message!")
@@ -44,6 +49,7 @@ async def test_storage_persistence_flow(tmp_path):
     await asyncio.sleep(1.0)
     
     # Verify persistence
+    assert agent.memory is not None
     history = await agent.memory.get_history(agent.id)
     assert len(history) == 2
     assert history[0].content == "Hello, save this message!"

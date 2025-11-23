@@ -4,9 +4,12 @@ HIL run state management and persistence.
 
 import json
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING, List
 from pydantic import BaseModel
 from .models import RunStatus, PauseReason
+
+if TYPE_CHECKING:
+    from ..storage.base import StorageBackend
 
 
 class RunState(BaseModel):
@@ -139,7 +142,9 @@ class RunStateStorage:
         self,
         run_id: str,
         status: RunStatus,
-        **kwargs
+        paused_at: Optional[datetime] = None,
+        resumed_at: Optional[datetime] = None,
+        completed_at: Optional[datetime] = None,
     ) -> None:
         """
         Update run status and optional fields.
@@ -147,26 +152,28 @@ class RunStateStorage:
         Args:
             run_id: Run ID to update
             status: New status
-            **kwargs: Additional fields to update (paused_at, resumed_at, etc.)
+            paused_at: Optional pause timestamp
+            resumed_at: Optional resume timestamp
+            completed_at: Optional completion timestamp
         """
         await self.initialize_schema()
         
         # Build dynamic update query
         updates = ["status = ?"]
-        params = [status.value]
+        params: List[Any] = [status.value]
         
-        if 'paused_at' in kwargs:
+        if paused_at is not None:
             updates.append("paused_at = ?")
-            params.append(kwargs['paused_at'].isoformat() if kwargs['paused_at'] else None)
+            params.append(paused_at.isoformat())
             
-        if 'resumed_at' in kwargs:
+        if resumed_at is not None:
             updates.append("resumed_at = ?")
-            params.append(kwargs['resumed_at'].isoformat() if kwargs['resumed_at'] else None)
+            params.append(resumed_at.isoformat())
             
-        if 'completed_at' in kwargs:
+        if completed_at is not None:
             updates.append("completed_at = ?")
-            params.append(kwargs['completed_at'].isoformat() if kwargs['completed_at'] else None)
-            
+            params.append(completed_at.isoformat())
+        
         params.append(run_id)
         
         query = f"UPDATE run_states SET {', '.join(updates)} WHERE run_id = ?"

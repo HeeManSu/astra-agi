@@ -164,6 +164,9 @@ class Tool:
         description: Tool description (from docstring)
         parameters: JSON Schema parameters definition
         invoke: The actual function to call
+        requires_approval: Whether tool requires human approval (HIL)
+        suspend_schema: Schema for suspension data (HIL)
+        external_execution: Whether tool must be executed externally (HIL)
     """
     
     def __init__(
@@ -171,12 +174,19 @@ class Tool:
         name: str,
         description: str,
         parameters: Dict[str, Any],
-        invoke: Callable
+        invoke: Callable,
+        requires_approval: bool = False,
+        suspend_schema: Optional[Dict[str, Any]] = None,
+        external_execution: bool = False
     ):
         self.name = name
         self.description = description
         self.parameters = parameters
         self.invoke = invoke
+        # HIL metadata
+        self.requires_approval = requires_approval
+        self.suspend_schema = suspend_schema
+        self.external_execution = external_execution
     
     def __call__(self, *args, **kwargs):
         """Allow tool to be called directly."""
@@ -187,7 +197,10 @@ def tool(
     func: Optional[Callable] = None,
     *,
     name: Optional[str] = None,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    requires_approval: bool = False,
+    suspend_schema: Optional[Dict[str, Any]] = None,
+    external_execution: bool = False
 ) -> Any:
     """
     Decorator to convert a function into a Tool that can be used by an agent.
@@ -207,11 +220,26 @@ def tool(
         async def async_tool(text: str) -> str:
             \"\"\"Async tool example.\"\"\"
             return text.upper()
+        
+        # HIL: Require approval before execution
+        @tool(requires_approval=True)
+        def delete_file(path: str) -> None:
+            \"\"\"Delete a file (requires approval).\"\"\"
+            os.remove(path)
+        
+        # HIL: External execution (not executed by agent)
+        @tool(external_execution=True)
+        def run_shell(command: str) -> str:
+            \"\"\"Run shell command (executed externally).\"\"\"
+            pass
     
     Args:
         func: Function to decorate (when used as @tool)
         name: Optional override for tool name
         description: Optional override for tool description
+        requires_approval: If True, requires human approval before execution (HIL)
+        suspend_schema: Schema for data needed during suspension (HIL)
+        external_execution: If True, tool must be executed externally (HIL)
     
     Returns:
         Tool object that can be passed to agents
@@ -268,7 +296,10 @@ def tool(
             name=tool_name,
             description=tool_description,
             parameters=parameters_schema,
-            invoke=wrapper  # Use wrapped function for better error handling
+            invoke=wrapper,  # Use wrapped function for better error handling
+            requires_approval=requires_approval,
+            suspend_schema=suspend_schema,
+            external_execution=external_execution
         )
     
     # Handle both @tool and @tool() cases

@@ -79,7 +79,10 @@ class Agent:
         tools: Optional[List[Any]] = None,
         storage: Optional[Any] = None,
         knowledge: Optional[Any] = None,
-        max_retries: int = 0,
+        max_retries: int = 3,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        stream: bool = False,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -104,9 +107,12 @@ class Agent:
             id: Optional agent ID (auto-generated if not provided)
             description: Optional agent description
             tools: Optional list of tools
-            storage: Optional storage backend (e.g., PostgresStorage)
+            storage: Optional storage backend (e.g., SQLiteStorage)
             knowledge: Optional knowledge base (e.g., PDFKnowledgeBase)
-            max_retries: Maximum retry attempts (default: 0)
+            max_retries: Maximum retry attempts for failed requests (default: 3)
+            temperature: Sampling temperature for model responses (default: 0.7, range: 0.0-2.0)
+            max_tokens: Maximum tokens to generate per response (default: 4096)
+            stream: Whether to stream responses by default (default: False)
         """
         # Context will be injected by Astra or lazily initialized
         self._context: Optional[AstraContext] = None
@@ -122,6 +128,9 @@ class Agent:
         # Optional properties
         self.description: Optional[str] = description
         self.max_retries: int = max_retries
+        self.temperature: float = temperature
+        self.max_tokens: int = max_tokens
+        self.stream: bool = stream
         
         # Dynamic resources
         self.tools: List[Any] = tools or []
@@ -308,7 +317,7 @@ class Agent:
     async def invoke(
         self,
         messages: Union[str, List[Dict[str, str]]],
-        temperature: float = 0.7,
+        temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         **kwargs: Any
     ) -> Dict[str, Any]:
@@ -316,7 +325,24 @@ class Agent:
         Invoke agent with tracing and metrics.
         
         This method is automatically traced and metrics are recorded.
+        
+        Args:
+            messages: User message(s) - can be string or list of message dicts
+            temperature: Sampling temperature (uses agent default if not provided)
+            max_tokens: Maximum tokens to generate (uses agent default if not provided)
+            **kwargs: Additional options
+        
+        Returns:
+            Dict with:
+            - content: str - Generated response
+            - tool_calls: List[Dict] - Tool calls if any
+            - usage: Dict - Token usage
+            - metadata: Dict - Additional metadata
         """
+        # Use instance defaults if not provided
+        temperature = temperature if temperature is not None else self.temperature
+        max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+        
         start_time = time.perf_counter()
         
         # Ensure observability is initialized
@@ -483,7 +509,7 @@ class Agent:
     async def stream(
         self,
         messages: Union[str, List[Dict[str, str]]],
-        temperature: float = 0.7,
+        temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         **kwargs: Any
     ) -> AsyncIterator[Dict[str, Any]]:
@@ -492,8 +518,8 @@ class Agent:
         
         Args:
             messages: User message(s) - can be string or list of message dicts
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (uses agent default if not provided)
+            max_tokens: Maximum tokens to generate (uses agent default if not provided)
             **kwargs: Additional options
         
         Yields:
@@ -509,6 +535,10 @@ class Agent:
                 print(chunk['content'], end='', flush=True)
             ```
         """
+        # Use instance defaults if not provided
+        temperature = temperature if temperature is not None else self.temperature
+        max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+        
         # Normalize messages
         if isinstance(messages, str):
             messages_list = [{"role": "user", "content": messages}]

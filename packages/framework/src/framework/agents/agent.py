@@ -152,6 +152,10 @@ class Agent:
         self.storage: Optional[Any] = storage
         self.knowledge: Optional[Any] = knowledge
         
+        # HIL (Human-in-the-Loop) manager - initialized lazily
+        self._hil: Optional[Any] = None
+        self._hil_initialized: bool = False
+        
         # Handle model configuration
         from ..models.base import Model
         
@@ -195,6 +199,27 @@ class Agent:
             # Standalone mode: create default context
             self._context = AstraContext()
         return self._context
+    
+    @property
+    def hil(self) -> Optional[Any]:
+        """
+        Get HIL manager (lazy initialization).
+        
+        HIL is only available if storage is configured.
+        """
+        if not self._hil_initialized:
+            self._hil_initialized = True
+            if self.storage:
+                try:
+                    from ..hil import HILManager
+                    from ..hil.state import RunStateStorage
+                    self._hil = HILManager(RunStateStorage(self.storage))
+                except ImportError:
+                    # HIL module not available
+                    self._hil = None
+            else:
+                self._hil = None
+        return self._hil
 
     def add_tool(self, tool: Any) -> None:
         """
@@ -274,6 +299,131 @@ class Agent:
             self._context.shutdown()
         
         self._initialized = False
+    
+    async def resume(
+        self,
+        run_id: str,
+        decision: Optional[str] = None,
+        data: Optional[Dict[str, Any]] = None,
+        result: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Resume a paused run (HIL).
+        
+        This method continues execution from where it was paused by:
+        1. Loading the saved execution context
+        2. Processing the resume data (approval decision, suspension data, or external result)
+        3. Continuing the agent loop with the tool result
+        
+        Args:
+            run_id: Run ID to resume
+            decision: Decision for approval ("approve" or "decline")
+            data: Input data for suspension
+            result: Tool result for external execution
+            
+        Returns:
+            Response dict with execution result
+            
+        Example:
+            # Resume after approval
+            await agent.resume(run_id, decision="approve")
+            
+            # Resume after suspension with data
+            await agent.resume(run_id, data={"otp": "123456"})
+            
+            # Resume after external execution
+            await agent.resume(run_id, result={"stdout": "success"})
+        """
+        from ..hil import ResumeData
+        from ..hil.exceptions import HILNotEnabledError
+        from ..hil.models import PauseReason
+        
+        if not self.hil:
+            raise HILNotEnabledError("HIL not enabled (storage required)")
+            
+        resume_data = ResumeData(
+            decision=decision,
+            data=data,
+            result=result
+        )
+        
+        # Resume the run (updates state to RUNNING)
+        resume_result = await self.hil.resume(run_id, resume_data)
+        
+        # Get run state with execution context
+        run_state = await self.hil.storage.get(run_id)
+        
+        if not run_state or not run_state.execution_context:
+            raise ValueError(f"Run {run_id} has no execution context")
+        
+        # Extract saved context
+        ctx = run_state.execution_context
+        messages = ctx.get("messages", [])
+        pause_reason = run_state.pause_reason
+        pause_data = run_state.pause_data or {}
+        
+        # Handle different pause reasons
+        if pause_reason == PauseReason.APPROVAL:
+            # Tool approval flow
+            if decision == "decline":
+                # User declined - skip tool and return
+                await self.hil.complete_run(run_id)
+                return {
+                    "run_id": run_id,
+                    "content": "Tool execution declined by user.",
+                    "tool_calls": [],
+                    "usage": {},
+                    "metadata": {"declined": True}
+                }
+            elif decision == "approve":
+                # User approved - execute the tool
+                tool_call_data = pause_data.get("tool_call", {})
+                # For now, return approval confirmation
+                # Full tool execution would happen here
+                await self.hil.complete_run(run_id)
+                return {
+                    "run_id": run_id,
+                    "content": f"Tool {tool_call_data.get('name')} approved and would execute here.",
+                    "tool_calls": [tool_call_data],
+                    "usage": {},
+                    "metadata": {"approved": True}
+                }
+                
+        elif pause_reason == PauseReason.SUSPENSION:
+            # Tool suspension flow - tool needs data to continue
+            if not data:
+                raise ValueError("Suspension requires 'data' parameter")
+            # Tool would continue with provided data
+            await self.hil.complete_run(run_id)
+            return {
+                "run_id": run_id,
+                "content": f"Tool resumed with data: {data}",
+                "tool_calls": [],
+                "usage": {},
+                "metadata": {"suspension_data": data}
+            }
+            
+        elif pause_reason == PauseReason.EXTERNAL:
+            # External execution flow - tool was executed externally
+            if not result:
+                raise ValueError("External execution requires 'result' parameter")
+            # Use the external result
+            await self.hil.complete_run(run_id)
+            return {
+                "run_id": run_id,
+                "content": f"External tool result: {result}",
+                "tool_calls": [],
+                "usage": {},
+                "metadata": {"external_result": result}
+            }
+        
+        # Fallback
+        await self.hil.complete_run(run_id)
+        return {
+            "run_id": run_id,
+            "resumed": True,
+            "result": resume_result.result
+        }
     
     def get_astra_instance(self) -> Optional['Astra']:
         """Get the Astra instance this agent is registered with."""

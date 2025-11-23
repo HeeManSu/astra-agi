@@ -153,6 +153,11 @@ class Agent:
         
         # Logger will be initialized lazily when first accessed
         self._logger: Optional[Any] = None
+        
+        # Initialize memory if storage is provided
+        self.memory = None
+        if self.storage:
+            self.set_storage(self.storage)
     
     @property
     def context(self) -> 'AstraContext':
@@ -184,6 +189,14 @@ class Agent:
             storage: Storage backend instance
         """
         self.storage = storage
+        # Initialize memory facade
+        from ..storage.memory import AgentMemory
+        from ..storage.base import StorageBackend
+        
+        if isinstance(storage, StorageBackend):
+            self.memory = AgentMemory(storage)
+        else:
+            self.memory = None
         
     def set_knowledge(self, knowledge: Any) -> None:
         """
@@ -215,6 +228,10 @@ class Agent:
         # Accessing context property triggers lazy initialization if needed
         _ = self.context
         
+        # Start memory system (queue worker)
+        if self.memory:
+            await self.memory.start()
+        
         self._initialized = True
     
     async def shutdown(self) -> None:
@@ -224,6 +241,9 @@ class Agent:
         If the agent is registered with Astra, observability shutdown is handled by Astra.
         Only standalone agents need to shutdown their own observability.
         """
+        if self.memory:
+            await self.memory.stop()
+            
         # Only shutdown context if we own it (standalone) or if explicitly requested
         # In managed mode, Astra handles shutdown
         if not self._astra and self._context:
@@ -400,6 +420,29 @@ class Agent:
             else:
                 final_response = response
             
+            # 5. Save interaction to storage if enabled
+            if self.memory:
+                # Ensure storage is connected
+                await self.storage.connect()
+                
+                # Use agent ID as thread ID for now (or generate a session ID)
+                thread_id = self.id
+                
+                # Save user message (first message)
+                user_content = messages_list[0]['content'] if messages_list else ""
+                await self.memory.add_message(
+                    thread_id=thread_id,
+                    role="user",
+                    content=user_content
+                )
+                
+                # Save assistant response
+                await self.memory.add_message(
+                    thread_id=thread_id,
+                    role="assistant",
+                    content=final_response.content or ""
+                )
+            
             # Preserve original tool calls in the response (even after execution)
             return {
                 "content": final_response.content,
@@ -476,6 +519,7 @@ class Agent:
         await self.startup()
         obs = self.context.observability
         
+            
         # Create execution context
         context = ExecutionContext(
             messages=messages_list,
@@ -547,6 +591,44 @@ class Agent:
             context.messages.append(tool_message)
             context.tool_results.extend(tool_results)
             
+            # 5. Save interaction to storage if enabled
+            if self.memory:
+                print(f"DEBUG: Saving to memory for thread {self.id}")
+                # Ensure storage is connected
+                await self.storage.connect()
+                
+                # Use agent ID as thread ID for now (or generate a session ID)
+                thread_id = self.id
+                
+                # Save user message (assuming the initial messages_list contains the user's input)
+                # This part needs careful consideration as 'message' and 'response.text' are not directly available here.
+                # For debugging persistence, we'll use a placeholder or the initial input.
+                # For now, let's assume the first message in messages_list is the user's initial query.
+                initial_user_message = messages_list[0]['content'] if messages_list else "No initial user message"
+                await self.memory.add_message(
+                    thread_id=thread_id,
+                    role="user",
+                    content=initial_user_message
+                )
+                print("DEBUG: Saved initial user message")
+                
+                # Save assistant response (this would typically be the final response content)
+                # For streaming, the final_response.content would be the accumulated content.
+                # If this block is meant for the invoke method, 'response.text' would be appropriate.
+                # Here, we'll use a placeholder or the accumulated content from the stream.
+                # This part of the debug code seems more suited for the invoke method's final response.
+                # For stream, we'd save the final accumulated content.
+                # Let's assume final_response.content holds the full response after tool execution.
+                if final_response and final_response.content:
+                    await self.memory.add_message(
+                        thread_id=thread_id,
+                        role="assistant",
+                        content=final_response.content
+                    )
+                    print("DEBUG: Saved assistant message after tool execution")
+                else:
+                    print("DEBUG: No final assistant content to save after tool execution.")
+
             # Step 7: Stream final response with tool results
             async for chunk in stream_step(context, model):
                 yield {

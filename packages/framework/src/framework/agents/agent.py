@@ -309,6 +309,35 @@ class Agent:
         # Accessing context property triggers lazy initialization if needed
         _ = self.context
         
+        # Initialize MCP tools if present
+        # We iterate through tools to find MCPTools instances
+        # and replace them with the actual tools they provide
+        new_tools = []
+        mcp_initialized = False
+        
+        for tool in self.tools:
+            # Check if it's an MCPTools instance (using class name check to avoid import if possible, or import inside)
+            if hasattr(tool, 'initialize') and hasattr(tool, '_detect_collisions'):
+                # It's likely MCPTools
+                try:
+                    # Get existing tool names for collision detection
+                    existing_names = [t.name for t in new_tools if hasattr(t, 'name')]
+                    
+                    # Initialize and get tools
+                    mcp_tools = await tool.initialize(existing_names)
+                    new_tools.extend(mcp_tools)
+                    mcp_initialized = True
+                except Exception as e:
+                    self.logger.error(f"Failed to initialize MCP tool: {e}")
+                    # Keep the original object if initialization fails? Or skip?
+                    # Skipping prevents broken tools from blocking agent
+                    pass
+            else:
+                new_tools.append(tool)
+        
+        if mcp_initialized:
+            self.tools = new_tools
+            
         # Start memory system (queue worker)
         if self.memory:
             await self.memory.start()

@@ -87,6 +87,7 @@ class Agent:
         enable_summary: bool = False,
         input_middlewares: Optional[Union[List[Any], 'Callable']] = None,
         output_middlewares: Optional[Union[List[Any], 'Callable']] = None,
+        guardrails: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -154,9 +155,31 @@ class Agent:
         self.storage: Optional[Any] = storage
         self.knowledge: Optional[Any] = knowledge
         
-        # Middlewares (can be static list or callable for dynamic resolution)
-        self._input_middlewares = input_middlewares
-        self._output_middlewares = output_middlewares
+        # Process guardrails (convenience API)
+        # Guardrails can be specified via 'guardrails' dict OR 'input_middlewares'/'output_middlewares'
+        if guardrails:
+            input_guards = guardrails.get('input', [])
+            output_guards = guardrails.get('output', [])
+            schema_guard = guardrails.get('schema')
+            
+            # Combine with existing middlewares
+            input_list = input_middlewares if isinstance(input_middlewares, list) else (input_middlewares or [])
+            output_list = output_middlewares if isinstance(output_middlewares, list) else (output_middlewares or [])
+            
+            # Add guardrails to middleware lists
+            if isinstance(input_guards, list):
+                input_list = input_guards + (input_list if isinstance(input_list, list) else [])
+            if isinstance(output_guards, list):
+                output_list = output_guards + (output_list if isinstance(output_list, list) else [])
+            if schema_guard:
+                output_list = (output_list if isinstance(output_list, list) else []) + [schema_guard]
+            
+            self._input_middlewares = input_list if input_list else input_middlewares
+            self._output_middlewares = output_list if output_list else output_middlewares
+        else:
+            # Middlewares (can be static list or callable for dynamic resolution)
+            self._input_middlewares = input_middlewares
+            self._output_middlewares = output_middlewares
         
         # HIL (Human-in-the-Loop) manager - initialized lazily
         self._hil: Optional[Any] = None
@@ -365,12 +388,24 @@ class Agent:
             try:
                 current_messages = await middleware.process(current_messages, context)
             except MiddlewareError as e:
-                # Log and re-raise middleware errors
-                self.logger.error(
-                    f"Input middleware {type(middleware).__name__} failed",
-                    error=str(e),
-                    middleware=type(middleware).__name__
-                )
+                # Check if this is a guardrail violation (special logging)
+                from ..guardrails.exceptions import GuardrailError
+                
+                if isinstance(e, GuardrailError):
+                    self.logger.error(
+                        f"🛡️ GUARDRAIL VIOLATION: {type(middleware).__name__}",
+                        error=str(e),
+                        middleware=type(middleware).__name__,
+                        guardrail_type="input",
+                        violation_type=type(e).__name__
+                    )
+                else:
+                    # Log regular middleware errors
+                    self.logger.error(
+                        f"Input middleware {type(middleware).__name__} failed",
+                        error=str(e),
+                        middleware=type(middleware).__name__
+                    )
                 raise
             except Exception as e:
                 # Log unexpected errors
@@ -418,12 +453,24 @@ class Agent:
             try:
                 current_output = await middleware.process(current_output, context)
             except MiddlewareError as e:
-                # Log and re-raise middleware errors
-                self.logger.error(
-                    f"Output middleware {type(middleware).__name__} failed",
-                    error=str(e),
-                    middleware=type(middleware).__name__
-                )
+                # Check if this is a guardrail violation (special logging)
+                from ..guardrails.exceptions import GuardrailError
+                
+                if isinstance(e, GuardrailError):
+                    self.logger.error(
+                        f"🛡️ GUARDRAIL VIOLATION: {type(middleware).__name__}",
+                        error=str(e),
+                        middleware=type(middleware).__name__,
+                        guardrail_type="output",
+                        violation_type=type(e).__name__
+                    )
+                else:
+                    # Log regular middleware errors
+                    self.logger.error(
+                        f"Output middleware {type(middleware).__name__} failed",
+                        error=str(e),
+                        middleware=type(middleware).__name__
+                    )
                 raise
             except Exception as e:
                 # Log unexpected errors

@@ -23,13 +23,4 @@ def test_tool_schema_generation_benchmark(benchmark):
     
     benchmark(create_tool)
 
-@pytest.mark.benchmark
-def test_astra_add_agent_benchmark(benchmark):
-    """Benchmark adding agent to Astra (context injection overhead)."""
-    astra = Astra(agents=[])
-    
-    def add_agent():
-        agent = Agent(name="Bench", instructions="Test", model="google/gemini-1.5-flash")
-        astra.add_agent(agent)
-        
-    benchmark(add_agent)
+

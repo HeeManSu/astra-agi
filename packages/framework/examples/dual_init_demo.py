@@ -25,33 +25,43 @@ async def main():
     print(f"Created: {agent1}")
     print(f"Context initialized? {agent1._initialized}")  # False until invoked
     
-    print("\n=== Pattern 2: Managed System (The 'Enterprise') ===")
-    # Centralized management with shared resources
+    print("\n=== Pattern 2: Shared Infrastructure (The 'Enterprise') ===")
+    # Initialize global infrastructure
+    astra = Astra()
+    
+    # Create shared resources
     storage = MockStorage()
     knowledge = MockKnowledge()
     
-    # Define agents
-    agent2 = Agent(name="Researcher", model=Gemini("1.5-pro"))
-    agent3 = Agent(name="Writer", model=Gemini("1.5-flash"))
-    
-    # Initialize Astra with agents and global resources
-    astra = Astra(
-        agents=[agent2, agent3],
+    # Define agents with shared resources
+    agent2 = Agent(
+        name="Researcher", 
+        model=Gemini("1.5-pro"),
         storage=storage,
         knowledge=knowledge
     )
     
-    print(f"Astra initialized with {len(astra.list_agents())} agents")
-    print(f"Agent 2 storage: {agent2.storage}")  # Injected automatically
-    print(f"Agent 3 knowledge: {agent3.knowledge}")  # Injected automatically
+    agent3 = Agent(
+        name="Writer", 
+        model=Gemini("1.5-flash"),
+        storage=storage
+    )
+    
+    # Manually share context (optional, but good for shared observability)
+    agent2.set_context(astra.context)
+    agent3.set_context(astra.context)
+    
+    print(f"Astra initialized: {astra}")
+    print(f"Agent 2 storage: {agent2.storage}")
+    print(f"Agent 3 storage: {agent3.storage}")
     
     print("\n=== Pattern 3: Dynamic Addition ===")
     # Add a new agent later
     agent4 = Agent(name="Analyst", model=Gemini("1.5-flash"))
-    print(f"Agent 4 before add: storage={agent4.storage}")
     
-    astra.add_agent(agent4)
-    print(f"Agent 4 after add: storage={agent4.storage}")  # Injected!
+    # Share context
+    agent4.set_context(astra.context)
+    print(f"Agent 4 context shared: {agent4.context}")
 
 if __name__ == "__main__":
     asyncio.run(main())

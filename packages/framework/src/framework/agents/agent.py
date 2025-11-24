@@ -14,10 +14,7 @@ Initialization Scenarios:
    - Creates own AstraContext with observability
    - Suitable for single-agent applications
    
-2. Managed: Astra.add_agent(Agent(...))
-   - Shares AstraContext from Astra orchestrator
-   - Suitable for multi-agent systems
-   - Avoids resource duplication
+
 
 Example:
     # Standalone agent
@@ -126,7 +123,7 @@ class Agent:
         """
         # Context will be injected by Astra or lazily initialized
         self._context: Optional[AstraContext] = None
-        self._astra: Optional['Astra'] = None
+
         self._initialized = False
         
         # Set required properties
@@ -356,7 +353,7 @@ class Agent:
             
         # Only shutdown context if we own it (standalone) or if explicitly requested
         # In managed mode, Astra handles shutdown
-        if not self._astra and self._context:
+        if self._context:
             self._context.shutdown()
         
         self._initialized = False
@@ -638,18 +635,6 @@ class Agent:
             "resumed": True,
             "result": resume_result.result
         }
-    
-    def get_astra_instance(self) -> Optional['Astra']:
-        """Get the Astra instance this agent is registered with."""
-        return self._astra
-    
-    def _register_astra(self, astra_instance: 'Astra') -> None:
-        """
-        Register this agent with an Astra instance.
-        Called internally by Astra when agent is added.
-        """
-        self._astra = astra_instance
-        # Context injection is now handled by set_context called by Astra
     
     @property
     def logger(self) -> Any:

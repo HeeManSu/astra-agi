@@ -48,7 +48,7 @@ async def test_prompt_injection_custom_patterns():
 async def test_json_schema_validation():
     """Test JSON schema validation."""
     try:
-        import jsonschema
+        import jsonschema  # type: ignore[import-untyped]
         
         schema = {
             "type": "object",
@@ -85,7 +85,7 @@ async def test_json_schema_validation():
 async def test_output_schema_enforcer():
     """Test output schema enforcer with JSON extraction."""
     try:
-        import jsonschema
+        import jsonschema  # type: ignore[import-untyped]
         
         schema = {
             "type": "object",
@@ -123,7 +123,7 @@ async def test_guardrail_inheritance():
     
     # SchemaGuardrail should be an OutputMiddleware
     try:
-        import jsonschema
+        import jsonschema  # type: ignore[import-untyped]
         schema_guardrail = JSONSchemaGuardrail(schema={"type": "object"})
         assert isinstance(schema_guardrail, OutputMiddleware)
     except ImportError:

@@ -27,38 +27,28 @@ class TestAstra:
     def test_initialization(self):
         """Test Astra initialization."""
         with patch('framework.astra.AstraContext') as mock_context_cls:
-            astra = Astra(agents=[])
+            astra = Astra()
             assert astra.context is not None
             mock_context_cls.assert_called_once()
 
-    def test_add_agent_injection(self):
-        """Test that adding an agent injects the context."""
+    def test_shared_context_usage(self):
+        """Test that agents can share Astra context."""
         with patch('framework.astra.AstraContext') as mock_context_cls:
             # Setup mocks
             mock_context = MagicMock()
             mock_context_cls.return_value = mock_context
             
-            astra = Astra(agents=[])
+            # Initialize global infra
+            astra = Astra()
+            
+            # Create agent
             agent = Agent(name="Test", instructions="Test", model="google/gemini-1.5-flash")
             
             # Verify agent has no context initially (or lazy default)
             assert agent._context is None
             
-            # Add agent
-            astra.add_agent(agent)
+            # Manually share context
+            agent.set_context(astra.context)
             
             # Verify context was injected
             assert agent.context is mock_context
-            assert agent in astra.list_agents()
-
-    def test_get_agent(self):
-        """Test retrieving agents."""
-        with patch('framework.astra.AstraContext'):
-            agent = Agent(id="agent-1", name="Test", instructions="Test", model="google/gemini-1.5-flash")
-            astra = Astra(agents=[agent])
-            
-            retrieved = astra.get_agent("agent-1")
-            assert retrieved is agent
-            
-            with pytest.raises(ValueError):
-                astra.get_agent("non-existent")

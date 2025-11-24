@@ -74,7 +74,15 @@ class Model(ABC):
         return self.__class__.__module__.split('.')[-1] if '.' in self.__class__.__module__ else 'unknown'    
     
     @abstractmethod
-    async def invoke(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None, **kwargs: Any) -> ModelResponse:
+    async def invoke(
+        self,
+        messages: List[Dict[str, str]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        response_format: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
+    ) -> ModelResponse:
         """
         Invoke the model with messages and return complete response.
         
@@ -83,6 +91,7 @@ class Model(ABC):
             tools: Optional list of tool definitions
             temperature: Sampling temperature (0.0-1.0)
             max_tokens: Maximum tokens to generate
+            response_format: Optional response format specification (for structured outputs)
             **kwargs: Additional provider-specific parameters
             
         Returns:
@@ -105,6 +114,7 @@ class Model(ABC):
         tools: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        response_format: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> AsyncIterator[ModelResponse]:
         """
@@ -115,6 +125,7 @@ class Model(ABC):
             tools: Optional list of tool definitions
             temperature: Sampling temperature (0.0-1.0)
             max_tokens: Maximum tokens to generate
+            response_format: Optional response format specification (for structured outputs)
             **kwargs: Additional provider-specific parameters
         
         Yields:

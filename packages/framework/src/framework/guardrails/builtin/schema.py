@@ -8,7 +8,7 @@ import json
 from typing import Any, Dict, Type, Optional
 
 try:
-    import jsonschema
+    import jsonschema  # type: ignore[import-untyped]
     HAS_JSONSCHEMA = True
 except ImportError:
     HAS_JSONSCHEMA = False

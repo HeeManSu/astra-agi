@@ -105,6 +105,7 @@ class GeminiModel(Model):
         tools: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        response_format: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> ModelResponse:
         """
@@ -126,11 +127,17 @@ class GeminiModel(Model):
         gemini_messages = self._convert_messages(messages)
         
         # Prepare generation config
-        generation_config = {
+        generation_config: Dict[str, Any] = {
             "temperature": temperature,
         }
         if max_tokens:
             generation_config["max_output_tokens"] = max_tokens
+        
+        # Add response_format if provided (for structured outputs)
+        if response_format:
+            generation_config["response_mime_type"] = "application/json"  # type: ignore[assignment]
+            if "json_schema" in response_format:
+                generation_config["response_schema"] = response_format["json_schema"]  # type: ignore[assignment]
         
         # Convert tools to Gemini format if provided
         gemini_tools = None
@@ -181,6 +188,7 @@ class GeminiModel(Model):
         tools: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        response_format: Optional[Dict[str, Any]] = None,
         **kwargs: Any
     ) -> AsyncIterator[ModelResponse]:
         """
@@ -200,11 +208,17 @@ class GeminiModel(Model):
         gemini_messages = self._convert_messages(messages)
         
         # Prepare generation config
-        generation_config = {
+        generation_config: Dict[str, Any] = {
             "temperature": temperature,
         }
         if max_tokens:
             generation_config["max_output_tokens"] = max_tokens
+        
+        # Add response_format if provided (for structured outputs)
+        if response_format:
+            generation_config["response_mime_type"] = "application/json"  # type: ignore[assignment]
+            if "json_schema" in response_format:
+                generation_config["response_schema"] = response_format["json_schema"]  # type: ignore[assignment]
         
         # Convert tools to Gemini format if provided
         gemini_tools = None

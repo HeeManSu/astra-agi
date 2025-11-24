@@ -88,6 +88,7 @@ class Agent:
         input_middlewares: Optional[Union[List[Any], 'Callable']] = None,
         output_middlewares: Optional[Union[List[Any], 'Callable']] = None,
         guardrails: Optional[Dict[str, Any]] = None,
+        output_format: Optional[Any] = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -180,6 +181,9 @@ class Agent:
             # Middlewares (can be static list or callable for dynamic resolution)
             self._input_middlewares = input_middlewares
             self._output_middlewares = output_middlewares
+        
+        # Output format for structured outputs
+        self.output_format: Optional[Any] = output_format
         
         # HIL (Human-in-the-Loop) manager - initialized lazily
         self._hil: Optional[Any] = None

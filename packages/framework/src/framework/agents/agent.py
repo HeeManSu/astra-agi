@@ -31,7 +31,7 @@ Example:
 """
 import time
 import uuid
-from typing import Any, AsyncIterator, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, AsyncIterator, Dict, List, Optional, Union, TYPE_CHECKING, Callable
 
 from ..astra import AstraContext
 from .types import ModelConfig
@@ -85,6 +85,8 @@ class Agent:
         stream: bool = False,
         context_window_size: int = 10,
         enable_summary: bool = False,
+        input_middlewares: Optional[Union[List[Any], 'Callable']] = None,
+        output_middlewares: Optional[Union[List[Any], 'Callable']] = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -151,6 +153,10 @@ class Agent:
         self.tools: List[Any] = tools or []
         self.storage: Optional[Any] = storage
         self.knowledge: Optional[Any] = knowledge
+        
+        # Middlewares (can be static list or callable for dynamic resolution)
+        self._input_middlewares = input_middlewares
+        self._output_middlewares = output_middlewares
         
         # HIL (Human-in-the-Loop) manager - initialized lazily
         self._hil: Optional[Any] = None
@@ -298,6 +304,137 @@ class Agent:
             self._context.shutdown()
         
         self._initialized = False
+    
+    def _resolve_middlewares(
+        self,
+        middlewares: Optional[Union[List[Any], Callable]],
+        context: Any
+    ) -> List[Any]:
+        """
+        Resolve middlewares (supports static list or callable).
+        
+        Args:
+            middlewares: Static list or callable that returns list
+            context: Middleware context for dynamic resolution
+            
+        Returns:
+            List of middleware instances
+        """
+        if middlewares is None:
+            return []
+        
+        # If callable, call it with context to get dynamic list
+        if callable(middlewares):
+            return middlewares(context)
+        
+        # Otherwise return static list
+        return middlewares
+    
+    async def _run_input_middlewares(
+        self,
+        messages: List[Dict[str, str]],
+        context: Any
+    ) -> List[Dict[str, str]]:
+        """
+        Run input middlewares sequentially.
+        
+        Args:
+            messages: Input messages
+            context: Middleware context
+            
+        Returns:
+            Modified messages
+            
+        Raises:
+            InputValidationError: If validation fails
+            MiddlewareAbortError: If middleware aborts
+        """
+        from ..middlewares import InputMiddleware
+        from ..middlewares.exceptions import MiddlewareError
+        
+        middlewares = self._resolve_middlewares(self._input_middlewares, context)
+        current_messages = messages
+        
+        for middleware in middlewares:
+            if not isinstance(middleware, InputMiddleware):
+                self.logger.warning(
+                    f"Skipping non-InputMiddleware: {type(middleware).__name__}"
+                )
+                continue
+            
+            try:
+                current_messages = await middleware.process(current_messages, context)
+            except MiddlewareError as e:
+                # Log and re-raise middleware errors
+                self.logger.error(
+                    f"Input middleware {type(middleware).__name__} failed",
+                    error=str(e),
+                    middleware=type(middleware).__name__
+                )
+                raise
+            except Exception as e:
+                # Log unexpected errors
+                self.logger.error(
+                    f"Unexpected error in input middleware {type(middleware).__name__}",
+                    error=str(e),
+                    middleware=type(middleware).__name__
+                )
+                raise
+        
+        return current_messages
+    
+    async def _run_output_middlewares(
+        self,
+        output: str,
+        context: Any
+    ) -> str:
+        """
+        Run output middlewares sequentially.
+        
+        Args:
+            output: LLM output
+            context: Middleware context
+            
+        Returns:
+            Modified output
+            
+        Raises:
+            OutputValidationError: If validation fails
+            MiddlewareAbortError: If middleware aborts
+        """
+        from ..middlewares import OutputMiddleware
+        from ..middlewares.exceptions import MiddlewareError
+        
+        middlewares = self._resolve_middlewares(self._output_middlewares, context)
+        current_output = output
+        
+        for middleware in middlewares:
+            if not isinstance(middleware, OutputMiddleware):
+                self.logger.warning(
+                    f"Skipping non-OutputMiddleware: {type(middleware).__name__}"
+                )
+                continue
+            
+            try:
+                current_output = await middleware.process(current_output, context)
+            except MiddlewareError as e:
+                # Log and re-raise middleware errors
+                self.logger.error(
+                    f"Output middleware {type(middleware).__name__} failed",
+                    error=str(e),
+                    middleware=type(middleware).__name__
+                )
+                raise
+            except Exception as e:
+                # Log unexpected errors
+                self.logger.error(
+                    f"Unexpected error in output middleware {type(middleware).__name__}",
+                    error=str(e),
+                    middleware=type(middleware).__name__
+                )
+                raise
+        
+        return current_output
     
     async def resume(
         self,
@@ -537,6 +674,21 @@ class Agent:
             # Prepend context to current messages
             messages_list = context_messages + messages_list
         
+        # Create middleware context
+        from ..middlewares import MiddlewareContext
+        
+        run_id = kwargs.get('run_id', f"run-{uuid.uuid4().hex[:8]}")
+        middleware_ctx = MiddlewareContext(
+            run_id=run_id,
+            agent_id=self.id,
+            thread_id=thread_id,
+            metadata=kwargs.get('metadata', {}),
+            tools=self.tools
+        )
+        
+        # Run input middlewares FIRST (before any execution)
+        messages_list = await self._run_input_middlewares(messages_list, middleware_ctx)
+        
         # Trace agent run
         @obs.trace_agent_run(self.id)
         async def _invoke_internal():
@@ -624,8 +776,18 @@ class Agent:
                 "metadata": final_response.metadata,
             }
         
+        # Execute internal invoke
+        response = await _invoke_internal()
+        
+        # Run output middlewares LAST (after all execution)
+        if response.get("content"):
+            response["content"] = await self._run_output_middlewares(
+                response["content"],
+                middleware_ctx
+            )
+        
         try:
-            result = await _invoke_internal()
+            result = response # Use the response after middleware processing
             duration = time.perf_counter() - start_time
             
             # Record metrics
@@ -696,6 +858,20 @@ class Agent:
         await self.startup()
         obs = self.context.observability
         
+        # Create middleware context
+        from ..middlewares import MiddlewareContext, StreamingOutputMiddleware
+        
+        run_id = kwargs.get('run_id', f"run-{uuid.uuid4().hex[:8]}")
+        middleware_ctx = MiddlewareContext(
+            run_id=run_id,
+            agent_id=self.id,
+            thread_id=kwargs.get('thread_id'),
+            metadata=kwargs.get('metadata', {}),
+            tools=self.tools
+        )
+        
+        # Run input middlewares FIRST (before streaming)
+        messages_list = await self._run_input_middlewares(messages_list, middleware_ctx)
             
         # Create execution context
         context = ExecutionContext(
@@ -723,14 +899,41 @@ class Agent:
         final_response = None
         all_tool_calls = []
         
+        # Get streaming middlewares
+        middlewares = self._resolve_middlewares(self._output_middlewares, middleware_ctx)
+        streaming_middlewares = [
+            m for m in middlewares
+            if isinstance(m, StreamingOutputMiddleware)
+        ]
+        
         async for chunk in stream_step(context, model):
-            # Yield chunks immediately for true streaming
-            yield {
-                "content": chunk.content,
-                "tool_calls": chunk.tool_calls,
-                "usage": chunk.usage,
-                "metadata": chunk.metadata,
-            }
+            # Process chunk through streaming middlewares
+            processed_content = chunk.content
+            
+            for middleware in streaming_middlewares:
+                try:
+                    processed_content = await middleware.on_chunk(
+                        processed_content,
+                        middleware_ctx
+                    )
+                    if processed_content is None:
+                        # Middleware wants to skip this chunk
+                        break
+                except Exception as e:
+                    self.logger.error(
+                        f"Streaming middleware {type(middleware).__name__} failed",
+                        error=str(e)
+                    )
+                    raise
+            
+            # Only yield if chunk wasn't filtered out
+            if processed_content is not None:
+                yield {
+                    "content": processed_content,
+                    "tool_calls": chunk.tool_calls,
+                    "usage": chunk.usage,
+                    "metadata": chunk.metadata,
+                }
             
             # Track tool calls and final response
             if chunk.tool_calls:
@@ -739,6 +942,23 @@ class Agent:
                 all_tool_calls.extend(chunk.tool_calls)
             # Keep track of the last chunk for final response
             final_response = chunk
+        
+        # Call on_complete for streaming middlewares
+        for middleware in streaming_middlewares:
+            try:
+                final_chunk = await middleware.on_complete(middleware_ctx)
+                if final_chunk:
+                    yield {
+                        "content": final_chunk,
+                        "tool_calls": [],
+                        "usage": {},
+                        "metadata": {},
+                    }
+            except Exception as e:
+                self.logger.error(
+                    f"Streaming middleware on_complete {type(middleware).__name__} failed",
+                    error=str(e)
+                )
         
         # Step 5: Handle tool calls if any (similar to invoke method)
         if has_tool_calls and all_tool_calls:
@@ -823,4 +1043,3 @@ class Agent:
         """String representation of the agent."""
         model_name = self.model.get('model', 'unknown') if isinstance(self.model, dict) else str(self.model)
         return f"Agent(id='{self.id}', name='{self.name}', model={model_name})"
-

@@ -101,3 +101,8 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 show_error_codes = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.6",
+]

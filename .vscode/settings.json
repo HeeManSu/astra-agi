@@ -1,0 +1,36 @@
+{
+  "cSpell.words": [
+    "asyncio",
+    "executemany",
+    "jsons",
+    "MASTRA"
+  ],
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/packages/framework/src",
+    "${workspaceFolder}/packages/observability/observability",
+    "${workspaceFolder}/packages/memorybase/memorybase"
+  ],
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": false,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  "cursorpyright.analysis.autoImportCompletions": true,
+  "cursorpyright.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/packages/framework/src",
+    "${workspaceFolder}/packages/observability/observability",
+    "${workspaceFolder}/packages/memorybase/memorybase"
+  ],
+  "cursorpyright.analysis.typeCheckingMode": "basic"
+}

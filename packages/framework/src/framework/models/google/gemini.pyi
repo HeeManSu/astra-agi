@@ -1,6 +1,6 @@
 """Type stubs for Gemini model - enables IDE autocomplete for model names."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Any, Literal
 
 from framework.models.base import Model, ModelResponse
@@ -16,6 +16,7 @@ GeminiModelId = Literal[
     "gemini-exp-1206",
     "gemini-pro",
     "gemini-1.0-pro",
+    "gemini-2.5-flash",
 ]
 
 class Gemini(Model):
@@ -38,7 +39,7 @@ class Gemini(Model):
         response_format: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> ModelResponse: ...
-    async def stream(
+    def stream(
         self,
         messages: list[dict[str, str]],
         tools: list[dict[str, Any]] | None = None,
@@ -46,7 +47,7 @@ class Gemini(Model):
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[ModelResponse]: ...
+    ) -> AsyncGenerator[ModelResponse, None]: ...
 
 # Export for discovery
 AVAILABLE_MODELS: list[str]

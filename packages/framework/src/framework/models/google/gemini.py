@@ -4,12 +4,32 @@ Supports all Gemini models via the Google Generative AI SDK.
 """
 
 from collections.abc import AsyncIterator
+import json
 import os
 import time
 from typing import Any, ClassVar
 
+from dotenv import load_dotenv
 from framework.models.base import Model, ModelResponse
-from google.generativeai.generative_models import GenerativeModel
+
+
+load_dotenv()
+
+
+try:
+    from google import genai
+    from google.genai import Client as GeminiClient
+    from google.genai.errors import ClientError, ServerError
+    from google.genai.types import (
+        Content,
+        GenerateContentConfig,
+        Part,
+    )
+except ImportError as err:
+    raise ImportError(
+        "`google-genai` not installed or outdated. "
+        "Install or upgrade using: pip install -U google-genai"
+    ) from err
 
 
 class Gemini(Model):
@@ -20,7 +40,6 @@ class Gemini(Model):
       model = Gemini("gemini-1.5-flash")
     """
 
-    # Use set for O(1) model lookup
     AVAILABLE_MODELS: ClassVar[set[str]] = {
         "gemini-1.5-flash",
         "gemini-1.5-flash-8b",
@@ -31,108 +50,218 @@ class Gemini(Model):
         "gemini-exp-1206",
         "gemini-pro",
         "gemini-1.0-pro",
+        "gemini-2.5-flash",
     }
 
     def __init__(self, model_id: str, api_key: str | None = None, **kwargs: Any):
         super().__init__(
-            model_id=model_id, api_key=api_key or os.getenv("GOOGLE_API_KEY"), **kwargs
+            model_id=model_id,
+            api_key=api_key or os.getenv("GOOGLE_API_KEY"),
+            **kwargs,
         )
-        self._model: GenerativeModel | None = None
+        self._client: GeminiClient | None = None
+
+    def _get_client(self) -> GeminiClient:
+        """Get or create Gemini client."""
+        if self._client is None:
+            if not self.api_key:
+                raise ValueError(
+                    "Missing API key for Gemini. Provide api_key or set GOOGLE_API_KEY."
+                )
+            self._client = genai.Client(api_key=self.api_key)
+        return self._client
 
     def _lazy_init(self) -> None:
-        """
-        Performs validation + model build only when first used.
-        Ensures self._model is initialized.
-        """
-
-        if self._model is not None:
-            return
-
-        # Validate model ID
+        """Lazy initialization - just validate model ID."""
         if self.model_id not in self.AVAILABLE_MODELS:
             raise ValueError(
                 f"Unknown Gemini model: '{self.model_id}'. "
                 f"Available: {', '.join(sorted(self.AVAILABLE_MODELS))}"
             )
 
-        # Validate API key
-        if not self.api_key:
-            raise ValueError("Missing API key for Gemini. Provide api_key or set GOOGLE_API_KEY.")
+    def _convert_messages_to_content(
+        self, messages: list[dict[str, Any]]
+    ) -> tuple[list[Content], str | None]:
+        """
+        Convert message list to Gemini SDK Content format.
 
-        try:
-            self._model = GenerativeModel(self.model_id)
-        except Exception as e:
-            raise ValueError(f"Failed to initialize Gemini model '{self.model_id}'.") from e
+        Returns:
+            Tuple of (formatted_messages, system_message)
+        """
+        formatted_messages: list[Content] = []
+        system_message: str | None = None
+
+        reverse_role_map = {
+            "assistant": "model",
+            "tool": "user",
+        }
+
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            tool_calls = msg.get("tool_calls", [])
+            tool_name = msg.get("name")
+
+            # Handle system messages separately
+            if role == "system":
+                system_message = content
+                continue
+
+            # Map role
+            gemini_role = reverse_role_map.get(role, role)
+            message_parts: list[Part] = []
+
+            if role == "assistant":
+                # Assistant messages can have text and/or tool calls
+                if content:
+                    message_parts.append(Part.from_text(text=content))
+
+                # Add function calls if present
+                for tool_call in tool_calls:
+                    tool_name = tool_call.get("name", "")
+                    tool_args = tool_call.get("arguments", {})
+                    if tool_name:
+                        message_parts.append(
+                            Part.from_function_call(name=tool_name, args=tool_args)
+                        )
+
+            elif role == "tool":
+                # Tool results are function responses
+                tool_name = tool_name or msg.get("name", "")
+                tool_content = content
+
+                # Parse JSON content if it's a string
+                if isinstance(tool_content, str):
+                    try:
+                        tool_content = json.loads(tool_content)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+
+                # Wrap primitive values in dict
+                if not isinstance(tool_content, dict):
+                    tool_content = {"result": tool_content}
+
+                if tool_name:
+                    message_parts.append(
+                        Part.from_function_response(name=tool_name, response=tool_content)
+                    )
+
+            elif role == "user":
+                # User messages are text parts
+                if content:
+                    message_parts.append(Part.from_text(text=content))
+
+            # Create Content object
+            if message_parts:
+                formatted_messages.append(Content(role=gemini_role, parts=message_parts))
+
+        return formatted_messages, system_message
 
     async def invoke(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
         **kwargs: Any,
-    ):
-        """Invoke Gemini model for full response.
-
-        Returns:
-            ModelResponse: Complete model response
-        """
-
+    ) -> ModelResponse:
+        """Invoke Gemini model for full response."""
         self._lazy_init()
         start_time = time.perf_counter()
 
-        # Build prompt
-        prompt = "\n".join(msg["content"] for msg in messages)
+        # Convert messages to Content format
+        formatted_messages, system_message = self._convert_messages_to_content(messages)
 
-        # Build generation config
-        gen_config: dict[str, Any] = {"temperature": temperature}
-
-        # Apply token limits if provided
-        if max_tokens:
-            gen_config["max_output_tokens"] = max_tokens
-
-        # If JSON mode is requested → set correct response mime type & schema
-        if response_format:
-            gen_config["response_mime_type"] = "application/json"
-            if "json_schema" in response_format:
-                gen_config["response_schema"] = response_format["json_schema"]
-
-        # Build final kwargs for Gemini SDK call
-        gen_kwargs = {
-            "generation_config": gen_config,
-            **kwargs,
+        # Build config
+        config_dict: dict[str, Any] = {
+            "temperature": temperature,
         }
+        if max_tokens:
+            config_dict["max_output_tokens"] = max_tokens
+        if system_message:
+            config_dict["system_instruction"] = system_message
 
-        # TODO: Full tool calling to be added later
-        # We are calling the model asynchronously to avoid blocking the main thread.
+        # Add tools
+        if tools:
+            # Format tools (simplified - you may need to format them properly)
+            config_dict["tools"] = [
+                {
+                    "function_declarations": [
+                        {
+                            "name": tool.get("name", ""),
+                            "description": tool.get("description", ""),
+                            "parameters": tool.get("parameters", {}),
+                        }
+                    ]
+                }
+                for tool in tools
+            ]
 
-        if self._model is None:
-            raise ValueError("Model not initialized")
+        config = GenerateContentConfig(**{k: v for k, v in config_dict.items() if v is not None})
 
-        response = await self._model.generate_content_async(prompt, **gen_kwargs)
+        client = self._get_client()
+
+        try:
+            response = await client.aio.models.generate_content(
+                model=self.model_id,
+                contents=formatted_messages,
+                config=config,
+            )
+        except (ClientError, ServerError) as e:
+            raise RuntimeError(f"Gemini request failed: {e}") from e
+
+        # Parse response
+        tool_calls = []
+        content_parts: list[str] = []
+
+        if response.candidates:
+            candidate = response.candidates[0]
+            parts = getattr(candidate.content, "parts", None)
+
+        if parts:
+            for part in parts:
+                # When model returns text responses
+                if hasattr(part, "text") and part.text:
+                    content_parts.append(part.text)
+                # When model returns function calls
+                elif hasattr(part, "function_call") and part.function_call:
+                    tool_calls.append(
+                        {
+                            "name": part.function_call.name,
+                            "arguments": dict(part.function_call.args or {}),
+                        }
+                    )
+
+        content = "".join(content_parts)
+
+        # Parse usage
+        usage = {}
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            usage["input_tokens"] = response.usage_metadata.prompt_token_count or 0
+            usage["output_tokens"] = response.usage_metadata.candidates_token_count or 0
+            usage["total_tokens"] = response.usage_metadata.total_token_count or 0
 
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        usage_meta = getattr(response, "usage_metadata", {}) or {}
+
+        if not content and not tool_calls:
+            content = "(No response from model)"
 
         return ModelResponse(
-            content=response.text or "",
-            tool_calls=[],
-            usage={
-                "input_tokens": usage_meta.get("prompt_token_count"),
-                "output_tokens": usage_meta.get("candidates_token_count"),
-                "total_tokens": usage_meta.get("total_token_count"),
-            },
+            content=content,
+            tool_calls=tool_calls,
+            usage=usage,
             metadata={
                 "provider": "gemini",
-                "latency_ms": latency_ms,
                 "model_id": self.model_id,
+                "latency_ms": latency_ms,
+                "has_tool_calls": bool(tool_calls),
             },
         )
 
     async def stream(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
@@ -143,32 +272,109 @@ class Gemini(Model):
         self._lazy_init()
         start = time.perf_counter()
 
-        prompt = "\n".join(m["content"] for m in messages)
-        gen_config = {"temperature": temperature}
+        # Convert messages to Content format
+        formatted_messages, system_message = self._convert_messages_to_content(messages)
+
+        # Build config
+        config_dict: dict[str, Any] = {
+            "temperature": temperature,
+        }
         if max_tokens:
-            gen_config["max_output_tokens"] = max_tokens
+            config_dict["max_output_tokens"] = max_tokens
+        if system_message:
+            config_dict["system_instruction"] = system_message
 
-        gen_kwargs = {"generation_config": gen_config, **kwargs}
+        if tools:
+            config_dict["tools"] = [
+                {
+                    "function_declarations": [
+                        {
+                            "name": tool.get("name", ""),
+                            "description": tool.get("description", ""),
+                            "parameters": tool.get("parameters", {}),
+                        }
+                    ]
+                }
+                for tool in tools
+            ]
 
-        if self._model is None:
-            raise ValueError("Model not initialized")
+        config = GenerateContentConfig(**{k: v for k, v in config_dict.items() if v is not None})
 
-        stream = await self._model.generate_content_async(prompt, **gen_kwargs)
+        client = self._get_client()
 
-        async for chunk in stream:
-            text = getattr(chunk, "text", "")
-            if not text:
-                continue
+        try:
+            async_stream = await client.aio.models.generate_content_stream(
+                model=self.model_id,
+                contents=formatted_messages,
+                config=config,
+            )
 
-            yield ModelResponse(content=text, metadata={"is_stream": True})
+            async for chunk in async_stream:
+                # Parse chunk
+                text = ""
+                tool_calls = []
 
-        yield ModelResponse(
-            content="",
-            usage=getattr(stream, "usage_metadata", {}),
-            metadata={
-                "provider": "gemini",
-                "model_id": self.model_id,
-                "latency_ms": round((time.perf_counter() - start) * 1000, 2),
-                "final": True,
-            },
-        )
+                # Check candidates
+                if chunk.candidates and len(chunk.candidates) > 0:
+                    candidate = chunk.candidates[0]
+                    candidate_content = candidate.content
+
+                    # Create Content object (for safety)
+                    response_message = Content(role="model", parts=[])
+                    if candidate_content is not None:
+                        response_message = candidate_content
+
+                    # Access parts
+                    if response_message.parts is not None:
+                        for part in response_message.parts:
+                            # Extract text
+                            if hasattr(part, "text") and part.text is not None:
+                                text_content = str(part.text) if part.text is not None else ""
+                                text += text_content
+
+                            # Extract function call if present (matching invoke format)
+                            if hasattr(part, "function_call") and part.function_call is not None:
+                                # Match the format used in invoke method: {"name": ..., "arguments": {...}}
+                                tool_call = {
+                                    "name": part.function_call.name
+                                    if hasattr(part.function_call, "name")
+                                    else "",
+                                    "arguments": dict(part.function_call.args or {})
+                                    if hasattr(part.function_call, "args")
+                                    and part.function_call.args is not None
+                                    else {},
+                                }
+                                # Only add if name is present and not already added (avoid duplicates)
+                                if tool_call["name"] and tool_call not in tool_calls:
+                                    tool_calls.append(tool_call)
+
+                # Yield response if we have text or tool calls (some chunks might be empty, which is normal)
+                if text or tool_calls:
+                    yield ModelResponse(
+                        content=text,
+                        tool_calls=tool_calls if tool_calls else None,
+                        metadata={"is_stream": True},
+                    )
+
+            # Get usage metadata from final chunk
+            usage_meta = getattr(async_stream, "usage_metadata", None)
+            usage = {}
+            if usage_meta:
+                usage["input_tokens"] = getattr(usage_meta, "prompt_token_count", 0)
+                usage["output_tokens"] = getattr(usage_meta, "candidates_token_count", 0)
+                usage["total_tokens"] = getattr(usage_meta, "total_token_count", 0)
+
+            latency_ms = round((time.perf_counter() - start) * 1000, 2)
+            yield ModelResponse(
+                content="",
+                usage=usage,
+                metadata={
+                    "provider": "gemini",
+                    "model_id": self.model_id,
+                    "latency_ms": latency_ms,
+                    "final": True,
+                },
+            )
+
+        except (ClientError, ServerError) as e:
+            raise RuntimeError(f"Gemini streaming failed: {e}") from e

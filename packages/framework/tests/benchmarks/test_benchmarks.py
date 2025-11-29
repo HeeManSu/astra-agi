@@ -59,7 +59,7 @@ def test_agent_instantiation_with_all_params(benchmark):
             max_retries=5,
             temperature=0.8,
             max_tokens=2048,
-            stream=True,
+            stream_enabled=True,
         )
 
     result = benchmark(create_full_agent)

@@ -1,92 +1,92 @@
 """
 Pydantic model output format.
 """
-import json
-from typing import Any, Dict, Optional, Type
 
-from typing import TYPE_CHECKING
+import json
+from typing import TYPE_CHECKING, Any
+
 
 if TYPE_CHECKING:
-    from pydantic import BaseModel as PydanticBaseModel, ValidationError as PydanticValidationError
+    from pydantic import BaseModel as PydanticBaseModel
 
 try:
     from pydantic import BaseModel, ValidationError
+
     HAS_PYDANTIC = True
 except ImportError:
     HAS_PYDANTIC = False
     BaseModel = None  # type: ignore[assignment]
     ValidationError = None  # type: ignore[assignment]
 
-from ..formats import OutputFormat
 from ..exceptions import OutputValidationError
+from ..formats import OutputFormat
 
 
 class PydanticFormat(OutputFormat):
     """
     Pydantic model output format.
-    
+
     Validates output against Pydantic model and returns typed instance.
-    Internally converts Pydantic to JSON Schema (following Agno pattern).
-    
+    Internally converts Pydantic to JSON Schema (following pattern).
+
     Example:
         ```python
         from pydantic import BaseModel
-        
+
+
         class UserProfile(BaseModel):
             name: str
             age: int
             email: str
-        
+
+
         agent = Agent(
-            model=Gemini("1.5-flash"),
-            output_format=OutputFormat.PYDANTIC(model=UserProfile)
+            model=Gemini("1.5-flash"), output_format=OutputFormat.PYDANTIC(model=UserProfile)
         )
-        
+
         response = await agent.invoke("Create user: Alice, 30, alice@example.com")
-        user = response['parsed']  # UserProfile instance
+        user = response["parsed"]  # UserProfile instance
         print(user.name)  # "Alice"
         ```
     """
-    
-    def __init__(self, model: 'Type[PydanticBaseModel]'):  # type: ignore[valid-type]
+
+    def __init__(self, model: "type[PydanticBaseModel]"):  # type: ignore[valid-type]
         """
         Initialize with Pydantic model.
-        
+
         Args:
             model: Pydantic model class
-            
+
         Raises:
             ImportError: If pydantic library not installed
         """
         if not HAS_PYDANTIC:
             raise ImportError(
-                "pydantic library required for PydanticFormat. "
-                "Install with: pip install pydantic"
+                "pydantic library required for PydanticFormat. Install with: pip install pydantic"
             )
-        
+
         self.model = model
-        # Convert Pydantic to JSON Schema (Agno pattern)
+        # Convert Pydantic to JSON Schema (pattern)
         self.schema = model.model_json_schema()
-    
+
     def get_instructions(self) -> str:
         """Instruct model to return JSON matching Pydantic model."""
-        return f"Respond with valid JSON matching this structure: {json.dumps(self.schema, indent=2)}"
-    
-    def get_response_format(self) -> Optional[Dict[str, Any]]:
+        return (
+            f"Respond with valid JSON matching this structure: {json.dumps(self.schema, indent=2)}"
+        )
+
+    def get_response_format(self) -> dict[str, Any] | None:
         """
         Get response_format using JSON Schema.
-        
+
         Pydantic models are converted to JSON Schema internally.
         """
-        return {
-            "type": "json_schema",
-            "json_schema": self.schema
-        }
-    
+        return {"type": "json_schema", "json_schema": self.schema}
+
     async def validate(self, output: str) -> bool:
         """
         Validate output matches Pydantic model.
-        
+
         Returns:
             True if valid, False otherwise
         """
@@ -102,17 +102,17 @@ class PydanticFormat(OutputFormat):
                 return False
             # Re-raise if it's not a validation error
             raise
-    
+
     async def parse(self, output: str) -> Any:  # type: ignore[return]
         """
         Parse output into Pydantic model instance.
-        
+
         Args:
             output: JSON string
-            
+
         Returns:
             Pydantic model instance
-            
+
         Raises:
             OutputValidationError: If output doesn't match model
         """

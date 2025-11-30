@@ -23,6 +23,7 @@ from framework.agents.execution import ExecutionContext, execute_tool_parallel
 from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.astra import AstraContext
 from framework.models import Model, ModelResponse
+from framework.storage.memory import AgentStorage
 
 
 class Agent:
@@ -108,7 +109,9 @@ class Agent:
         self.instructions = instructions
         self.model = model
         self.tools = tools
-        self.storage = storage
+        self.storage: AgentStorage | None = None
+        if storage:
+            self.storage = AgentStorage(storage=storage, max_messages=max_messages)
         self.knowledge = knowledge
 
         # Execution config
@@ -347,7 +350,12 @@ class Agent:
         )
 
         # 3. Prepare messages
+        thread_id = kwargs.get("thread_id")
         messages = self._prepare_messages(message, context)
+
+        # Save user message if storage is enabled (history loading removed for now)
+        if self.storage and thread_id:
+            await self.storage.add_message(thread_id=thread_id, role="user", content=message)
 
         # 4. Invoke model with retry logic
         try:
@@ -356,6 +364,12 @@ class Agent:
             self._log_error("Model invocation failed", e, context)
             raise ModelError("Model invocation failed") from e
 
+        # Save Assistant Response
+        if self.storage and thread_id:
+            await self.storage.add_message(
+                thread_id=thread_id, role="assistant", content=response.content or ""
+            )
+
         # 5. Execute tools until done
         max_tool_iterations = 10
         iteration = 0
@@ -363,7 +377,16 @@ class Agent:
             iteration += 1
             tool_results = await self._execute_tools(response.tool_calls, context)
 
-            # After getting response with tool_calls, add assistant message
+            # Save assistant message WITH tool_calls BEFORE tool execution
+            if self.storage and thread_id:
+                await self.storage.add_message(
+                    thread_id=thread_id,
+                    role="assistant",
+                    content=response.content or "",
+                    tool_calls=response.tool_calls,
+                )
+
+            # After getting response with tool_calls, add assistant message to context
             messages.append(
                 {
                     "role": "assistant",
@@ -373,17 +396,43 @@ class Agent:
             )
 
             # Then add tool results
-            for tr in tool_results:
+            for idx, tr in enumerate(tool_results):
+                tool_result_content = json.dumps(tr.get("result", ""), ensure_ascii=False)
                 messages.append(
                     {
                         "role": "tool",
                         "name": tr["tool"],
-                        "content": json.dumps(tr.get("result", ""), ensure_ascii=False),
+                        "content": tool_result_content,
                     }
                 )
 
+                # Save Tool Result to Storage
+                if self.storage and thread_id:
+                    # Generate tool_call_id from tool call index (or use tool name as identifier)
+                    tool_call_id = f"call_{uuid.uuid4().hex[:8]}_{idx}"
+                    await self.storage.add_message(
+                        thread_id=thread_id,
+                        role="tool",
+                        content=tool_result_content,
+                        tool_call_id=tool_call_id,
+                        metadata={
+                            "tool_name": tr["tool"],
+                            "success": tr.get("success", True),
+                            "error": tr.get("error"),
+                        },
+                    )
+
             # Re-invoke with updated messages
             response = await self._invoke_with_retry(messages, context)
+
+            # Save subsequent assistant response (final response without tool_calls)
+            if self.storage and thread_id:
+                await self.storage.add_message(
+                    thread_id=thread_id,
+                    role="assistant",
+                    content=response.content or "",
+                    tool_calls=response.tool_calls if response.tool_calls else None,
+                )
 
             # Log warning if twe hit the limit
             if iteration >= max_tool_iterations and response.tool_calls:
@@ -418,7 +467,13 @@ class Agent:
             observability=self.context.observability if self._context else None,
         )
 
+        thread_id = kwargs.get("thread_id")
         messages = self._prepare_messages(message, context)
+
+        # Save user message if storage is enabled
+        if self.storage and thread_id:
+            await self.storage.add_message(thread_id=thread_id, role="user", content=message)
+
         max_tool_iterations = 10
         iteration = 0
 
@@ -460,9 +515,24 @@ class Agent:
                 self._log_error("Streaming failed", e, context)
                 raise ModelError(f"Streaming failed: {e}") from e
 
-            # If no tool calls, we're done
+            # If no tool calls, save final assistant response and we're done
             if not accumulated_tool_calls:
+                if self.storage and thread_id:
+                    await self.storage.add_message(
+                        thread_id=thread_id,
+                        role="assistant",
+                        content=accumulated_content or "",
+                    )
                 break
+
+            # Save assistant message WITH tool_calls BEFORE tool execution
+            if self.storage and thread_id:
+                await self.storage.add_message(
+                    thread_id=thread_id,
+                    role="assistant",
+                    content=accumulated_content or "",
+                    tool_calls=accumulated_tool_calls,
+                )
 
             # Execute tools and continue loop
             tool_results = await self._execute_tools(accumulated_tool_calls, context)
@@ -477,14 +547,30 @@ class Agent:
             )
 
             # Add tool results
-            for tr in tool_results:
+            for idx, tr in enumerate(tool_results):
+                tool_result_content = json.dumps(tr.get("result", ""), ensure_ascii=False)
                 messages.append(
                     {
                         "role": "tool",
                         "name": tr["tool"],
-                        "content": json.dumps(tr.get("result", ""), ensure_ascii=False),
+                        "content": tool_result_content,
                     }
                 )
+
+                # Save Tool Result to Storage
+                if self.storage and thread_id:
+                    tool_call_id = f"call_{uuid.uuid4().hex[:8]}_{idx}"
+                    await self.storage.add_message(
+                        thread_id=thread_id,
+                        role="tool",
+                        content=tool_result_content,
+                        tool_call_id=tool_call_id,
+                        metadata={
+                            "tool_name": tr["tool"],
+                            "success": tr.get("success", True),
+                            "error": tr.get("error"),
+                        },
+                    )
 
             # Check if we hit the limit
             if iteration >= max_tool_iterations:

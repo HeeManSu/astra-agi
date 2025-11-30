@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from framework.storage.memory import AgentMemory
+    from framework.storage.memory import AgentStorage
 
 
 class ConversationManager:
@@ -36,7 +36,7 @@ class ConversationManager:
         self.enable_summary = enable_summary
         self._summary_cache: dict[str, str] = {}  # Cache summaries by thread_id
 
-    async def get_context(self, thread_id: str, memory: AgentMemory) -> list[dict[str, str]]:
+    async def get_context(self, thread_id: str, memory: AgentStorage) -> list[dict[str, str]]:
         """
         Get recent conversation context for the current turn.
 
@@ -50,7 +50,7 @@ class ConversationManager:
 
         Args:
             thread_id: Thread ID to load context from
-            memory: AgentMemory instance for storage access
+            memory: AgentStorage instance for storage access
 
         Returns:
             List of message dicts in format: [{"role": "user", "content": "..."}]
@@ -79,7 +79,7 @@ class ConversationManager:
         return context
 
     async def _get_summary(
-        self, thread_id: str, memory: AgentMemory, total_count: int
+        self, thread_id: str, memory: AgentStorage, total_count: int
     ) -> str | None:
         """
         Get or generate summary of old messages.

@@ -1,11 +1,19 @@
 """
-Example 1: Storage Initialization Test
+Test storage initialization and multi-agent sharing.
+
+Database Parts Tested:
+- LibSQLStorage connection and initialization
+- Table creation (astra_threads, astra_messages, astra_schema_versions)
+- Schema version tracking
+- Multiple agents sharing the same database
+- Thread isolation between agents
 
 Tests:
-- Storage backend initialization
-- Database file creation
-- Table creation and verification
-- Agent initialization with storage
+- Basic storage connection
+- Table auto-creation on first connection
+- Schema version upsert
+- Multiple agents using same storage backend
+- Data isolation by thread_id
 - Edge cases (duplicate initialization, invalid URLs, etc.)
 """
 
@@ -16,6 +24,7 @@ from pathlib import Path
 from framework.agents import Agent
 from framework.models import Gemini
 from framework.storage.databases.libsql import LibSQLStorage
+from sqlalchemy import text
 
 
 async def test_basic_initialization():
@@ -202,7 +211,6 @@ async def test_memory_directory():
     db_file = test_dir / "nested_db.db"
     db_url = f"sqlite+aiosqlite:///{db_file}"
 
-    # Remove if exists
     if db_file.exists():
         db_file.unlink()
 
@@ -249,7 +257,6 @@ async def test_table_schema_verification():
         await libsql_storage.connect()
 
         # Check that astra_threads has expected columns
-        from sqlalchemy import text
 
         async with libsql_storage.engine.connect() as conn:
             # Get table info for astra_threads
@@ -496,8 +503,8 @@ async def main():
     print("=" * 60)
 
     tests = [
-        # test_basic_initialization,
-        # test_agent_initialization,
+        test_basic_initialization,
+        test_agent_initialization,
         test_duplicate_initialization,
         test_invalid_url,
         test_memory_directory,

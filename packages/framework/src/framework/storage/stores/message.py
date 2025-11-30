@@ -1,67 +1,117 @@
-import json
-from datetime import datetime
-from typing import List
-from ..models import Message
-from .base import BaseStore
+"""
+MessageStore - domain store for conversation messages.
+
+Provides operations scoped to per-thread messages.
+"""
+
+import asyncio
+
+from sqlalchemy import delete, func, select
+
+from framework.storage.base import StorageBackend
+from framework.storage.databases.libsql import astra_messages
+from framework.storage.models import Message
+from framework.storage.stores.base import BaseStore
+
 
 class MessageStore(BaseStore[Message]):
-    """Store for managing messages."""
-    
-    async def add(self, message: Message) -> None:
-        """Add a single message to a thread."""
-        await self.add_many([message])
+    """
+    MessageStore manages astra_messages records.
 
-    async def add_many(self, messages: List[Message]) -> None:
-        """Add multiple messages to a thread efficiently."""
+    Methods:
+    - add(Message) -> Message
+    - get_by_thread(thread_id, limit=None) -> list[Message]
+    - delete_by_thread(thread_id) -> None
+
+    Internally, messages are ordered by `sequence`.
+    """
+
+    def __init__(self, storage: StorageBackend) -> None:
+        super().__init__(storage=storage, table=astra_messages, model_cls=Message)
+        # Lock for thread-safe sequence generation
+        self._sequence_lock = asyncio.Lock()
+
+    async def add(self, message: Message) -> Message:
+        """
+        Insert a new message row.
+
+        Assumes message.sequence is set by caller.
+        """
+        data = message.model_dump(exclude_unset=True)
+        stmt = astra_messages.insert().values(**data)
+        await self.storage.execute(stmt)
+        return message
+
+    async def get_by_thread(
+        self,
+        thread_id: str,
+        limit: int | None = None,
+    ) -> list[Message]:
+        """
+        Fetch messages for a thread, ordered by sequence ascending.
+
+        Args:
+            thread_id: Thread identifier
+            limit: Optional limit on number of messages
+        """
+        stmt = (
+            select(astra_messages)
+            .where(astra_messages.c.thread_id == thread_id)
+            .order_by(astra_messages.c.sequence.asc())
+        )
+        if limit is not None:
+            stmt = stmt.limit(limit)
+
+        rows = await self.storage.fetch_all(stmt)
+        return [self._row_to_model(row) for row in rows]
+
+    async def delete_by_thread(self, thread_id: str) -> None:
+        """Delete all messages for a given thread."""
+        stmt = delete(astra_messages).where(astra_messages.c.thread_id == thread_id)
+        await self.storage.execute(stmt)
+
+    async def get_next_sequence(self, thread_id: str) -> int:
+        """
+        Get the next sequence number for a message in a thread.
+
+        Uses MAX(sequence) + 1, starting from 1 if no messages exist.
+        Thread-safe using asyncio lock.
+        """
+        async with self._sequence_lock:
+            stmt = select(func.max(astra_messages.c.sequence).label("max_seq")).where(
+                astra_messages.c.thread_id == thread_id
+            )
+            row = await self.storage.fetch_one(stmt)
+            max_seq = row["max_seq"] if row and row["max_seq"] is not None else 0
+            return int(max_seq) + 1
+
+    async def bulk_add(self, messages: list[Message]) -> list[Message]:
+        """
+        Bulk insert multiple messages in a single transaction.
+
+        This is more efficient than calling add() multiple times.
+
+        Args:
+            messages: List of Message objects to insert
+
+        Returns:
+            List of inserted Message objects
+        """
         if not messages:
-            return
-            
-        query = """
-            INSERT INTO messages (id, thread_id, role, content, created_at, metadata)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """
-        params = [
-            (
-                msg.id,
-                msg.thread_id,
-                msg.role,
-                msg.content,
-                msg.created_at.isoformat(),
-                json.dumps(msg.metadata)
-            )
-            for msg in messages
-        ]
-        # Use executemany if available, otherwise loop (StorageBackend needs update for executemany)
-        # For now, we'll just loop in execute or update StorageBackend.
-        # Let's update StorageBackend to support batch execution properly later.
-        # For now, we will just iterate.
-        for param in params:
-             await self.storage.execute(query, list(param))
-        
-    async def get_by_thread(self, thread_id: str, limit: int = 100, offset: int = 0) -> List[Message]:
-        """Get messages for a thread."""
-        query = """
-            SELECT * FROM messages 
-            WHERE thread_id = ? 
-            ORDER BY created_at ASC
-            LIMIT ? OFFSET ?
-        """
-        rows = await self.storage.fetch_all(query, [thread_id, limit, offset])
-        
-        return [
-            Message(
-                id=row['id'],
-                thread_id=row['thread_id'],
-                role=row['role'],
-                content=row['content'],
-                created_at=datetime.fromisoformat(row['created_at']),
-                metadata=json.loads(row['metadata']) if row['metadata'] else {}
-            )
-            for row in rows
-        ]
-    
-    async def count_by_thread(self, thread_id: str) -> int:
-        """Count total messages in a thread."""
-        query = "SELECT COUNT(*) as count FROM messages WHERE thread_id = ?"
-        row = await self.storage.fetch_one(query, [thread_id])
-        return row['count'] if row else 0
+            return []
+
+        # Prepare bulk insert data
+        bulk_data = [msg.model_dump(exclude_unset=True) for msg in messages]
+
+        # Use bulk insert with SQLAlchemy
+        stmt = astra_messages.insert().values(bulk_data)
+
+        # Check if storage supports execute_in_transaction
+        if hasattr(self.storage, "execute_in_transaction"):
+            # For single bulk insert, regular execute is fine
+            await self.storage.execute(stmt)
+        else:
+            # Fallback: execute in transaction if available
+            await self.storage.execute(stmt)
+
+        return messages

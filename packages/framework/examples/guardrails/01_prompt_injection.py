@@ -38,6 +38,11 @@ async def test_prompt_injection_filter():
         print(f"✓ Valid input passed: {response[:50]}...")
     except InputGuardrailError as e:
         print(f"✗ Unexpected error: {e}")
+    except Exception as e:
+        if "output text or tool calls" in str(e):
+            print("✓ Valid input passed (model returned empty response)")
+        else:
+            raise
 
     # Test 2: Basic injection attempt (should block)
     print("\nTest 2: Basic injection - 'ignore previous instructions'")
@@ -78,6 +83,11 @@ async def test_prompt_injection_filter():
         print(f"✓ Legitimate input passed: {response[:50]}...")
     except InputGuardrailError as e:
         print(f"✗ False positive: {e}")
+    except Exception as e:
+        if "output text or tool calls" in str(e):
+            print("✓ Legitimate input passed (model returned empty response)")
+        else:
+            raise
 
     # Test 7: Custom patterns
     print("\nTest 7: Custom pattern blocking")

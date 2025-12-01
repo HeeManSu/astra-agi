@@ -210,6 +210,22 @@ class Gemini(Model):
             )
         except (ClientError, ServerError) as e:
             raise RuntimeError(f"Gemini request failed: {e}") from e
+        except ValueError as e:
+            if "output text or tool calls" in str(e):
+                # Handle empty response (likely due to safety filters)
+                return ModelResponse(
+                    content="(Response blocked by safety filters)",
+                    tool_calls=[],
+                    usage={},
+                    metadata={
+                        "provider": "gemini",
+                        "model_id": self.model_id,
+                        "latency_ms": round((time.perf_counter() - start_time) * 1000, 2),
+                        "blocked": True,
+                        "error": str(e),
+                    },
+                )
+            raise RuntimeError(f"Gemini request failed: {e}") from e
 
         # Parse response
         tool_calls = []
@@ -377,4 +393,13 @@ class Gemini(Model):
             )
 
         except (ClientError, ServerError) as e:
+            raise RuntimeError(f"Gemini streaming failed: {e}") from e
+        except ValueError as e:
+            if "output text or tool calls" in str(e):
+                # Yield a blocked response
+                yield ModelResponse(
+                    content="(Response blocked by safety filters)",
+                    metadata={"blocked": True, "error": str(e)},
+                )
+                return
             raise RuntimeError(f"Gemini streaming failed: {e}") from e

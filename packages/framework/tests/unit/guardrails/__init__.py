@@ -1,3 +1,0 @@
-"""
-Guardrails tests package.
-"""

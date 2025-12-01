@@ -1,46 +1,38 @@
-from .base import Model, ModelResponse
-from .google import GeminiFlash, GeminiPro, GeminiModel
-from .claude import Claude
-from .openai import OpenAI
-from .huggingface import HuggingFace
+from typing import Any
 
-# Alias for better UX
-Gemini = GeminiModel
+from framework.models.base import Model, ModelResponse
+from framework.models.google.gemini import Gemini
+
 
 __all__ = [
+    "Gemini",
     "Model",
     "ModelResponse",
-    "GeminiFlash",
-    "GeminiPro",
-    "GeminiModel",
-    "Gemini",
-    "Claude",
-    "OpenAI",
-    "HuggingFace",
+    "get_model",
 ]
 
-def get_model(provider: str, model_id: str, api_key: str | None = None) -> Model:
-    """Factory to create a model instance based on provider.
+
+def get_model(provider: str, model_id: str) -> Model:
+    """
+    Factory to create a model instance based on provider.
+
+    This method helps IDEs provide better autocomplete suggestions
+    for supported providers and model IDs.
 
     Args:
-        provider: Provider name (e.g., 'google', 'anthropic', 'openai', 'huggingface').
-        model_id: Model identifier specific to the provider.
-        api_key: Optional API key for the provider.
+        provider: AI model provider name (e.g. "gemini", "google")
+        model_id: Identifier of the model to load
     """
+    # Normalize provider value for case-insensitive comparison
     provider = provider.lower()
-    if provider == "google":
-        # Use existing Gemini classes
-        if "flash" in model_id.lower():
-            return GeminiFlash(api_key=api_key, model_id=model_id)
-        elif "pro" in model_id.lower():
-            return GeminiPro(api_key=api_key, model_id=model_id)
-        else:
-            return GeminiModel(api_key=api_key, model_id=model_id)
-    elif provider in {"anthropic", "claude"}:
-        return Claude(api_key=api_key, model_id=model_id)
-    elif provider == "openai":
-        return OpenAI(api_key=api_key, model_id=model_id)
-    elif provider == "huggingface":
-        return HuggingFace(api_key=api_key, model_id=model_id)
-    else:
-        raise ValueError(f"Unsupported model provider '{provider}'.")
+
+    # Gemini is currently the only supported provider.
+    # It covers both "google" and "gemini" aliases for convenience.
+    if provider in ("google", "gemini"):
+        return Gemini(model_id)  # type: ignore[arg-type]
+
+    # If we reach this point, the provider is not supported yet.
+    raise ValueError(
+        f"Unsupported model provider '{provider}'. "
+        "Only 'google' and 'gemini' are currently supported."
+    )

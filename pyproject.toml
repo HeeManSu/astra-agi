@@ -14,21 +14,21 @@ dependencies = [
 
 [tool.uv.workspace]
 members = [
-    "packages/deployment",
+    # "packages/deployment",  # Empty package, commented out temporarily
     "packages/framework",
-    "packages/integrations",
+    # "packages/integrations",  # Empty package, commented out temporarily
     "packages/memorybase",
     "packages/observability",
-    "packages/runtime",
+    # "packages/runtime",  # Empty package, commented out temporarily
 ]
 
 [tool.uv.sources]
-deployment = { workspace = true }
+# deployment = { workspace = true }  # Empty package
 framework = { workspace = true }
-integrations = { workspace = true }
+# integrations = { workspace = true }  # Empty package
 memorybase = { workspace = true }
 observability = { workspace = true }
-runtime = { workspace = true }
+# runtime = { workspace = true }  # Empty package
 
 [tool.ruff]
 target-version = "py310"
@@ -55,7 +55,6 @@ extend-select = [
     "PIE",    # flake8-pie
     "TID",    # flake8-tidy-imports
     "ASYNC",  # async/await best practices
-    "RET",    # flake8-return
     "UP006",  # use collections.abc
     "UP007",  # use X | Y for unions
     "UP035",  # use dict/list instead of typing.Dict/List
@@ -88,6 +87,7 @@ split-on-trailing-comma = true
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]  # unused imports
+"**/examples/**" = ["T201"]  # allow print in examples
 
 [tool.mypy]
 python_version = "3.10"

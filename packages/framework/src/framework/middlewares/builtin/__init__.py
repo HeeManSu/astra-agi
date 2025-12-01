@@ -1,3 +1,0 @@
-"""
-Built-in middleware examples.
-"""

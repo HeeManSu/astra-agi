@@ -154,7 +154,7 @@ class AgentStorage:
             await self.create_thread(thread_id=thread_id)
 
         effective_limit = limit or self.max_messages
-        return await self.messages.get_by_thread(thread_id, limit=effective_limit)
+        return await self.messages.get_recent(thread_id, limit=effective_limit)
 
     def _message_to_dict(self, message: Message) -> dict[str, Any]:
         """

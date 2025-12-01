@@ -65,6 +65,24 @@ class MessageStore(BaseStore[Message]):
         rows = await self.storage.fetch_all(stmt)
         return [self._row_to_model(row) for row in rows]
 
+    async def get_recent(self, thread_id: str, limit: int) -> list[Message]:
+        """
+        Fetch the most recent N messages, ordered chronologically.
+
+        Args:
+            thread_id: Thread identifier
+            limit: Number of recent messages to fetch
+        """
+        stmt = (
+            select(astra_messages)
+            .where(astra_messages.c.thread_id == thread_id)
+            .order_by(astra_messages.c.sequence.desc())
+            .limit(limit)
+        )
+        rows = await self.storage.fetch_all(stmt)
+        # Reverse to get chronological order (oldest to newest)
+        return [self._row_to_model(row) for row in reversed(rows)]
+
     async def delete_by_thread(self, thread_id: str) -> None:
         """Delete all messages for a given thread."""
         stmt = delete(astra_messages).where(astra_messages.c.thread_id == thread_id)

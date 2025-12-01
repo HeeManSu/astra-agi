@@ -66,7 +66,6 @@ class Agent:
         input_middlewares: list[Any] | Callable | None = None,
         output_middlewares: list[Any] | Callable | None = None,
         guardrails: dict[str, Any] | None = None,
-        output_format: Any | None = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -88,7 +87,6 @@ class Agent:
             input_middlewares: Optional list of input middlewares
             output_middlewares: Optional list of output middlewares
             guardrails: Optional guardrails configuration
-            output_format: Optional output format
         """
 
         # Lazily-initialized context (Observability, Logger, Settings, etc.)
@@ -134,7 +132,6 @@ class Agent:
         self.input_middlewares = input_middlewares
         self.output_middlewares = output_middlewares
         self.guardrails = guardrails
-        self.output_format = output_format
 
     @property
     def context(self) -> AstraContext:

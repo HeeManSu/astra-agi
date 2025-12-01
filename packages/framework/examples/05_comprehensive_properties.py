@@ -51,23 +51,17 @@ async def test_execution_properties():
         temperature=0.5,
         max_tokens=1000,
         stream_enabled=True,
-        max_messages=20,
-        enable_message_summary=True,
     )
 
     assert agent.max_retries == 5, "max_retries should be 5"
     assert agent.temperature == 0.5, "temperature should be 0.5"
     assert agent.max_tokens == 1000, "max_tokens should be 1000"
     assert agent.stream_enabled is True, "stream_enabled should be True"
-    assert agent.max_messages == 20, "max_messages should be 20"
-    assert agent.enable_message_summary is True, "enable_message_summary should be True"
 
     print(f" max_retries: {agent.max_retries}")
     print(f" temperature: {agent.temperature}")
     print(f" max_tokens: {agent.max_tokens}")
     print(f" stream_enabled: {agent.stream_enabled}")
-    print(f" max_messages: {agent.max_messages}")
-    print(f" enable_message_summary: {agent.enable_message_summary}")
     print("PASS: Execution properties work")
 
 
@@ -87,8 +81,6 @@ async def test_default_properties():
     assert agent.temperature == 0.7, "Default temperature should be 0.7"
     assert agent.max_tokens is None, "Default max_tokens should be None"
     assert agent.stream_enabled is False, "Default stream_enabled should be False"
-    assert agent.max_messages == 10, "Default max_messages should be 10"
-    assert agent.enable_message_summary is False, "Default enable_message_summary should be False"
     assert agent.tools is None, "Default tools should be None"
     assert agent.storage is None, "Default storage should be None"
     assert agent.knowledge is None, "Default knowledge should be None"

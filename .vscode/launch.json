@@ -110,6 +110,39 @@
       }
     },
     {
+      "name": "Memory: Example 1 - Memory Config",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/memory/01_memory_config.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Memory: Example 2 - Context Window",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/memory/02_context_window.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Memory: Example 4 - Summarization",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
       "name": "Python: Pytest Benchmarks",
       "type": "debugpy",
       "request": "launch",

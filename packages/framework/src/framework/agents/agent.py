@@ -22,6 +22,8 @@ from framework.agents.exceptions import ModelError, RetryExhaustedError, ToolErr
 from framework.agents.execution import ExecutionContext, execute_tool_parallel
 from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.astra import AstraContext
+from framework.memory import AgentMemory
+from framework.memory.manager import MemoryManager
 from framework.models import Model, ModelResponse
 from framework.storage.memory import AgentStorage
 
@@ -54,13 +56,12 @@ class Agent:
         tools: list[Any] | None = None,
         storage: Any | None = None,
         knowledge: Any | None = None,
+        memory: AgentMemory | None = None,
         max_retries: int = 3,
         temperature: float = 0.7,
         # Handle this in the invoke/stream methods as well.
         max_tokens: int | None = None,
         stream_enabled: bool = False,
-        max_messages: int = 10,
-        enable_message_summary: bool = False,
         input_middlewares: list[Any] | Callable | None = None,
         output_middlewares: list[Any] | Callable | None = None,
         guardrails: dict[str, Any] | None = None,
@@ -78,12 +79,11 @@ class Agent:
             tools: Optional list of tools
             storage: Optional storage backend (e.g., SQLiteStorage)
             knowledge: Optional knowledge base (e.g., PDFKnowledgeBase)
+            memory: Optional memory configuration (AgentMemory)
             max_retries: Maximum retry attempts for failed requests (default: 3)
             temperature: Sampling temperature for model responses (default: 0.7, range: 0.0-2.0)
             max_tokens: Maximum tokens to generate per response (default: 4096)
             stream_enabled: Whether to stream responses by default (default: False)
-            max_messages: Number of recent messages to keep in context (default: 10)
-            enable_message_summary: Whether to summarize old messages instead of dropping them (default: False)
             input_middlewares: Optional list of input middlewares
             output_middlewares: Optional list of output middlewares
             guardrails: Optional guardrails configuration
@@ -109,9 +109,18 @@ class Agent:
         self.instructions = instructions
         self.model = model
         self.tools = tools
+
+        # Memory & Storage
+        self.memory = memory or AgentMemory()
+        self.memory_manager = MemoryManager(self.memory, self.model)
+
         self.storage: AgentStorage | None = None
         if storage:
-            self.storage = AgentStorage(storage=storage, max_messages=max_messages)
+            # Pass max_messages from memory config to storage (for legacy support/defaults)
+            self.storage = AgentStorage(
+                storage=storage, max_messages=self.memory.num_history_responses
+            )
+
         self.knowledge = knowledge
 
         # Execution config
@@ -119,8 +128,6 @@ class Agent:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.stream_enabled = stream_enabled
-        self.max_messages = max_messages
-        self.enable_message_summary = enable_message_summary
 
         # Middleware / guardrails / formatting
         self.input_middlewares = input_middlewares
@@ -199,7 +206,12 @@ class Agent:
             if max_tokens > 100_000:
                 raise ValidationError(f"max_tokens too large: {max_tokens}")
 
-    def _prepare_messages(self, message: str, context: ExecutionContext) -> list[dict[str, Any]]:
+    def _prepare_messages(
+        self,
+        message: str,
+        context: ExecutionContext,
+        history: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
         """Prepare messages for the model invocation."""
 
         messages = []
@@ -212,6 +224,10 @@ class Agent:
                     "content": self.instructions,
                 }
             )
+
+        # Add conversation history
+        if history:
+            messages.extend(history)
 
         # Add user message
         messages.append(
@@ -351,7 +367,13 @@ class Agent:
 
         # 3. Prepare messages
         thread_id = kwargs.get("thread_id")
-        messages = self._prepare_messages(message, context)
+
+        # Load history if enabled
+        history = None
+        if self.storage and thread_id and self.memory.add_history_to_messages:
+            history = await self.memory_manager.get_context(thread_id, self.storage)
+
+        messages = self._prepare_messages(message, context, history=history)
 
         # Save user message if storage is enabled (history loading removed for now)
         if self.storage and thread_id:
@@ -468,7 +490,13 @@ class Agent:
         )
 
         thread_id = kwargs.get("thread_id")
-        messages = self._prepare_messages(message, context)
+
+        # Load history if enabled
+        history = None
+        if self.storage and thread_id and self.memory.add_history_to_messages:
+            history = await self.memory_manager.get_context(thread_id, self.storage)
+
+        messages = self._prepare_messages(message, context, history=history)
 
         # Save user message if storage is enabled
         if self.storage and thread_id:

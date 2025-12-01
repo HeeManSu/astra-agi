@@ -5,7 +5,7 @@ Base classes for middlewares.
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .context import MiddlewareContext
+from framework.middlewares.context import MiddlewareContext
 
 
 class InputMiddleware(ABC):

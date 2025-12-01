@@ -143,6 +143,42 @@
       }
     },
     {
+      "name": "Middleware: Example 1 - Input Middleware",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/middleware/01_input_middleware.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Middleware: Example 2 - Output Middleware",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/middleware/02_output_middleware.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Middleware: Example 3 - Combined Middleware",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/middleware/03_combined_middleware.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
       "name": "Python: Pytest Benchmarks",
       "type": "debugpy",
       "request": "launch",

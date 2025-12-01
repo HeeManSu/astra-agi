@@ -6,304 +6,138 @@ that can be used by agents. It handles:
 - Automatic JSON Schema generation from type hints
 - Sync and async function support
 - Error handling and wrapping
-- Parameter filtering (removes framework-injected params)
 
 Example:
     @tool
     def add(a: int, b: int) -> int:
-        \"\"\"Add two numbers.\"\"\"
         return a + b
 """
-import inspect
+
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Union, get_args, get_origin, get_type_hints
+import inspect
+from typing import Any, Union, get_args, get_origin, get_type_hints
 
 
-def _type_to_json_schema_type(python_type: Any) -> Dict[str, Any]:
-    """
-    Convert Python type to JSON Schema type.
-    
-    Handles:
-    - Basic types (int, str, float, bool)
-    - Collections (List[T], Dict[K, V])
-    - Optional/Union types
-    - Unknown types (defaults to string)
-    
-    Args:
-        python_type: Python type (int, str, float, bool, List[T], etc.)
-    
-    Returns:
-        JSON Schema type definition
-    """
-    # Handle None type
+_JSON_BASIC_TYPES = {
+    int: {"type": "integer"},
+    float: {"type": "number"},
+    str: {"type": "string"},
+    bool: {"type": "boolean"},
+}
+
+
+def _type_to_json_schema_type(python_type: Any) -> dict[str, Any]:
+    """Convert python type into JSON schema"""
+
     if python_type is type(None):
         return {"type": "null"}
-    
-    # Handle Union types (including Optional which is Union[X, None])
-    origin = get_origin(python_type) if hasattr(python_type, "__origin__") else None
+
+    origin = get_origin(python_type)
+
+    # Optional / Union types -> take first non-None type
     if origin is Union:
-        args = get_args(python_type)
-        # For Optional types (Union[X, None]), extract the non-None type
-        non_none_args = [arg for arg in args if arg is not type(None)]
-        if non_none_args:
-            # Use the first non-None type
-            return _type_to_json_schema_type(non_none_args[0])
-        # If all args are None, default to string
-        return {"type": "string"}
-    
-    # Handle List/Tuple/Set types
+        non_none = [t for t in get_args(python_type) if t is not type(None)]
+        return _type_to_json_schema_type(non_none[0] if non_none else str)
+
+    # Collections
     if origin in (list, tuple, set):
         args = get_args(python_type)
-        items_schema = _type_to_json_schema_type(args[0]) if args else {"type": "string"}
-        return {"type": "array", "items": items_schema}
-    
-    # Handle Dict types
+        return {"type": "array", "items": _type_to_json_schema_type(args[0] if args else str)}
+
     if origin is dict:
-        args = get_args(python_type)
-        # For Dict[K, V], use object type (Gemini doesn't support additionalProperties in function schemas)
-        # We'll use a generic object type
         return {"type": "object"}
-    
-    # Basic type mapping
-    type_mapping = {
-        int: {"type": "integer"},
-        float: {"type": "number"},
-        str: {"type": "string"},
-        bool: {"type": "boolean"},
-    }
-    
-    # Check direct mapping
-    if python_type in type_mapping:
-        return type_mapping[python_type]
-    
-    # Handle type objects (when type is passed as a class, not instance)
-    if isinstance(python_type, type):
-        type_name = python_type.__name__
-        if type_name in ("int", "float", "complex", "Decimal"):
-            return {"type": "number"}
-        elif type_name in ("str", "string"):
-            return {"type": "string"}
-        elif type_name in ("bool", "boolean"):
-            return {"type": "boolean"}
-        elif type_name in ("list", "tuple", "set", "frozenset"):
-            return {"type": "array", "items": {"type": "string"}}
-        elif type_name in ("dict", "mapping"):
-            return {"type": "object"}
-    
-    # Default to string for unknown types
+
+    # Fast mapping
+    if python_type in _JSON_BASIC_TYPES:
+        return _JSON_BASIC_TYPES[python_type].copy()
+
+    # Default fallback
     return {"type": "string"}
 
 
-def _get_function_schema(func: Callable) -> Dict[str, Any]:
-    """
-    Extract JSON Schema from function signature using type hints.
-    
-    Filters out framework-injected parameters:
-    - self, cls
-    - agent, team, run_context, session_state, dependencies
-    - images, videos, audios, files (media parameters)
-    
-    Args:
-        func: Function to extract schema from
-    
-    Returns:
-        JSON Schema dict with properties and required fields
-    """
+def _get_function_schema(func: Callable) -> dict[str, Any]:
+    """Extract JSON schema from function."""
     sig = inspect.signature(func)
-    
-    # Get type hints, handling cases where function might not have them
     try:
         type_hints = get_type_hints(func)
-    except (NameError, TypeError):
-        # If type hints can't be resolved (e.g., forward references), use empty dict
+    except Exception:
         type_hints = {}
-    
-    # Framework-injected parameters to skip
-    SKIP_PARAMS = {
-        "self", "cls",
-        "agent", "team", "run_context", "session_state", "dependencies",
-        "images", "videos", "audios", "files"
-    }
-    
+
     properties = {}
     required = []
-    
+
     for param_name, param in sig.parameters.items():
-        # Skip framework-injected parameters
-        if param_name in SKIP_PARAMS:
+        if param_name in ("self", "cls"):
             continue
-        
-        # Get type hint (default to str if not available)
-        param_type = type_hints.get(param_name, str)
-        
-        # Convert to JSON schema
-        param_schema = _type_to_json_schema_type(param_type)
-        
-        # Add description from docstring if available
-        # (Basic implementation - could be enhanced with docstring parsing)
-        
-        properties[param_name] = param_schema
-        
-        # Add to required if no default value
-        if param.default == inspect.Parameter.empty:
+
+        p_type = type_hints.get(param_name, str)
+        properties[param_name] = _type_to_json_schema_type(p_type)
+
+        if param.default is inspect.Parameter.empty:
             required.append(param_name)
-    
+
     return {
         "type": "object",
         "properties": properties,
-        "required": required
+        "required": required,
     }
 
 
 class Tool:
     """
-    Tool object that wraps a function for use by agents.
-    
-    Attributes:
-        name: Tool name (from function name)
-        description: Tool description (from docstring)
-        parameters: JSON Schema parameters definition
-        invoke: The actual function to call
-        requires_approval: Whether tool requires human approval (HIL)
-        suspend_schema: Schema for suspension data (HIL)
-        external_execution: Whether tool must be executed externally (HIL)
+    Tool wrapper that can be used by agents.
     """
-    
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        parameters: Dict[str, Any],
-        invoke: Callable,
-        requires_approval: bool = False,
-        suspend_schema: Optional[Dict[str, Any]] = None,
-        external_execution: bool = False
-    ):
+
+    def __init__(self, name: str, description: str, func: Callable):
         self.name = name
         self.description = description
-        self.parameters = parameters
-        self.invoke = invoke
-        # HIL metadata
-        self.requires_approval = requires_approval
-        self.suspend_schema = suspend_schema
-        self.external_execution = external_execution
-    
+        self.func = func
+        self._schema_cache: dict[str, Any] | None = None
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        """Get parameters for the tool and cache"""
+        if self._schema_cache is None:
+            self._schema_cache = _get_function_schema(self.func)
+        return self._schema_cache
+
     def __call__(self, *args, **kwargs):
-        """Allow tool to be called directly."""
-        return self.invoke(*args, **kwargs)
+        """Call the tool function"""
+        return self.func(*args, **kwargs)
 
 
 def tool(
-    func: Optional[Callable] = None,
+    func: Callable | None = None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    requires_approval: bool = False,
-    suspend_schema: Optional[Dict[str, Any]] = None,
-    external_execution: bool = False
-) -> Any:
-    """
-    Decorator to convert a function into a Tool that can be used by an agent.
-    
-    Usage:
-        @tool
-        def add(a: int, b: int) -> int:
-            \"\"\"Add two numbers.\"\"\"
-            return a + b
-        
-        @tool(name="custom_name", description="Custom description")
-        def multiply(a: int, b: int) -> int:
-            \"\"\"Multiply two numbers.\"\"\"
-            return a * b
-        
-        @tool
-        async def async_tool(text: str) -> str:
-            \"\"\"Async tool example.\"\"\"
-            return text.upper()
-        
-        # HIL: Require approval before execution
-        @tool(requires_approval=True)
-        def delete_file(path: str) -> None:
-            \"\"\"Delete a file (requires approval).\"\"\"
-            os.remove(path)
-        
-        # HIL: External execution (not executed by agent)
-        @tool(external_execution=True)
-        def run_shell(command: str) -> str:
-            \"\"\"Run shell command (executed externally).\"\"\"
-            pass
-    
-    Args:
-        func: Function to decorate (when used as @tool)
-        name: Optional override for tool name
-        description: Optional override for tool description
-        requires_approval: If True, requires human approval before execution (HIL)
-        suspend_schema: Schema for data needed during suspension (HIL)
-        external_execution: If True, tool must be executed externally (HIL)
-    
-    Returns:
-        Tool object that can be passed to agents
-    
-    Note:
-        Framework-injected parameters are automatically filtered:
-        - self, cls
-        - agent, team, run_context, session_state, dependencies
-        - images, videos, audios, files
-    """
+    name: str | None = None,
+    description: str | None = None,
+):
+    """Decorator to convert normal function → Tool with lazy metadata."""
+
     def decorator(f: Callable) -> Tool:
-        """Inner decorator that creates the Tool object."""
-        
-        # Wrap function to preserve metadata and handle errors
+        # Wrap sync vs async separately
         @wraps(f)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        def sync_wrapper(*args, **kwargs):
             try:
                 return f(*args, **kwargs)
             except Exception as e:
-                # Re-raise with context
                 raise RuntimeError(f"Error in tool '{f.__name__}': {e}") from e
-        
+
         @wraps(f)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def async_wrapper(*args, **kwargs):
             try:
                 return await f(*args, **kwargs)
             except Exception as e:
-                # Re-raise with context
                 raise RuntimeError(f"Error in async tool '{f.__name__}': {e}") from e
-        
-        # Choose appropriate wrapper based on function type
-        if inspect.iscoroutinefunction(f):
-            wrapper = async_wrapper
-        else:
-            wrapper = sync_wrapper
-        
-        # Get tool name
-        tool_name = name or f.__name__
-        
-        # Get description from docstring or use provided
-        if description:
-            tool_description = description
-        else:
-            tool_description = inspect.getdoc(f) or ""
-            # Use first line of docstring as description
-            if tool_description:
-                tool_description = tool_description.split('\n')[0].strip()
-        
-        # Extract parameters schema from function signature
-        parameters_schema = _get_function_schema(f)
-        
-        # Create and return Tool object
-        return Tool(
-            name=tool_name,
-            description=tool_description,
-            parameters=parameters_schema,
-            invoke=wrapper,  # Use wrapped function for better error handling
-            requires_approval=requires_approval,
-            suspend_schema=suspend_schema,
-            external_execution=external_execution
-        )
-    
-    # Handle both @tool and @tool() cases
-    if func is not None:
-        return decorator(func)
-    return decorator
 
+        wrapper = async_wrapper if inspect.iscoroutinefunction(f) else sync_wrapper
+
+        # Minimal init params → fast initialization
+        return Tool(
+            name=name or f.__name__,
+            description=description or (inspect.getdoc(f) or "").split("\n")[0].strip(),
+            func=wrapper,
+        )
+
+    return decorator(func) if func else decorator

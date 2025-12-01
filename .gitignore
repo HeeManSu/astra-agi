@@ -15,7 +15,7 @@ wheels/
 .env.*.local
 
 # Data files
-*.json
+# *.json
 packages/framework/markdowns
 .cursorrules
 benchmarks.txt

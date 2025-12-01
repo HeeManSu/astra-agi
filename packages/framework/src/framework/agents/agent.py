@@ -24,6 +24,7 @@ from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.astra import AstraContext
 from framework.memory import AgentMemory
 from framework.memory.manager import MemoryManager
+from framework.middlewares import InputMiddleware, MiddlewareContext, OutputMiddleware
 from framework.models import Model, ModelResponse
 from framework.storage.memory import AgentStorage
 
@@ -375,6 +376,18 @@ class Agent:
 
         messages = self._prepare_messages(message, context, history=history)
 
+        # Middleware Context
+        middleware_context = MiddlewareContext(
+            agent=self,
+            thread_id=thread_id,
+        )
+
+        # Input Middleware
+        if self.input_middlewares and isinstance(self.input_middlewares, list):
+            for middleware in self.input_middlewares:
+                if isinstance(middleware, InputMiddleware):
+                    messages = await middleware.process(messages, middleware_context)
+
         # Save user message if storage is enabled (history loading removed for now)
         if self.storage and thread_id:
             await self.storage.add_message(thread_id=thread_id, role="user", content=message)
@@ -385,6 +398,12 @@ class Agent:
         except Exception as e:
             self._log_error("Model invocation failed", e, context)
             raise ModelError("Model invocation failed") from e
+
+        # Output Middleware
+        if self.output_middlewares and isinstance(self.output_middlewares, list):
+            for middleware in self.output_middlewares:
+                if isinstance(middleware, OutputMiddleware):
+                    response = await middleware.process(response, middleware_context)
 
         # Save Assistant Response
         if self.storage and thread_id:

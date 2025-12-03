@@ -20,3 +20,4 @@ packages/framework/markdowns
 .cursorrules
 benchmarks.txt
 random.txt
+*.md

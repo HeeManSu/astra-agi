@@ -4,7 +4,7 @@ MCPServer wrapper.
 
 from typing import Any
 
-from framework.agents.tool import Tool
+from framework.agents.tool import Tool, _sanitize_schema
 from framework.mcp.client import MCPClient
 from framework.mcp.transport import HTTPTransport, StdioTransport
 
@@ -86,6 +86,14 @@ class MCPServer:
             description = tool_def.get("description", "")
             schema = tool_def.get("inputSchema", {})
 
+            # Ensure schema has required structure (type, properties, required)
+            # MCP inputSchema should already be a JSON Schema, but ensure it's properly formatted
+            if not schema:
+                schema = {"type": "object", "properties": {}, "required": []}
+            elif "type" not in schema:
+                # If no type specified, assume object type for tool parameters
+                schema = {"type": "object", **schema}
+
             # Create a wrapper function that calls the MCP client
             # We use a factory to capture the variable 'name' correctly in the closure
 
@@ -103,7 +111,8 @@ class MCPServer:
             # Create Astra Tool
             # We manually inject the schema cache because Tool() usually infers it from the function
             tool_obj = Tool(name=name, description=description, func=func)
-            tool_obj._schema_cache = schema
+            # Sanitize and store the schema to remove $schema and other unsupported fields
+            tool_obj._schema_cache = _sanitize_schema(schema)
 
             astra_tools.append(tool_obj)
 

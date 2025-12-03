@@ -8,6 +8,7 @@ authors = [
     { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
 ]
 dependencies = [
+    "aiohttp>=3.13.2",
     "debugpy>=1.8.17",
 ]
 

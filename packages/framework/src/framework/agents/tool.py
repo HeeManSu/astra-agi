@@ -84,6 +84,31 @@ def _get_function_schema(func: Callable) -> dict[str, Any]:
     }
 
 
+def _sanitize_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """
+    Sanitize JSON schema by removing unsupported fields like $schema.
+    This ensures compatibility with model providers like Gemini.
+    """
+    if not schema:
+        return {}
+
+    # Create a copy to avoid mutating the original
+    sanitized = {k: v for k, v in schema.items() if k != "$schema"}
+
+    # Recursively sanitize nested schemas in properties
+    if "properties" in sanitized and isinstance(sanitized["properties"], dict):
+        sanitized["properties"] = {
+            key: _sanitize_schema(value) if isinstance(value, dict) else value
+            for key, value in sanitized["properties"].items()
+        }
+
+    # Recursively sanitize items in arrays
+    if "items" in sanitized and isinstance(sanitized["items"], dict):
+        sanitized["items"] = _sanitize_schema(sanitized["items"])
+
+    return sanitized
+
+
 class Tool:
     """
     Tool wrapper that can be used by agents.

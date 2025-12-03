@@ -179,6 +179,42 @@
       }
     },
     {
+      "name": "Python: Example 7 - MCP",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/mcp/research_agent.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Python: Example 8 - MCP Hybrid Agent",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/mcp/hybrid_agent.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "MCP Simple demo",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/mcp/simple_demo.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
       "name": "Python: Pytest Benchmarks",
       "type": "debugpy",
       "request": "launch",

@@ -42,13 +42,6 @@ class MCPRegistry:
         )
 
     @staticmethod
-    def wikipedia() -> MCPServer:
-        """Wikipedia MCP server."""
-        return MCPServer(
-            name="wikipedia", command="npx", args=["-y", "@modelcontextprotocol/server-wikipedia"]
-        )
-
-    @staticmethod
     def weather(api_key: str) -> MCPServer:
         """
         Weather MCP server (OpenWeatherMap).
@@ -118,7 +111,7 @@ class MCPRegistry:
         """
         if not hasattr(cls, name):
             raise ValueError(
-                f"Unknown MCP preset: '{name}'. Available: filesystem, brave_search, wikipedia, weather, github, postgres"
+                f"Unknown MCP preset: '{name}'. Available: filesystem, brave_search, weather, github, postgres"
             )
 
         method = getattr(cls, name)

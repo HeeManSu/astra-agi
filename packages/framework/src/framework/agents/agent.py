@@ -219,8 +219,17 @@ class Agent:
         Args:
             tool: Tool instance from @tool decorator
         """
-        # Infer module from tool name
-        module = self._infer_module_from_tool_name(tool.name)
+        # Use explicit module if provided, otherwise infer from tool name
+        if hasattr(tool, "module") and tool.module is not None:
+            module = tool.module
+        else:
+            module = self._infer_module_from_tool_name(tool.name)
+            # Warn if falling back to "default" module (might be unintentional)
+            if module == "default" and self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"[WARNING] Tool '{tool.name}' assigned to 'default' module. "
+                    f"Consider using @tool(module='...') or naming with dot notation (e.g., 'module.tool_name')"
+                )
 
         # Create ToolSpec
         spec = ToolSpec.from_tool(

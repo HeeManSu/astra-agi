@@ -18,19 +18,19 @@ from framework.models import Gemini
 
 
 # Define Python tools
-@tool
+@tool(module="math")
 def add(a: int, b: int) -> int:
     """Add two numbers."""
     return a + b
 
 
-@tool
+@tool(module="math")
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers."""
     return a * b
 
 
-@tool
+@tool(module="crm")
 def get_user(user_id: int) -> dict:
     """Get a user by ID."""
     return {"id": user_id, "name": "John Doe", "email": "john@example.com"}

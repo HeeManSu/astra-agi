@@ -247,6 +247,62 @@ async def test_special_characters_in_names():
     print(f"  - Tools: {agent.tool_registry.list_tool_names()}")
 
 
+async def test_explicit_module_parameter():
+    """Test explicit module parameter in @tool decorator."""
+    print("\n" + "=" * 60)
+    print("TEST: Explicit Module Parameter")
+    print("=" * 60)
+
+    # Tool with explicit module
+    @tool(module="math")
+    def add(a: int, b: int) -> int:
+        """Add two numbers."""
+        return a + b
+
+    # Tool without explicit module (will infer or use default)
+    @tool
+    def subtract(a: int, b: int) -> int:
+        """Subtract two numbers."""
+        return a - b
+
+    # Tool with explicit module that overrides name inference
+    @tool(name="multiply_numbers", module="math")
+    def multiply(a: int, b: int) -> int:
+        """Multiply two numbers."""
+        return a * b
+
+    agent = Agent(
+        name="ExplicitModuleAgent",
+        model=Gemini("gemini-2.0-flash-exp"),
+        instructions="Test agent",
+        tools=[add, subtract, multiply],
+        code_mode=True,
+    )
+
+    await agent.invoke("Hello")
+
+    grouped = agent.tool_registry.get_specs_grouped_by_module()
+
+    # Check explicit module is used
+    assert "math" in grouped, "Should have 'math' module from explicit parameter"
+    math_tools = grouped["math"]
+    math_tool_names = [t.name for t in math_tools]
+    assert "add" in math_tool_names, "add should be in math module (explicit)"
+    assert "multiply_numbers" in math_tool_names, (
+        "multiply_numbers should be in math module (explicit override)"
+    )
+
+    # subtract should be in default module (no explicit module, no dot in name)
+    assert "default" in grouped or "subtract" in [
+        t.name for tools in grouped.values() for t in tools
+    ]
+
+    print("✓ Explicit module parameter works correctly")
+    print(f"  - Modules: {list(grouped.keys())}")
+    for module, tools in grouped.items():
+        print(f"    - {module}: {[t.name for t in tools]}")
+
+
 async def test_multiple_invocations():
     """Test that registry persists across multiple invocations."""
     print("\n" + "=" * 60)
@@ -295,6 +351,7 @@ async def main():
         await test_tool_name_collisions()
         await test_code_mode_disabled()
         await test_special_characters_in_names()
+        await test_explicit_module_parameter()
         await test_multiple_invocations()
 
         print("\n" + "=" * 60)

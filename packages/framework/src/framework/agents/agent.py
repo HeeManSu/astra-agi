@@ -23,6 +23,7 @@ from framework.agents.execution import ExecutionContext, execute_tool_parallel
 from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.agents.tool import Tool
 from framework.astra import AstraContext
+from framework.code_mode.api_generator import VirtualAPIGenerator
 from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
 from framework.mcp.manager import MCPManager
 from framework.mcp.server import MCPServer
@@ -119,6 +120,9 @@ class Agent:
         # Initialize tool registry
         self._tool_registry = ToolRegistry(agent_id=id or name)
 
+        # Initialize API generator for code mode (lazy)
+        self._api_generator: VirtualAPIGenerator | None = None
+
         # # Store tools list for later processing
         self._tools = tools or []
 
@@ -152,6 +156,32 @@ class Agent:
         if self._context is None:
             self._context = AstraContext()
         return self._context
+
+    @property
+    def api_generator(self) -> VirtualAPIGenerator:
+        """Get the API generator for code mode. Lazily initialized."""
+        if self._api_generator is None:
+            self._api_generator = VirtualAPIGenerator()
+        return self._api_generator
+
+    @property
+    def api_surface(self) -> str:
+        """Get the compact API surface for code mode.
+
+        Returns:
+            Compact API surface string ready for LLM prompts.
+            Empty string if code_mode is disabled or no tools available.
+        """
+        if not self.code_mode:
+            return ""
+
+        # Ensure tool registry is populated
+        if len(self._tool_registry) == 0 and self._tools:
+            # This will be populated lazily during invoke
+            # For now, return empty if not populated
+            return ""
+
+        return self.api_generator.generate_compact_api_surface(self._tool_registry)
 
     @property
     def tools_schema(self) -> list[dict[str, Any]]:

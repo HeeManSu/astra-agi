@@ -100,6 +100,29 @@ class MCPRegistry:
             args=["-y", "@modelcontextprotocol/server-postgres", url],
         )
 
+    @staticmethod
+    def sqlite(path: str) -> MCPServer:
+        """
+        SQLite MCP server.
+
+        Args:
+            path: Path to SQLite database file
+        """
+        return MCPServer(
+            name="sqlite",
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-sqlite", path],
+        )
+
+    @staticmethod
+    def memory() -> MCPServer:
+        """Memory MCP server for storing and retrieving information."""
+        return MCPServer(
+            name="memory",
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-memory"],
+        )
+
     @classmethod
     def get(cls, name: str, config: dict[str, Any]) -> MCPServer:
         """
@@ -111,7 +134,7 @@ class MCPRegistry:
         """
         if not hasattr(cls, name):
             raise ValueError(
-                f"Unknown MCP preset: '{name}'. Available: filesystem, brave_search, weather, github, postgres"
+                f"Unknown MCP preset: '{name}'. Available: filesystem, brave_search, weather, calculator, github, postgres, sqlite, memory"
             )
 
         method = getattr(cls, name)

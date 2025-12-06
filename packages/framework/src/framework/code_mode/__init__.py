@@ -6,15 +6,17 @@ environments, enabling dramatic token reduction for multi-step workflows.
 
 Components:
     - ToolRegistry: Organize and query agent tools
-    - (Future) VirtualAPIGenerator: Generate Python API from tools
+    - VirtualAPIGenerator: Generate Python API from tools
     - (Future) SandboxExecutor: Execute code safely
     - (Future) CodeModeOrchestrator: Orchestrate code execution mode
 """
 
+from framework.code_mode.api_generator import VirtualAPIGenerator
 from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
 
 
 __all__ = [
     "ToolRegistry",
     "ToolSpec",
+    "VirtualAPIGenerator",
 ]

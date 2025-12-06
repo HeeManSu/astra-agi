@@ -123,7 +123,25 @@ class Tool:
 
     @property
     def parameters(self) -> dict[str, Any]:
-        """Get parameters for the tool and cache"""
+        """Get parameters for the tool and cache
+
+        Example:
+        @tool(module="utils")
+        def process_data(data: dict, count: int, name: str = "default") -> list:
+         # Process data with various parameters.
+          return []
+
+        # When you access: process_data.parameters
+        # Returns:
+        {
+          "type": "object",
+          "properties": {
+            "data": {"type": "object"},
+            "count": {"type": "integer"},
+            "name": {"type": "string"}
+          },
+          "required": ["data", "count"]
+        """
         if self._schema_cache is None:
             self._schema_cache = _get_function_schema(self.func)
         return self._schema_cache

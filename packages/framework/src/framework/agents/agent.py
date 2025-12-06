@@ -284,46 +284,19 @@ class Agent:
 
     async def _register_mcp_manager(self, manager: MCPManager) -> None:
         """
-        Register all tools from an MCP manager.
+        Register all tools from an MCP manager by iterating servers directly.
 
         Args:
             manager: MCPManager instance
         """
-
         try:
-            # Get aggregated tools from all servers
-            all_tools = await manager.get_tools()
-
-            # Note: MCPManager does not preserve server name per tool
-            # We will infer module from tool name or use 'mcp' as default
-            for mcp_tool in all_tools:
-                # Try to infer module from tool name
-                module_name = self._infer_module_from_tool_name(mcp_tool.name)
-
-                if module_name == "default":
-                    module_name = "mcp"
-
-                spec = ToolSpec.from_tool(
-                    mcp_tool, module=module_name, is_mcp=True, mcp_server_name=None
-                )
-
-                try:
-                    self._tool_registry.register(spec)
-                    if self._context and self._context.observability:
-                        self._context.observability.logger.info(
-                            f"Registered MCP tool from manager: {mcp_tool.name} (module: {module_name})"
-                        )
-                except ValueError as e:
-                    # Tool name collision
-                    if self._context and self._context.observability:
-                        self._context.observability.logger.info(
-                            f"Failed to register MCP tool '{mcp_tool.name}' from manager: {e}"
-                        )
-
+            # Iterate servers directly to preserve server identity
+            for server in manager.servers:
+                await self._register_mcp_server(server)
         except Exception as e:
             if self._context and self._context.observability:
                 self._context.observability.logger.error(
-                    f"Failed to get tools from MCP manager: {e}"
+                    f"Failed to register tools from MCP manager: {e}"
                 )
             raise
 

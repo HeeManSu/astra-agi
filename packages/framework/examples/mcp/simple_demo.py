@@ -28,7 +28,7 @@ async def main():
     print(f"Loaded {len(tools)} tools.")
     for i, t in enumerate(tools):
         print(f"Tool {i}: {t.name}")
-        # print(f"  Params: {t.parameters}")
+        print(f"  Params: {t.parameters}")
 
     # 2. Create TrackingAgent
     api_key = os.getenv("GOOGLE_API_KEY")

@@ -114,10 +114,11 @@ class Tool:
     Tool wrapper that can be used by agents.
     """
 
-    def __init__(self, name: str, description: str, func: Callable):
+    def __init__(self, name: str, description: str, func: Callable, module: str | None = None):
         self.name = name
         self.description = description
         self.func = func
+        self.module = module  # Explicit module override (optional)
         self._schema_cache: dict[str, Any] | None = None
 
     @property
@@ -137,8 +138,30 @@ def tool(
     *,
     name: str | None = None,
     description: str | None = None,
+    module: str | None = None,
 ):
-    """Decorator to convert normal function → Tool with lazy metadata."""
+    """
+    Decorator to convert normal function → Tool with lazy metadata.
+
+    Args:
+        func: Function to decorate (if used as @tool)
+        name: Explicit tool name (defaults to function name)
+        description: Explicit tool description (defaults to first line of docstring)
+        module: Explicit module/namespace for code mode (defaults to inference from name)
+
+    Example:
+        @tool
+        def add(a: int, b: int) -> int:
+            return a + b
+
+        @tool(module="math")
+        def multiply(a: int, b: int) -> int:
+            return a * b
+
+        @tool(name="crm.get_user", module="crm")
+        def get_user(user_id: int) -> dict:
+            return {"id": user_id}
+    """
 
     def decorator(f: Callable) -> Tool:
         # Wrap sync vs async separately
@@ -163,6 +186,7 @@ def tool(
             name=name or f.__name__,
             description=description or (inspect.getdoc(f) or "").split("\n")[0].strip(),
             func=wrapper,
+            module=module,
         )
 
     return decorator(func) if func else decorator

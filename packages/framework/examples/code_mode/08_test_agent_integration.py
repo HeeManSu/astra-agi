@@ -255,26 +255,34 @@ async def test_lazy_initialization():
 
 
 async def test_module_inference():
-    """Test module inference from tool names."""
+    """Test module inference from tool names and explicit module parameter."""
     print("\n" + "=" * 60)
     print("TEST: Module Inference")
     print("=" * 60)
 
+    # Test 1: Inference from dot notation
     @tool(name="crm.get_user")
     def crm_get_user(user_id: int) -> dict:
         """Get user."""
         return {"id": user_id}
 
-    @tool(name="gdrive.get_document")
+    # Test 2: Explicit module parameter
+    @tool(module="gdrive")
     def gdrive_get_doc(doc_id: str) -> dict:
         """Get document."""
         return {"id": doc_id}
+
+    # Test 3: Explicit module overrides name inference
+    @tool(name="salesforce.get_account", module="crm")
+    def salesforce_account(account_id: str) -> dict:
+        """Get account (but in CRM module)."""
+        return {"id": account_id}
 
     agent = Agent(
         name="InferenceAgent",
         model=Gemini("gemini-2.5-flash"),
         instructions="Test agent",
-        tools=[crm_get_user, gdrive_get_doc],
+        tools=[crm_get_user, gdrive_get_doc, salesforce_account],
         code_mode=True,
     )
 
@@ -282,9 +290,18 @@ async def test_module_inference():
 
     grouped = agent.tool_registry.get_specs_grouped_by_module()
 
-    # Tools with dots should be grouped by prefix (module inference uses dots, not underscores)
+    # Tools with dots should be grouped by prefix
     assert "crm" in grouped, "Should infer 'crm' module from 'crm.get_user'"
-    assert "gdrive" in grouped, "Should infer 'gdrive' module from 'gdrive.get_document'"
+    assert "gdrive" in grouped, "Should use explicit 'gdrive' module"
+
+    # Check that explicit module overrides name inference
+    crm_tools = grouped.get("crm", [])
+    crm_tool_names = [t.name for t in crm_tools]
+    assert "crm.get_user" in crm_tool_names, "crm.get_user should be in crm module"
+    assert "salesforce.get_account" in crm_tool_names, (
+        "salesforce.get_account should be in crm module (explicit override)"
+    )
+    assert len(crm_tools) == 2, f"CRM module should have 2 tools, got {len(crm_tools)}"
 
     print("✓ Module inference works correctly")
     print(f"  - Modules: {list(grouped.keys())}")

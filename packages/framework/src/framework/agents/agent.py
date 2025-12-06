@@ -21,7 +21,11 @@ import uuid
 from framework.agents.exceptions import ModelError, RetryExhaustedError, ToolError, ValidationError
 from framework.agents.execution import ExecutionContext, execute_tool_parallel
 from framework.agents.retry import RetryConfig, retry_with_backoff
+from framework.agents.tool import Tool
 from framework.astra import AstraContext
+from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
+from framework.mcp.manager import MCPManager
+from framework.mcp.server import MCPServer
 from framework.memory import AgentMemory
 from framework.memory.manager import MemoryManager
 from framework.middlewares import InputMiddleware, MiddlewareContext, OutputMiddleware
@@ -55,6 +59,7 @@ class Agent:
         id: str | None = None,
         description: str | None = None,
         tools: list[Any] | None = None,
+        code_mode: bool = True,
         storage: Any | None = None,
         knowledge: Any | None = None,
         memory: AgentMemory | None = None,
@@ -77,6 +82,7 @@ class Agent:
             id: Optional agent ID (auto-generated if not provided)
             description: Optional agent description
             tools: Optional list of tools
+            code_mode: Whether to enable code mode (default: True)
             storage: Optional storage backend (e.g., SQLiteStorage)
             knowledge: Optional knowledge base (e.g., PDFKnowledgeBase)
             memory: Optional memory configuration (AgentMemory)
@@ -108,6 +114,13 @@ class Agent:
         self.instructions = instructions
         self.model = model
         self.tools = tools
+        self.code_mode = code_mode
+
+        # Initialize tool registry
+        self._tool_registry = ToolRegistry(agent_id=id or name)
+
+        # # Store tools list for later processing
+        self._tools = tools or []
 
         # Memory & Storage
         self.memory = memory or AgentMemory()
@@ -172,6 +185,171 @@ class Agent:
                             }
                         )
         return self._tools_schema
+
+    @property
+    def tool_registry(self) -> ToolRegistry:
+        """Get the tool registry for this agent.
+
+        Returns:
+          ToolRegistry instance containing all agent tools
+        """
+        return self._tool_registry
+
+    def _infer_module_from_tool_name(self, tool_name: str) -> str:
+        """Infer the module name from the tool name.
+
+        Examples:
+            'crm.get_user' -> 'crm'
+            'gdrive.get_document' -> 'gdrive'
+            'get_user' -> 'default'
+
+        Args:
+            tool_name: The name of the tool.
+
+        Returns:
+            The module name of the tool.
+        """
+        if "." in tool_name:
+            return tool_name.split(".")[0]
+        return "default"
+
+    async def _register_python_tool(self, tool: Tool) -> None:
+        """Register a Python @tool function in the registry.
+
+        Args:
+            tool: Tool instance from @tool decorator
+        """
+        # Infer module from tool name
+        module = self._infer_module_from_tool_name(tool.name)
+
+        # Create ToolSpec
+        spec = ToolSpec.from_tool(
+            tool,
+            module=module,
+            is_mcp=False,
+        )
+
+        # Register
+        try:
+            self._tool_registry.register(spec)
+            if self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"Registered Python tool: {tool.name} (module: {module})"
+                )
+        except ValueError as e:
+            # Tool name collision
+            if self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"Failed to register tool '{tool.name}': {e}"
+                )
+
+    async def _register_mcp_server(self, server: MCPServer) -> None:
+        """Register all tools from an MCP server.
+
+        Args:
+            server: MCPServer instance
+        """
+        try:
+            # Get tools from server (this calls server.start() if needed)
+            mcp_tools = await server.get_tools()
+
+            # Use server name as module namespace
+            module_name = server.name
+
+            # Register each tool
+            for mcp_tool in mcp_tools:
+                spec = ToolSpec.from_tool(
+                    mcp_tool, module=module_name, is_mcp=True, mcp_server_name=server.name
+                )
+
+                try:
+                    self._tool_registry.register(spec)
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Registered MCP tool: {mcp_tool.name} (server: {server.name}, module: {module_name})"
+                        )
+                except ValueError as e:
+                    # Tool name collision
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Failed to register MCP tool '{mcp_tool.name}' from server '{server.name}': {e}"
+                        )
+
+        except Exception as e:
+            if self._context and self._context.observability:
+                self._context.observability.logger.error(
+                    f"Failed to get tools from MCP server '{server.name}': {e}"
+                )
+            raise
+
+    async def _register_mcp_manager(self, manager: MCPManager) -> None:
+        """
+        Register all tools from an MCP manager.
+
+        Args:
+            manager: MCPManager instance
+        """
+
+        try:
+            # Get aggregated tools from all servers
+            all_tools = await manager.get_tools()
+
+            # Note: MCPManager does not preserve server name per tool
+            # We will infer module from tool name or use 'mcp' as default
+            for mcp_tool in all_tools:
+                # Try to infer module from tool name
+                module_name = self._infer_module_from_tool_name(mcp_tool.name)
+
+                if module_name == "default":
+                    module_name = "mcp"
+
+                spec = ToolSpec.from_tool(
+                    mcp_tool, module=module_name, is_mcp=True, mcp_server_name=None
+                )
+
+                try:
+                    self._tool_registry.register(spec)
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Registered MCP tool from manager: {mcp_tool.name} (module: {module_name})"
+                        )
+                except ValueError as e:
+                    # Tool name collision
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Failed to register MCP tool '{mcp_tool.name}' from manager: {e}"
+                        )
+
+        except Exception as e:
+            if self._context and self._context.observability:
+                self._context.observability.logger.error(
+                    f"Failed to get tools from MCP manager: {e}"
+                )
+            raise
+
+    async def _populate_tool_registry(self) -> None:
+        """Populate tool registry from this list.
+
+        Handles:
+        - Regular @tool decorated functions (Tool instances)
+        - MCPServer instance (async initialization)
+        - MCPManager instance (async initialization)
+        """
+
+        if not self._tools:
+            return
+
+        for tool in self._tools:
+            if isinstance(tool, MCPServer):
+                await self._register_mcp_server(tool)
+            # Handle MCPManager
+            elif isinstance(tool, MCPManager):
+                await self._register_mcp_manager(tool)
+            # Handle regular @tool decorated functions
+            elif hasattr(tool, "name") and hasattr(tool, "description"):
+                await self._register_python_tool(tool)
+            else:
+                raise ValueError(f"Unknown tool type: {type(tool)}")
 
     def _validate_invoke_params(
         self,
@@ -353,6 +531,25 @@ class Agent:
             temperature=temperature,
             max_tokens=max_tokens,
         )
+
+        # 1.5. Lazy initialization: Populate tool registry if not done yet
+        if self.code_mode and len(self._tool_registry) == 0 and self._tools:
+            if self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"Lazy initializing tool registry for agent '{self.name}'"
+                )
+            await self._populate_tool_registry()
+
+            # Log registry stats after population
+            if self._context and self._context.observability:
+                tool_count = len(self._tool_registry)
+                mcp_count = len(self._tool_registry.get_mcp_tools())
+                python_count = len(self._tool_registry.get_python_tools())
+
+                self._context.observability.logger.info(
+                    f"Tool Registry initialized: {tool_count} total tools "
+                    f"({python_count} Python, {mcp_count} MCP)"
+                )
 
         # 2. Prepare execution context
         context = ExecutionContext(

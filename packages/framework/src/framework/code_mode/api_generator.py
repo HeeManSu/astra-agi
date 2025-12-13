@@ -104,8 +104,8 @@ class VirtualAPIGenerator:
         # Extract parameters
         params_str = self._extract_parameters(tool_spec.parameters)
 
-        # Determine return type (default to dict for most tools)
-        return_type = self._infer_return_type(tool_spec.parameters)
+        # Determine return type from function signature
+        return_type = self._infer_return_type(tool_spec)
 
         return (function_name, params_str, return_type)
 
@@ -186,21 +186,84 @@ class VirtualAPIGenerator:
         # Default fallback
         return "Any"
 
-    def _infer_return_type(self, parameters: dict[str, Any]) -> str:
-        """Infer return type for tool.
+    def _infer_return_type(self, tool_spec: ToolSpec) -> str:
+        """Infer return type for tool from function signature.
 
-        Most tools return dict, but this can be enhanced based on
-        tool metadata or conventions.
+        Extracts the return type annotation from the tool's function.
 
         Args:
-            parameters: JSON Schema parameters (not used currently)
+            tool_spec: ToolSpec instance
 
         Returns:
-            Return type string (default: "dict")
+            Return type string (e.g., "dict", "int", "float", "str", "list")
         """
-        # For now, default to dict for all tools
-        # This can be enhanced later with tool metadata
-        return "dict"
+        import inspect
+        from typing import get_args, get_origin
+
+        try:
+            # Get the original function from Tool object
+            if hasattr(tool_spec.invoke, "func"):
+                func = tool_spec.invoke.func
+            elif callable(tool_spec.invoke):
+                func = tool_spec.invoke
+            else:
+                return "dict"  # Fallback
+
+            # Get return type annotation
+            sig = inspect.signature(func)
+            return_annotation = sig.return_annotation
+
+            # Handle unannotated functions
+            if return_annotation is inspect.Signature.empty:
+                return "dict"  # Default fallback
+
+            # Handle type hints
+            if return_annotation is None or return_annotation is type(None):
+                return "None"
+
+            # Handle Union/Optional types
+            origin = get_origin(return_annotation)
+            if origin is not None:
+                # For Union types, take the first non-None type
+                args = get_args(return_annotation)
+                non_none = [t for t in args if t is not type(None)]
+                if non_none:
+                    return_annotation = non_none[0]
+                else:
+                    return "dict"
+
+            # Map Python types to type strings
+            if return_annotation is int:
+                return "int"
+            if return_annotation is float:
+                return "float"
+            if return_annotation is str:
+                return "str"
+            if return_annotation is bool:
+                return "bool"
+            if return_annotation is list or get_origin(return_annotation) is list:
+                return "list"
+            if return_annotation is dict or get_origin(return_annotation) is dict:
+                return "dict"
+
+            # Fallback: try to get string representation
+            type_str = str(return_annotation)
+            if "int" in type_str.lower():
+                return "int"
+            if "float" in type_str.lower():
+                return "float"
+            if "str" in type_str.lower():
+                return "str"
+            if "list" in type_str.lower():
+                return "list"
+            if "dict" in type_str.lower():
+                return "dict"
+
+            return "dict"  # Default fallback
+
+        except Exception:
+            # If anything fails, default to dict
+            return "dict"
 
     def generate_api_file(
         self,

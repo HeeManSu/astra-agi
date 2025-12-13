@@ -24,6 +24,7 @@ from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.agents.tool import Tool
 from framework.astra import AstraContext
 from framework.code_mode.api_generator import VirtualAPIGenerator
+from framework.code_mode.sandbox import SandboxExecutor
 from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
 from framework.mcp.manager import MCPManager
 from framework.mcp.server import MCPServer
@@ -492,6 +493,75 @@ class Agent:
 
         return "Tool Results:\n" + "\n".join(formatted)
 
+    async def _generate_code(
+        self, user_message: str, api_surface: str, context: ExecutionContext
+    ) -> str:
+        """Generate Python code from user message using API surface.
+
+        Args:
+            user_message: User's request
+            api_surface: Compact API surface description
+            context: Execution context
+
+        Returns:
+            Generated Python code string
+        """
+        # Code generation system prompt
+        system_prompt = f"""You are a Python code generation agent. Your task is to write Python code that accomplishes the user's request.
+
+Available API:
+{api_surface}
+
+Rules:
+- Import only from astra_api (e.g., `from astra_api import crm, gdrive`)
+- Use print() statements for output (keep them concise)
+- Handle errors gracefully with try/except if needed
+- Do NOT print large JSON dumps - summarize results instead
+- Write clean, readable Python code
+- Focus on accomplishing the task efficiently
+
+Example:
+User: "Fetch user 123 and multiply their ID by 2"
+Code:
+```python
+from astra_api import crm, math
+
+user = crm.get_user(123)
+result = math.multiply(user['id'], 2)
+print(f"Result: {{result}}")
+```
+
+Now generate code for the user's request. Return ONLY the Python code, no explanations or markdown formatting."""
+
+        # Prepare messages for code generation
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ]
+
+        # Invoke model to generate code
+        try:
+            response = await self.model.invoke(
+                messages=messages,
+                tools=None,  # No tools for code generation
+                temperature=context.temperature,
+                max_tokens=context.max_tokens or 2000,  # Higher limit for code
+            )
+
+            code = response.content or ""
+            # Extract code from markdown code blocks if present
+            if "```python" in code:
+                code = code.split("```python")[1].split("```")[0].strip()
+            elif "```" in code:
+                code = code.split("```")[1].split("```")[0].strip()
+
+            return code.strip()
+
+        except Exception as e:
+            if self._context and self._context.observability:
+                self._context.observability.logger.error(f"Code generation failed: {e}")
+            raise ModelError(f"Code generation failed: {e}") from e
+
     def _log_success(self, message: str, context: ExecutionContext) -> None:
         """Log successful operation."""
         if context.observability:
@@ -562,6 +632,81 @@ class Agent:
                     f"Tool Registry initialized: {tool_count} total tools "
                     f"({python_count} Python, {mcp_count} MCP)"
                 )
+
+        # 1.6. Code Mode: Execute code generation and sandbox execution
+        if self.code_mode and len(self._tool_registry) > 0:
+            try:
+                # Get API surface
+                api_surface = self.api_surface
+                if not api_surface:
+                    # No tools available, fall through to traditional mode
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            "Code mode enabled but no tools available, falling back to traditional mode"
+                        )
+                else:
+                    # Generate API file for sandbox
+                    api_file_path = self.api_generator.generate_api_file(
+                        self._tool_registry, output_dir=".astra/generated/"
+                    )
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Generated API file: {api_file_path}"
+                        )
+
+                    # Prepare execution context for code generation
+                    code_context = ExecutionContext(
+                        agent_id=self.id,
+                        temperature=temperature or self.temperature,
+                        max_tokens=max_tokens or self.max_tokens,
+                        tools=None,  # No tools needed for code generation
+                        observability=self.context.observability if self._context else None,
+                    )
+
+                    # Generate code via LLM
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            "Generating Python code for code execution mode"
+                        )
+                    generated_code = await self._generate_code(message, api_surface, code_context)
+
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Generated code:\n{generated_code[:200]}..."  # Log first 200 chars
+                        )
+
+                    # Execute code in sandbox
+                    executor = SandboxExecutor(agent=self)
+                    result = await executor.execute(generated_code)
+
+                    # Save execution result to storage if enabled
+                    thread_id = kwargs.get("thread_id")
+                    if self.storage and thread_id:
+                        await self.storage.add_message(
+                            thread_id=thread_id, role="user", content=message
+                        )
+                        await self.storage.add_message(
+                            thread_id=thread_id,
+                            role="assistant",
+                            content=result.stdout or result.stderr or "Code executed successfully",
+                        )
+
+                    # Return sandbox output
+                    if result.success:
+                        return result.stdout or "Code executed successfully"
+                    else:
+                        error_msg = f"Code execution failed: {result.stderr}"
+                        if self._context and self._context.observability:
+                            self._context.observability.logger.error(error_msg)
+                        return error_msg
+
+            except Exception as e:
+                # Log error and fall back to traditional mode
+                if self._context and self._context.observability:
+                    self._context.observability.logger.error(
+                        f"Code execution mode failed, falling back to traditional mode: {e}"
+                    )
+                # Fall through to traditional tool calling
 
         # 2. Prepare execution context
         context = ExecutionContext(

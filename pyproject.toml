@@ -86,7 +86,7 @@ section-order = ["future", "standard-library", "third-party", "first-party", "lo
 lines-after-imports = 2
 split-on-trailing-comma = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # unused imports
 "**/examples/**" = ["T201"]  # allow print in examples
 

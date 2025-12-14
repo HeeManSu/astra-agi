@@ -439,7 +439,7 @@ async def main():
     print()
 
     # Run traditional mode test
-    await test_traditional_mode()
+    # await test_traditional_mode()
 
     # Run code mode test
     await test_code_mode()

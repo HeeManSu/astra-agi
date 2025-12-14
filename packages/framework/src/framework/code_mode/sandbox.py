@@ -371,7 +371,7 @@ class SandboxExecutor:
                 execution_time=0.0,
             )
 
-        # Combine code: runtime + user code
+        # Combine code: runtime + llm generated code + generated file code
         # We need to inject astra_runtime into the sandbox's sys.modules
         # and make astra_api importable
         # Note: No indentation in the template - Python code must start at column 0

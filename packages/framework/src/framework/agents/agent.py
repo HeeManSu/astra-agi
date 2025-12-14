@@ -790,11 +790,23 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             # Then add tool results
             for idx, tr in enumerate(tool_results):
                 tool_result_content = json.dumps(tr.get("result", ""), ensure_ascii=False)
+
+                # Extract tool call id from tool call
+                corresponding_tool_call = (
+                    response.tool_calls[idx] if idx < len(response.tool_calls) else None
+                )
+                tool_call_id = (
+                    corresponding_tool_call.get("id")
+                    if corresponding_tool_call and isinstance(corresponding_tool_call, dict)
+                    else None
+                )
+
                 messages.append(
                     {
                         "role": "tool",
                         "name": tr["tool"],
                         "content": tool_result_content,
+                        "tool_call_id": tool_call_id,
                     }
                 )
 

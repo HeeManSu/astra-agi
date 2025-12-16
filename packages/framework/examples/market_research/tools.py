@@ -64,13 +64,17 @@ async def get_product(
     Returns:
         Product details including title, price, ratings, images, etc.
     """
+
+    if "amazon." in domain:
+        domain = domain.replace("amazon.", "")
+
     params = {
         "api_key": API_KEY,
         "domain": domain,
         "asin": asin,
     }
     if country:
-        params["country"] = country
+        params["country"] = country.lower()
     if postal_code:
         params["postal_code"] = postal_code
     if language:

@@ -11,6 +11,7 @@ This module provides tools for scraping Amazon marketplace data including:
 import asyncio
 import json
 from typing import Any
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -21,21 +22,36 @@ from market_research.config import API_KEY
 
 async def _make_request(url: str, timeout_ms: int = 20000) -> dict[str, Any]:
     """Make HTTP GET request with timeout."""
+
     loop = asyncio.get_event_loop()
+    timeout_seconds = timeout_ms / 1000
+
     try:
+        # Run blocking HTTP request in executor
+        # urllib timeout handles HTTP connection timeout
+        # asyncio.wait_for provides overall timeout safety net
         response = await asyncio.wait_for(
             loop.run_in_executor(
-                None, lambda: urllib.request.urlopen(url, timeout=timeout_ms / 1000)
+                None, lambda: urllib.request.urlopen(url, timeout=timeout_seconds)
             ),
-            timeout=timeout_ms / 1000,
+            timeout=timeout_seconds + 5.0,  # Large buffer to let urllib timeout fire first
         )
         if response.status != 200:
             text = response.read().decode("utf-8", errors="replace")
             raise Exception(f"API error {response.status}: {text}") from None
         return json.loads(response.read().decode("utf-8"))
+    except urllib.error.URLError as e:
+        # urllib timeout - this fires when HTTP request times out
+        if isinstance(e.reason, TimeoutError) or "timed out" in str(e).lower():
+            raise Exception(f"API timeout after {timeout_ms}ms") from None
+        raise Exception(f"API connection error: {e!s}") from e
     except asyncio.TimeoutError:
-        raise Exception("API timeout") from None
+        # This should rarely fire since urllib timeout fires first
+        raise Exception(f"API timeout after {timeout_ms}ms") from None
     except Exception as e:
+        # Preserve original error message if it's already formatted
+        if "API error" in str(e) or "API timeout" in str(e):
+            raise
         raise Exception(f"API error: {e!s}") from e
 
 

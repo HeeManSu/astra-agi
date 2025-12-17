@@ -1,10 +1,6 @@
 import asyncio
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any, TypeVar
-from uuid import UUID
-
-from pydantic import BaseModel
 
 
 T = TypeVar("T")
@@ -17,7 +13,6 @@ class SaveQueueManager:
     Features:
     - Debounce: Wait for a quiet period before saving.
     - Batching: Save multiple items in a single operation.
-    - JSON Serialization: Handles UUID and datetime serialization.
     """
 
     def __init__(
@@ -33,48 +28,8 @@ class SaveQueueManager:
         self._timer: asyncio.TimerHandle | None = None
         self._lock = asyncio.Lock()
 
-    def _json_serializer(self, obj: Any) -> Any:
-        """Custom JSON serializer for common types."""
-        if isinstance(obj, (datetime,)):
-            return obj.isoformat()
-        if isinstance(obj, (UUID,)):
-            return str(obj)
-        if isinstance(obj, BaseModel):
-            return obj.model_dump()
-        raise TypeError(f"Type {type(obj)} not serializable")
-
     def add(self, item: Any) -> None:
         """Add an item to the queue and schedule a flush."""
-        # Serialize item immediately to ensure it's safe for storage/queueing
-        # Note: In this specific design, we might want to keep objects as is until save,
-        # but the requirement mentioned "Json serialization in the queueManager".
-        # If the store expects Pydantic models, we should probably keep them as models
-        # and only serialize metadata if needed.
-        # However, the user asked for "Json serialization in the queueManager".
-        # Let's assume the save_func handles the actual DB insertion which might need dicts or models.
-        # For now, I will keep the item as is, but provide a helper for serialization if needed by the save_func
-        # or if we were persisting the queue itself.
-        # But wait, the user flow says:
-        # MessageStore.save_messages()
-        #        ↓
-        # BaseStorage → DB
-        #
-        # And Queue is before MessageStore?
-        # "MemoryBase.save(message) -> SaveQueueManager -> (debounce/batch/serialize) -> MessageStore.save_messages()"
-        #
-        # So SaveQueueManager calls MessageStore.save_messages(batch).
-        # MessageStore expects Message objects.
-        # So we should probably queue Message objects.
-        # The serialization requirement might be for the metadata or content if it's complex.
-        # Or maybe the user meant "ensure data is serializable".
-        # Let's stick to queuing the raw items (Message objects) and handle serialization
-        # if we were writing to a raw JSON store, but here we are writing to SQL via SQLAlchemy.
-        # SQLAlchemy handles datetime/uuid usually.
-        #
-        # Re-reading: "Json serialization in the queueManager"
-        # Maybe they mean for the `metadata` field?
-        # Let's ensure we have a utility for it.
-
         self._queue.append(item)
         self._schedule_flush()
 

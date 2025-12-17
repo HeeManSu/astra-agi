@@ -10,7 +10,6 @@ Provides a generic BaseStore that:
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import Table
 
 from framework.storage.base import StorageBackend
 
@@ -30,20 +29,14 @@ class BaseStore(Generic[TModel]):
     def __init__(
         self,
         storage: StorageBackend,
-        table: Table,
         model_cls: type[TModel],
     ) -> None:
         self._storage = storage
-        self._table = table
         self._model_cls = model_cls
 
     @property
     def storage(self) -> StorageBackend:
         return self._storage
-
-    @property
-    def table(self) -> Table:
-        return self._table
 
     @property
     def model_cls(self) -> type[TModel]:

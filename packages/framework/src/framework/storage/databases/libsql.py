@@ -16,10 +16,7 @@ from sqlalchemy import (
     Table,
     event,
     func,
-    insert,
-    select,
     text,
-    update,
 )
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.sql.schema import ForeignKey
@@ -70,15 +67,6 @@ astra_messages = Table(
     Index("idx_messages_thread_sequence", "thread_id", "sequence"),
     Index("idx_messages_thread_role", "thread_id", "role"),
     Index("idx_messages_created_at", "created_at"),
-)
-
-astra_schema_versions = Table(
-    "astra_schema_versions",
-    metadata,
-    Column("table_name", String(255), primary_key=True),
-    Column("version", String(64), nullable=False),
-    Column("created_at", DateTime(timezone=True), server_default=func.now()),
-    Column("updated_at", DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
 )
 
 
@@ -135,7 +123,6 @@ class LibSQLStorage(StorageBackend):
         Tables are created automatically if they don't exist.
         This does not hold a persistent connection; it just validates DB access.
         """
-
         # Trigger engine creation
         _ = self.engine
 
@@ -148,25 +135,6 @@ class LibSQLStorage(StorageBackend):
 
             # Create tables if they don't exist
             await conn.run_sync(metadata.create_all)
-
-            async def _upsert_version(table: str, version: str):
-                stmt = select(astra_schema_versions.c.version).where(
-                    astra_schema_versions.c.table_name == table
-                )
-                result = await conn.execute(stmt)
-                if result.first():
-                    await conn.execute(
-                        update(astra_schema_versions)
-                        .where(astra_schema_versions.c.table_name == table)
-                        .values(version=version)
-                    )
-                else:
-                    await conn.execute(
-                        insert(astra_schema_versions).values(table_name=table, version=version)
-                    )
-
-            await _upsert_version("astra_threads", "1.0.0")
-            await _upsert_version("astra_messages", "1.0.0")
 
         self._initialized = True
 
@@ -185,35 +153,8 @@ class LibSQLStorage(StorageBackend):
         Uses SQLAlchemy metadata to create astra_threads & astra_messages.
         Safe to call multiple times (idempotent).
         """
-
-        if self._initialized:
-            return
-
-        async with self.engine.begin() as conn:
-            await conn.run_sync(metadata.create_all)
-
-            # Helper to upsert version
-            async def _upsert_version(table: str, version: str):
-                # Check exist
-                stmt = select(astra_schema_versions.c.version).where(
-                    astra_schema_versions.c.table_name == table
-                )
-                result = await conn.execute(stmt)
-                if result.first():
-                    await conn.execute(
-                        update(astra_schema_versions)
-                        .where(astra_schema_versions.c.table_name == table)
-                        .values(version=version)
-                    )
-                else:
-                    await conn.execute(
-                        insert(astra_schema_versions).values(table_name=table, version=version)
-                    )
-
-            await _upsert_version("astra_threads", "1.0.0")
-            await _upsert_version("astra_messages", "1.0.0")
-
-        self._initialized = True
+        # Delegate to connect() which handles table creation and version tracking
+        await self.connect()
 
     async def execute(
         self, statement: Executable, params: Mapping[str, Any] | None = None
@@ -311,21 +252,6 @@ class LibSQLStorage(StorageBackend):
             result = await conn.execute(statement, params or {})
             row = result.mappings().first()
             return dict(row) if row is not None else None
-
-    async def fetch_many(
-        self,
-        statement: Select,
-        params: Mapping[str, Any] | None = None,
-        limit: int | None = None,
-    ) -> list[dict[str, Any]]:
-        """
-        Optional helper: fetch with limit.
-
-        Domain stores can use this for pagination or simple limiting.
-        """
-        if limit is not None:
-            statement = statement.limit(limit)
-        return await self.fetch_all(statement, params)
 
     async def table_exists(self, table_name: str) -> bool:
         """

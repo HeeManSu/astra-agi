@@ -184,14 +184,34 @@ class Gemini(Model):
 
         # Add tools
         if tools:
-            # Format tools (simplified - you may need to format them properly)
+            # Sanitize tool parameters to remove $schema which causes validation errors
+            def sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
+                if not params:
+                    return {}
+                # Remove $schema if present (recursively handle nested schemas)
+                sanitized = {k: v for k, v in params.items() if k != "$schema"}
+
+                # Recursively sanitize nested schemas in properties
+                if "properties" in sanitized and isinstance(sanitized["properties"], dict):
+                    sanitized["properties"] = {
+                        key: sanitize_params(value) if isinstance(value, dict) else value
+                        for key, value in sanitized["properties"].items()
+                    }
+
+                # Recursively sanitize items in arrays
+                if "items" in sanitized and isinstance(sanitized["items"], dict):
+                    sanitized["items"] = sanitize_params(sanitized["items"])
+
+                return sanitized
+
+            # Use plain dictionaries instead of SDK types
             config_dict["tools"] = [
                 {
                     "function_declarations": [
                         {
                             "name": tool.get("name", ""),
                             "description": tool.get("description", ""),
-                            "parameters": tool.get("parameters", {}),
+                            "parameters": sanitize_params(tool.get("parameters", {})),
                         }
                     ]
                 }
@@ -301,13 +321,33 @@ class Gemini(Model):
             config_dict["system_instruction"] = system_message
 
         if tools:
+
+            def sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
+                if not params:
+                    return {}
+                # Remove $schema if present (recursively handle nested schemas)
+                sanitized = {k: v for k, v in params.items() if k != "$schema"}
+
+                # Recursively sanitize nested schemas in properties
+                if "properties" in sanitized and isinstance(sanitized["properties"], dict):
+                    sanitized["properties"] = {
+                        key: sanitize_params(value) if isinstance(value, dict) else value
+                        for key, value in sanitized["properties"].items()
+                    }
+
+                # Recursively sanitize items in arrays
+                if "items" in sanitized and isinstance(sanitized["items"], dict):
+                    sanitized["items"] = sanitize_params(sanitized["items"])
+
+                return sanitized
+
             config_dict["tools"] = [
                 {
                     "function_declarations": [
                         {
                             "name": tool.get("name", ""),
                             "description": tool.get("description", ""),
-                            "parameters": tool.get("parameters", {}),
+                            "parameters": sanitize_params(tool.get("parameters", {})),
                         }
                     ]
                 }

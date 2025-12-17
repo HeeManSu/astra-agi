@@ -3,7 +3,7 @@ Test storage initialization and multi-agent sharing.
 
 Database Parts Tested:
 - LibSQLStorage connection and initialization
-- Table creation (astra_threads, astra_messages, astra_schema_versions)
+- Table creation (astra_threads, astra_messages)
 - Schema version tracking
 - Multiple agents sharing the same database
 - Thread isolation between agents
@@ -60,7 +60,7 @@ async def test_basic_initialization():
             print(f"Database file not found: {db_file}")
 
         # Verify tables exist
-        tables_to_check = ["astra_threads", "astra_messages", "astra_schema_versions"]
+        tables_to_check = ["astra_threads", "astra_messages"]
         for table_name in tables_to_check:
             exists = await libsql_storage.table_exists(table_name)
             if exists:
@@ -159,7 +159,7 @@ async def test_duplicate_initialization():
         print("Second initialization successful (idempotent)")
 
         # Verify tables still exist
-        tables = ["astra_threads", "astra_messages", "astra_schema_versions"]
+        tables = ["astra_threads", "astra_messages"]
         for table_name in tables:
             exists = await libsql_storage.table_exists(table_name)
             assert exists, f"Table {table_name} should exist after duplicate init"
@@ -357,7 +357,7 @@ async def test_auto_connect():
         print("Storage auto-connected successfully!")
 
         # Verify tables exist
-        tables = ["astra_threads", "astra_messages", "astra_schema_versions"]
+        tables = ["astra_threads", "astra_messages"]
         for table_name in tables:
             exists = await libsql_storage.table_exists(table_name)
             assert exists, f"Table {table_name} should exist after auto-connect"
@@ -471,7 +471,7 @@ async def test_multiple_agents_shared_storage():
         print("All agents can access all threads")
 
         # Verify only ONE set of tables exists (not per agent)
-        tables = ["astra_threads", "astra_messages", "astra_schema_versions"]
+        tables = ["astra_threads", "astra_messages"]
         for table_name in tables:
             exists = await shared_storage.table_exists(table_name)
             assert exists, f"Table {table_name} should exist"

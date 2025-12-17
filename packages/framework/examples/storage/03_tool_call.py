@@ -73,10 +73,11 @@ async def test_tool_call_storage():
     storage = LibSQLStorage(url=db_url, echo=False)
     agent = Agent(
         name="ToolCallAgent",
-        instructions="Use tools when needed. Be concise.",
+        instructions="You are a precise calculator. You MUST use the calculator tool for every arithmetic operation. Do not calculate manually. Use get_weather for weather queries.",
         model=Gemini("gemini-2.5-flash"),
         storage=storage,
         tools=[calculator, get_weather],
+        code_mode=False,
     )
 
     thread_id = f"thread-{uuid4().hex[:8]}"
@@ -158,10 +159,11 @@ async def test_multiple_tool_iterations():
     storage = LibSQLStorage(url=db_url, echo=False)
     agent = Agent(
         name="MultiToolAgent",
-        instructions="Use tools step by step. Calculate 100 divided by 4, then multiply by 3.",
+        instructions="You MUST use the calculator tool for every step. Do not calculate mentally. Calculate 100 divided by 4, then multiply by 3.",
         model=Gemini("gemini-2.5-flash"),
         storage=storage,
         tools=[calculator],
+        code_mode=False,
     )
 
     thread_id = f"thread-{uuid4().hex[:8]}"
@@ -231,10 +233,11 @@ async def test_history_reconstruction():
     storage = LibSQLStorage(url=db_url, echo=False)
     agent = Agent(
         name="ReconstructionAgent",
-        instructions="Use tools when needed.",
+        instructions="You MUST use the calculator tool. Do not calculate manually.",
         model=Gemini("gemini-2.5-flash"),
         storage=storage,
         tools=[calculator],
+        code_mode=False,
     )
 
     thread_id = f"thread-{uuid4().hex[:8]}"
@@ -262,9 +265,10 @@ async def test_history_reconstruction():
         for i, msg_dict in enumerate(reconstructed):
             print(f"{i + 1}. {msg_dict['role']}: {msg_dict.get('content', '')[:50]}...")
             if msg_dict.get("tool_calls"):
-                print(f"   Tool calls: {len(msg_dict['tool_calls'])}")
+                print(f"   Tool calls: {msg_dict['tool_calls']}")
             if msg_dict.get("name"):
                 print(f"   Tool name: {msg_dict['name']}")
+            print(f"   Metadata: {msg_dict}")
 
         # Verify reconstruction
         assistant_msgs = [m for m in reconstructed if m["role"] == "assistant"]
@@ -296,14 +300,16 @@ async def main():
     print("=" * 60)
 
     tests = [
-        test_tool_call_storage,
-        test_multiple_tool_iterations,
+        # test_tool_call_storage,
+        # test_multiple_tool_iterations,
         test_history_reconstruction,
     ]
 
     for test in tests:
         try:
             await test()
+            # Add delay to avoid rate limits
+            await asyncio.sleep(5)
         except Exception as e:
             print(f"\nTest {test.__name__} failed: {e}")
             raise

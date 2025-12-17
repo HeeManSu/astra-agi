@@ -1,10 +1,12 @@
 from typing import Any
 
+from framework.models.aws.bedrock import Bedrock
 from framework.models.base import Model, ModelResponse
 from framework.models.google.gemini import Gemini
 
 
 __all__ = [
+    "Bedrock",
     "Gemini",
     "Model",
     "ModelResponse",
@@ -20,19 +22,22 @@ def get_model(provider: str, model_id: str) -> Model:
     for supported providers and model IDs.
 
     Args:
-        provider: AI model provider name (e.g. "gemini", "google")
+        provider: AI model provider name (e.g. "gemini", "google", "bedrock", "aws")
         model_id: Identifier of the model to load
     """
     # Normalize provider value for case-insensitive comparison
     provider = provider.lower()
 
-    # Gemini is currently the only supported provider.
-    # It covers both "google" and "gemini" aliases for convenience.
+    # Gemini provider - covers both "google" and "gemini" aliases for convenience
     if provider in ("google", "gemini"):
         return Gemini(model_id)  # type: ignore[arg-type]
+
+    # AWS Bedrock provider - covers "bedrock", "aws", and "amazon-bedrock" aliases
+    if provider in ("bedrock", "aws", "amazon-bedrock"):
+        return Bedrock(model_id)  # type: ignore[arg-type]
 
     # If we reach this point, the provider is not supported yet.
     raise ValueError(
         f"Unsupported model provider '{provider}'. "
-        "Only 'google' and 'gemini' are currently supported."
+        "Supported providers: 'google', 'gemini', 'bedrock', 'aws', 'amazon-bedrock'"
     )

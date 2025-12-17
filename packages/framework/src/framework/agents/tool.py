@@ -84,20 +84,64 @@ def _get_function_schema(func: Callable) -> dict[str, Any]:
     }
 
 
+def _sanitize_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """
+    Sanitize JSON schema by removing unsupported fields like $schema.
+    This ensures compatibility with model providers like Gemini.
+    """
+    if not schema:
+        return {}
+
+    # Create a copy to avoid mutating the original
+    sanitized = {k: v for k, v in schema.items() if k != "$schema"}
+
+    # Recursively sanitize nested schemas in properties
+    if "properties" in sanitized and isinstance(sanitized["properties"], dict):
+        sanitized["properties"] = {
+            key: _sanitize_schema(value) if isinstance(value, dict) else value
+            for key, value in sanitized["properties"].items()
+        }
+
+    # Recursively sanitize items in arrays
+    if "items" in sanitized and isinstance(sanitized["items"], dict):
+        sanitized["items"] = _sanitize_schema(sanitized["items"])
+
+    return sanitized
+
+
 class Tool:
     """
     Tool wrapper that can be used by agents.
     """
 
-    def __init__(self, name: str, description: str, func: Callable):
+    def __init__(self, name: str, description: str, func: Callable, module: str | None = None):
         self.name = name
         self.description = description
         self.func = func
+        self.module = module  # Explicit module override (optional)
         self._schema_cache: dict[str, Any] | None = None
 
     @property
     def parameters(self) -> dict[str, Any]:
-        """Get parameters for the tool and cache"""
+        """Get parameters for the tool and cache
+
+        Example:
+        @tool(module="utils")
+        def process_data(data: dict, count: int, name: str = "default") -> list:
+         # Process data with various parameters.
+          return []
+
+        # When you access: process_data.parameters
+        # Returns:
+        {
+          "type": "object",
+          "properties": {
+            "data": {"type": "object"},
+            "count": {"type": "integer"},
+            "name": {"type": "string"}
+          },
+          "required": ["data", "count"]
+        """
         if self._schema_cache is None:
             self._schema_cache = _get_function_schema(self.func)
         return self._schema_cache
@@ -112,8 +156,30 @@ def tool(
     *,
     name: str | None = None,
     description: str | None = None,
+    module: str | None = None,
 ):
-    """Decorator to convert normal function → Tool with lazy metadata."""
+    """
+    Decorator to convert normal function → Tool with lazy metadata.
+
+    Args:
+        func: Function to decorate (if used as @tool)
+        name: Explicit tool name (defaults to function name)
+        description: Explicit tool description (defaults to first line of docstring)
+        module: Explicit module/namespace for code mode (defaults to inference from name)
+
+    Example:
+        @tool
+        def add(a: int, b: int) -> int:
+            return a + b
+
+        @tool(module="math")
+        def multiply(a: int, b: int) -> int:
+            return a * b
+
+        @tool(name="crm.get_user", module="crm")
+        def get_user(user_id: int) -> dict:
+            return {"id": user_id}
+    """
 
     def decorator(f: Callable) -> Tool:
         # Wrap sync vs async separately
@@ -138,6 +204,7 @@ def tool(
             name=name or f.__name__,
             description=description or (inspect.getdoc(f) or "").split("\n")[0].strip(),
             func=wrapper,
+            module=module,
         )
 
     return decorator(func) if func else decorator

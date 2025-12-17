@@ -21,7 +21,13 @@ import uuid
 from framework.agents.exceptions import ModelError, RetryExhaustedError, ToolError, ValidationError
 from framework.agents.execution import ExecutionContext, execute_tool_parallel
 from framework.agents.retry import RetryConfig, retry_with_backoff
+from framework.agents.tool import Tool
 from framework.astra import AstraContext
+from framework.code_mode.api_generator import VirtualAPIGenerator
+from framework.code_mode.sandbox import SandboxExecutor, synthesize_response
+from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
+from framework.mcp.manager import MCPManager
+from framework.mcp.server import MCPServer
 from framework.memory import AgentMemory
 from framework.memory.manager import MemoryManager
 from framework.middlewares import InputMiddleware, MiddlewareContext, OutputMiddleware
@@ -55,6 +61,7 @@ class Agent:
         id: str | None = None,
         description: str | None = None,
         tools: list[Any] | None = None,
+        code_mode: bool = True,
         storage: Any | None = None,
         knowledge: Any | None = None,
         memory: AgentMemory | None = None,
@@ -77,6 +84,7 @@ class Agent:
             id: Optional agent ID (auto-generated if not provided)
             description: Optional agent description
             tools: Optional list of tools
+            code_mode: Whether to enable code mode (default: True)
             storage: Optional storage backend (e.g., SQLiteStorage)
             knowledge: Optional knowledge base (e.g., PDFKnowledgeBase)
             memory: Optional memory configuration (AgentMemory)
@@ -108,6 +116,16 @@ class Agent:
         self.instructions = instructions
         self.model = model
         self.tools = tools
+        self.code_mode = code_mode
+
+        # Initialize tool registry
+        self._tool_registry = ToolRegistry(agent_id=id or name)
+
+        # Initialize API generator for code mode (lazy)
+        self._api_generator: VirtualAPIGenerator | None = None
+
+        # # Store tools list for later processing
+        self._tools = tools or []
 
         # Memory & Storage
         self.memory = memory or AgentMemory()
@@ -141,6 +159,32 @@ class Agent:
         return self._context
 
     @property
+    def api_generator(self) -> VirtualAPIGenerator:
+        """Get the API generator for code mode. Lazily initialized."""
+        if self._api_generator is None:
+            self._api_generator = VirtualAPIGenerator()
+        return self._api_generator
+
+    @property
+    def api_surface(self) -> str:
+        """Get the compact API surface for code mode.
+
+        Returns:
+            Compact API surface string ready for LLM prompts.
+            Empty string if code_mode is disabled or no tools available.
+        """
+        if not self.code_mode:
+            return ""
+
+        # Ensure tool registry is populated
+        if len(self._tool_registry) == 0 and self._tools:
+            # This will be populated lazily during invoke
+            # For now, return empty if not populated
+            return ""
+
+        return self.api_generator.generate_compact_api_surface(self._tool_registry)
+
+    @property
     def tools_schema(self) -> list[dict[str, Any]]:
         """Get tools schema. Lazily computed and cached."""
         if self._tools_schema is None:
@@ -172,6 +216,153 @@ class Agent:
                             }
                         )
         return self._tools_schema
+
+    @property
+    def tool_registry(self) -> ToolRegistry:
+        """Get the tool registry for this agent.
+
+        Returns:
+          ToolRegistry instance containing all agent tools
+        """
+        return self._tool_registry
+
+    def _infer_module_from_tool_name(self, tool_name: str) -> str:
+        """Infer the module name from the tool name.
+
+        Examples:
+            'crm.get_user' -> 'crm'
+            'gdrive.get_document' -> 'gdrive'
+            'get_user' -> 'default'
+
+        Args:
+            tool_name: The name of the tool.
+
+        Returns:
+            The module name of the tool.
+        """
+        if "." in tool_name:
+            return tool_name.split(".")[0]
+        return "default"
+
+    async def _register_python_tool(self, tool: Tool) -> None:
+        """Register a Python @tool function in the registry.
+
+        Args:
+            tool: Tool instance from @tool decorator
+        """
+        # Use explicit module if provided, otherwise infer from tool name
+        if hasattr(tool, "module") and tool.module is not None:
+            module = tool.module
+        else:
+            module = self._infer_module_from_tool_name(tool.name)
+            # Warn if falling back to "default" module (might be unintentional)
+            if module == "default" and self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"[WARNING] Tool '{tool.name}' assigned to 'default' module. "
+                    f"Consider using @tool(module='...') or naming with dot notation (e.g., 'module.tool_name')"
+                )
+
+        # Create ToolSpec
+        spec = ToolSpec.from_tool(
+            tool,
+            module=module,
+            is_mcp=False,
+        )
+
+        # Register
+        try:
+            self._tool_registry.register(spec)
+            if self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"Registered Python tool: {tool.name} (module: {module})"
+                )
+        except ValueError as e:
+            # Tool name collision
+            if self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"Failed to register tool '{tool.name}': {e}"
+                )
+
+    async def _register_mcp_server(self, server: MCPServer) -> None:
+        """Register all tools from an MCP server.
+
+        Args:
+            server: MCPServer instance
+        """
+        try:
+            # Get tools from server (this calls server.start() if needed)
+            mcp_tools = await server.get_tools()
+
+            # Use server name as module namespace
+            module_name = server.name
+
+            # Register each tool
+            for mcp_tool in mcp_tools:
+                spec = ToolSpec.from_tool(
+                    mcp_tool, module=module_name, is_mcp=True, mcp_server_name=server.name
+                )
+
+                try:
+                    self._tool_registry.register(spec)
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Registered MCP tool: {mcp_tool.name} (server: {server.name}, module: {module_name})"
+                        )
+                except ValueError as e:
+                    # Tool name collision
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Failed to register MCP tool '{mcp_tool.name}' from server '{server.name}': {e}"
+                        )
+
+        except Exception as e:
+            if self._context and self._context.observability:
+                self._context.observability.logger.error(
+                    f"Failed to get tools from MCP server '{server.name}': {e}"
+                )
+            raise
+
+    async def _register_mcp_manager(self, manager: MCPManager) -> None:
+        """
+        Register all tools from an MCP manager by iterating servers directly.
+
+        Args:
+            manager: MCPManager instance
+        """
+        try:
+            # Iterate servers directly to preserve server identity
+            for server in manager.servers:
+                await self._register_mcp_server(server)
+        except Exception as e:
+            if self._context and self._context.observability:
+                self._context.observability.logger.error(
+                    f"Failed to register tools from MCP manager: {e}"
+                )
+            raise
+
+    async def _populate_tool_registry(self) -> None:
+        """Populate tool registry from this list.
+
+        Handles:
+        - Regular @tool decorated functions (Tool instances)
+        - MCPServer instance (async initialization)
+        - MCPManager instance (async initialization)
+        """
+
+        if not self._tools:
+            return
+
+        for tool in self._tools:
+            if isinstance(tool, MCPServer):
+                await self._register_mcp_server(tool)
+            # Handle MCPManager
+            elif isinstance(tool, MCPManager):
+                await self._register_mcp_manager(tool)
+            # Handle regular @tool decorated functions
+            elif hasattr(tool, "name") and hasattr(tool, "description"):
+                await self._register_python_tool(tool)
+            else:
+                raise ValueError(f"Unknown tool type: {type(tool)}")
 
     def _validate_invoke_params(
         self,
@@ -302,6 +493,75 @@ class Agent:
 
         return "Tool Results:\n" + "\n".join(formatted)
 
+    async def _generate_code(
+        self, user_message: str, api_surface: str, context: ExecutionContext
+    ) -> str:
+        """Generate Python code from user message using API surface.
+
+        Args:
+            user_message: User's request
+            api_surface: Compact API surface description
+            context: Execution context
+
+        Returns:
+            Generated Python code string
+        """
+        # Code generation system prompt
+        system_prompt = f"""You are a Python code generation agent. Your task is to write Python code that accomplishes the user's request.
+
+Available API:
+{api_surface}
+
+Rules:
+- Import only from astra_api (e.g., `from astra_api import crm, gdrive`)
+- Use print() statements for output (keep them concise)
+- Handle errors gracefully with try/except if needed
+- Do NOT print large JSON dumps - summarize results instead
+- Write clean, readable Python code
+- Focus on accomplishing the task efficiently
+
+Example:
+User: "Fetch user 123 and multiply their ID by 2"
+Code:
+```python
+from astra_api import crm, math
+
+user = crm.get_user(123)
+result = math.multiply(user['id'], 2)
+print(f"Result: {{result}}")
+```
+
+Now generate code for the user's request. Return ONLY the Python code, no explanations or markdown formatting."""
+
+        # Prepare messages for code generation
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ]
+
+        # Invoke model to generate code
+        try:
+            response = await self.model.invoke(
+                messages=messages,
+                tools=None,  # No tools for code generation
+                temperature=context.temperature,
+                max_tokens=context.max_tokens or 2000,  # Higher limit for code
+            )
+
+            code = response.content or ""
+            # Extract code from markdown code blocks if present
+            if "```python" in code:
+                code = code.split("```python")[1].split("```")[0].strip()
+            elif "```" in code:
+                code = code.split("```")[1].split("```")[0].strip()
+
+            return code.strip()
+
+        except Exception as e:
+            if self._context and self._context.observability:
+                self._context.observability.logger.error(f"Code generation failed: {e}")
+            raise ModelError(f"Code generation failed: {e}") from e
+
     def _log_success(self, message: str, context: ExecutionContext) -> None:
         """Log successful operation."""
         if context.observability:
@@ -353,6 +613,104 @@ class Agent:
             temperature=temperature,
             max_tokens=max_tokens,
         )
+
+        # 1.5. Lazy initialization: Populate tool registry if not done yet
+        if self.code_mode and len(self._tool_registry) == 0 and self._tools:
+            if self._context and self._context.observability:
+                self._context.observability.logger.info(
+                    f"Lazy initializing tool registry for agent '{self.name}'"
+                )
+            await self._populate_tool_registry()
+
+            # Log registry stats after population
+            if self._context and self._context.observability:
+                tool_count = len(self._tool_registry)
+                mcp_count = len(self._tool_registry.get_mcp_tools())
+                python_count = len(self._tool_registry.get_python_tools())
+
+                self._context.observability.logger.info(
+                    f"Tool Registry initialized: {tool_count} total tools "
+                    f"({python_count} Python, {mcp_count} MCP)"
+                )
+
+        # 1.6. Code Mode: Execute code generation and sandbox execution
+        if self.code_mode and len(self._tool_registry) > 0:
+            try:
+                # Get API surface
+                api_surface = self.api_surface
+                if not api_surface:
+                    # No tools available, fall through to traditional mode
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            "Code mode enabled but no tools available, falling back to traditional mode"
+                        )
+                else:
+                    # Generate API file for sandbox
+                    api_file_path = self.api_generator.generate_api_file(
+                        self._tool_registry, output_dir=".astra/generated/"
+                    )
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Generated API file: {api_file_path}"
+                        )
+
+                    # Prepare execution context for code generation
+                    code_context = ExecutionContext(
+                        agent_id=self.id,
+                        temperature=temperature or self.temperature,
+                        max_tokens=max_tokens or self.max_tokens,
+                        tools=None,  # No tools needed for code generation
+                        observability=self.context.observability if self._context else None,
+                    )
+
+                    # Generate code via LLM
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            "Generating Python code for code execution mode"
+                        )
+                    generated_code = await self._generate_code(message, api_surface, code_context)
+
+                    if self._context and self._context.observability:
+                        self._context.observability.logger.info(
+                            f"Generated code:\n{generated_code[:200]}..."  # Log first 200 chars
+                        )
+
+                    # Execute code in sandbox
+                    # Use longer timeout for code execution (60s) to allow for multiple tool calls
+                    executor = SandboxExecutor(agent=self)
+                    result = await executor.execute(generated_code, timeout=60.0)
+
+                    # Synthesize execution results into a meaningful response
+                    # This transforms raw execution output into a persona-aligned response
+                    synthesized_response = await synthesize_response(
+                        agent=self,
+                        user_query=message,
+                        execution_result=result,
+                        context=code_context,
+                    )
+
+                    # Save synthesized response to storage if enabled
+                    thread_id = kwargs.get("thread_id")
+                    if self.storage and thread_id:
+                        await self.storage.add_message(
+                            thread_id=thread_id, role="user", content=message
+                        )
+                        await self.storage.add_message(
+                            thread_id=thread_id,
+                            role="assistant",
+                            content=synthesized_response,
+                        )
+
+                    # Return synthesized response
+                    return synthesized_response
+
+            except Exception as e:
+                # Log error and fall back to traditional mode
+                if self._context and self._context.observability:
+                    self._context.observability.logger.error(
+                        f"Code execution mode failed, falling back to traditional mode: {e}"
+                    )
+                # Fall through to traditional tool calling
 
         # 2. Prepare execution context
         context = ExecutionContext(
@@ -436,11 +794,23 @@ class Agent:
             # Then add tool results
             for idx, tr in enumerate(tool_results):
                 tool_result_content = json.dumps(tr.get("result", ""), ensure_ascii=False)
+
+                # Extract tool call id from tool call
+                corresponding_tool_call = (
+                    response.tool_calls[idx] if idx < len(response.tool_calls) else None
+                )
+                tool_call_id = (
+                    corresponding_tool_call.get("id")
+                    if corresponding_tool_call and isinstance(corresponding_tool_call, dict)
+                    else None
+                )
+
                 messages.append(
                     {
                         "role": "tool",
                         "name": tr["tool"],
                         "content": tool_result_content,
+                        "tool_call_id": tool_call_id,
                     }
                 )
 

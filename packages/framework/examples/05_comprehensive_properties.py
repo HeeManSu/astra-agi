@@ -246,7 +246,6 @@ async def test_optional_properties():
         input_middlewares=None,
         output_middlewares=None,
         guardrails=None,
-        output_format=None,
     )
 
     assert agent.storage is None, "storage should be None"
@@ -254,7 +253,6 @@ async def test_optional_properties():
     assert agent.input_middlewares is None, "input_middlewares should be None"
     assert agent.output_middlewares is None, "output_middlewares should be None"
     assert agent.guardrails is None, "guardrails should be None"
-    assert agent.output_format is None, "output_format should be None"
 
     print("All optional properties default to None")
     print("PASS: Optional properties work")

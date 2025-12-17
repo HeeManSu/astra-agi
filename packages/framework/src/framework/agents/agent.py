@@ -24,7 +24,7 @@ from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.agents.tool import Tool
 from framework.astra import AstraContext
 from framework.code_mode.api_generator import VirtualAPIGenerator
-from framework.code_mode.sandbox import SandboxExecutor
+from framework.code_mode.sandbox import SandboxExecutor, synthesize_response
 from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
 from framework.mcp.manager import MCPManager
 from framework.mcp.server import MCPServer
@@ -676,10 +676,20 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                         )
 
                     # Execute code in sandbox
+                    # Use longer timeout for code execution (60s) to allow for multiple tool calls
                     executor = SandboxExecutor(agent=self)
-                    result = await executor.execute(generated_code)
+                    result = await executor.execute(generated_code, timeout=60.0)
 
-                    # Save execution result to storage if enabled
+                    # Synthesize execution results into a meaningful response
+                    # This transforms raw execution output into a persona-aligned response
+                    synthesized_response = await synthesize_response(
+                        agent=self,
+                        user_query=message,
+                        execution_result=result,
+                        context=code_context,
+                    )
+
+                    # Save synthesized response to storage if enabled
                     thread_id = kwargs.get("thread_id")
                     if self.storage and thread_id:
                         await self.storage.add_message(
@@ -688,17 +698,11 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                         await self.storage.add_message(
                             thread_id=thread_id,
                             role="assistant",
-                            content=result.stdout or result.stderr or "Code executed successfully",
+                            content=synthesized_response,
                         )
 
-                    # Return sandbox output
-                    if result.success:
-                        return result.stdout or "Code executed successfully"
-                    else:
-                        error_msg = f"Code execution failed: {result.stderr}"
-                        if self._context and self._context.observability:
-                            self._context.observability.logger.error(error_msg)
-                        return error_msg
+                    # Return synthesized response
+                    return synthesized_response
 
             except Exception as e:
                 # Log error and fall back to traditional mode

@@ -37,6 +37,8 @@ import sys
 import time
 from typing import TYPE_CHECKING, Any
 
+from framework.agents.execution import ExecutionContext
+
 
 if TYPE_CHECKING:
     from framework.agents.agent import Agent
@@ -235,12 +237,20 @@ class SandboxExecutor:
         # Execute tool
         try:
             # ToolSpec.invoke is callable (Tool object or wrapper function)
-            # For Python tools: invoke is the Tool object
+            # For Python tools: invoke is the Tool object (which wraps the actual function)
             # For MCP tools: invoke is a wrapper function that calls MCP client
-            if asyncio.iscoroutinefunction(tool_spec.invoke):
+
+            # Try to call the tool and check if result is a coroutine
+            call_result = tool_spec.invoke(**args)
+
+            # Check if result is a coroutine (for async tools wrapped in Tool)
+            if asyncio.iscoroutine(call_result):
+                result = await call_result
+            elif asyncio.iscoroutinefunction(tool_spec.invoke):
+                # Direct async function (MCP tools)
                 result = await tool_spec.invoke(**args)
             else:
-                # Run sync function in thread pool to avoid blocking
+                # Sync function - run in thread pool to avoid blocking
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(None, lambda: tool_spec.invoke(**args))
 
@@ -477,3 +487,142 @@ sys.modules['astra_api'] = astra_api
             exit_code=returncode or 0,
             execution_time=execution_time,
         )
+
+
+async def synthesize_response(
+    agent: Agent,
+    user_query: str,
+    execution_result: SandboxResult,
+    context: ExecutionContext,
+) -> str:
+    """
+    Synthesize execution results into a meaningful user-facing response.
+
+    This function takes the raw output from code execution and transforms it into
+    a response that aligns with the agent's persona and instructions. It makes a
+    second LLM call with:
+    - Agent's original instructions (for persona alignment)
+    - User's original query (for context)
+    - Execution results (stdout, tool calls, metadata)
+    - No tool access (pure interpretation)
+    - No code generation (pure synthesis)
+
+    Args:
+        agent: The agent instance (for accessing model and instructions)
+        user_query: The original user query
+        execution_result: The SandboxResult from code execution
+        context: Execution context for model invocation
+
+    Returns:
+        Synthesized response string that explains the execution results in a
+        meaningful way aligned with the agent's persona.
+
+    Example:
+        After code execution returns "Product details retrieved successfully",
+        this function will synthesize it into a detailed market research report
+        with tables, insights, and recommendations based on the agent's
+        instructions.
+    """
+    # Build the synthesis prompt that includes:
+    # 1. Agent instructions (for persona and formatting guidelines)
+    # 2. User query (for context)
+    # 3. Execution results (stdout, tool calls, success status)
+    # 4. Clear instructions on what to do (synthesize, don't execute)
+
+    # Format execution results for the prompt
+    # Include stdout (the main output from code execution)
+    stdout_section = execution_result.stdout if execution_result.stdout else "(No output)"
+
+    # Include tool calls information if available
+    tool_calls_section = ""
+    if execution_result.tool_calls:
+        tool_calls_section = f"\n\nTool Calls Made: {len(execution_result.tool_calls)}"
+        # Include first few tool calls as examples
+        for tool_call in execution_result.tool_calls[:5]:
+            tool_name = tool_call.get("name", "unknown")
+            tool_calls_section += f"\n  - {tool_name}"
+        if len(execution_result.tool_calls) > 5:
+            tool_calls_section += f"\n  ... and {len(execution_result.tool_calls) - 5} more"
+
+    # Include error information if execution failed
+    error_section = ""
+    if not execution_result.success:
+        error_section = f"\n\nExecution Error:\n{execution_result.stderr or 'Unknown error'}"
+
+    # Build the system prompt for synthesis
+    # This tells the LLM to synthesize the results according to agent persona
+    system_prompt = f"""{agent.instructions}
+
+You are synthesizing the execution results from a code execution into a user-facing response.
+
+The code has already been executed and the results are below. Your task is to:
+1. Transform the raw execution output into a meaningful response
+2. Align the response with your agent persona and instructions above
+3. Format the response according to your response format guidelines
+4. Answer the user's query using the execution results
+
+Important constraints:
+- Do NOT access any tools (execution is complete)
+- Do NOT generate code (execution is complete)
+- Do NOT re-execute anything
+- Focus on explaining what happened and what it means
+- Use the execution results to answer the user's query"""
+
+    # Build the user message with query and execution results
+    user_message = f"""User Query:
+{user_query}
+
+Execution Results:
+{stdout_section}{tool_calls_section}{error_section}
+
+Execution Status: {"Success" if execution_result.success else "Failed"}
+Execution Time: {execution_result.execution_time:.2f}s
+
+Now synthesize these execution results into a meaningful response that:
+- Answers the user's query
+- Aligns with your agent persona
+- Follows your response format guidelines
+- Explains what happened and what it means"""
+
+    # Prepare messages for the synthesis LLM call
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+
+    # Invoke the model to synthesize the response
+    # Use the same model as the agent for consistency
+    # No tools needed - this is pure text generation
+    try:
+        response = await agent.model.invoke(
+            messages=messages,
+            tools=None,  # No tools for synthesis
+            temperature=context.temperature,
+            max_tokens=context.max_tokens or 4096,
+        )
+
+        # Extract and return the synthesized response
+        synthesized = response.content or ""
+
+        # If synthesis failed or returned empty, fallback to formatted execution output
+        if not synthesized.strip():
+            if execution_result.success:
+                return execution_result.stdout or "Execution completed successfully."
+            else:
+                return f"Execution failed: {execution_result.stderr or 'Unknown error'}"
+
+        return synthesized.strip()
+
+    except Exception as e:
+        # If synthesis fails, fallback to execution output with explanation
+        # This ensures we always return something meaningful
+        if agent._context and agent._context.observability:
+            agent._context.observability.logger.error(
+                f"Response synthesis failed: {e}, falling back to execution output"
+            )
+
+        # Return the execution output as fallback
+        if execution_result.success:
+            return execution_result.stdout or "Execution completed successfully."
+        else:
+            return f"Execution failed: {execution_result.stderr or 'Unknown error'}"

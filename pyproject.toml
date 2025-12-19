@@ -9,7 +9,9 @@ authors = [
 ]
 dependencies = [
     "aiohttp>=3.13.2",
+    "beanie>=2.0.1",
     "debugpy>=1.8.17",
+    "motor>=3.7.1",
 ]
 
 

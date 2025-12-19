@@ -29,8 +29,9 @@ class AgentStorage:
     - Create and retrieve threads
     - Append messages to threads
     - Return recent conversation history
+    - Soft delete threads and messages
 
-    This is intentionally minimal to keep the first version simple.
+    Automatically filters out soft-deleted records in all queries.
     """
 
     def __init__(
@@ -156,37 +157,28 @@ class AgentStorage:
         effective_limit = limit or self.max_messages
         return await self.messages.get_recent(thread_id, limit=effective_limit)
 
-    def _message_to_dict(self, message: Message) -> dict[str, Any]:
+    async def soft_delete_thread(self, thread_id: str) -> None:
         """
-        Convert Message to dict format for LLM context.
-
-        Reconstructs proper message format with tool_calls if present.
+        Soft delete a thread by setting deleted_at timestamp.
 
         Args:
-            message: Message object from storage
+            thread_id: Thread identifier to soft delete
 
-        Returns:
-            Dict in format: {"role": str, "content": str, "tool_calls": list, "name": str}
+        Note: Soft-deleted threads are automatically filtered out from queries.
+        Messages in the thread remain accessible but the thread itself is hidden.
         """
-        msg_dict: dict[str, Any] = {
-            "role": message.role,
-            "content": message.content,
-        }
+        await self.threads.soft_delete(thread_id)
 
-        # Add tool_calls for assistant messages
-        if message.role == "assistant" and message.metadata.get("tool_calls"):
-            msg_dict["tool_calls"] = message.metadata["tool_calls"]
+    async def soft_delete_message(self, message_id: str) -> None:
+        """
+        Soft delete a message by setting deleted_at timestamp.
 
-        # Add name for tool messages
-        if message.role == "tool":
-            tool_call_id = message.metadata.get("tool_call_id")
-            tool_name = message.metadata.get("tool_name")
-            if tool_call_id:
-                msg_dict["tool_call_id"] = tool_call_id
-            if tool_name:
-                msg_dict["name"] = tool_name
+        Args:
+            message_id: Message identifier to soft delete
 
-        return msg_dict
+        Note: Soft-deleted messages are automatically filtered out from queries.
+        """
+        await self.messages.soft_delete(message_id)
 
     async def stop(self) -> None:
         """Stop the queue manager."""

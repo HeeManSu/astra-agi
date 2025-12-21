@@ -1,229 +1,12 @@
 {
   "version": "0.2.0",
   "configurations": [
+
     {
-      "name": "Python: Current File",
+      "name": "Market Research Agent",
       "type": "debugpy",
       "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal",
-      "justMyCode": true,
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Python: Example 1 - Simple Agent",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/01_simple_agent.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 2 - Agent with Tools",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/02_agent_with_tools.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 3 - Advanced Agent",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/03_advanced_agent.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 4 - Streaming Tests",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/04_streaming_tests.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Python: Example 5 - Comprehensive Properties",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/05_comprehensive_properties.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Python: Example 6 - Edge Cases",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/06_edge_cases.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Python: Storage: Initialization Example",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/storage/01_initialization.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 2 - Agent with Storage",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/storage/02_persistence.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 3 - Tool Call Storage",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/storage/03_tool_cal.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Memory: Example 1 - Memory Config",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/memory/01_memory_config.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Memory: Example 2 - Context Window",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/memory/02_context_window.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Memory: Example 4 - Summarization",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Middleware: Example 1 - Input Middleware",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/middleware/01_input_middleware.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Middleware: Example 2 - Output Middleware",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/middleware/02_output_middleware.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Middleware: Example 3 - Combined Middleware",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/middleware/03_combined_middleware.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 7 - MCP",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/mcp/research_agent.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 8 - MCP Hybrid Agent",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/mcp/hybrid_agent.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "MCP Simple demo",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/mcp/simple_demo.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Pytest Benchmarks",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "pytest",
-      "args": [
-        "packages/framework/tests/benchmarks/test_benchmarks.py",
-        "-v",
-        "--benchmark-only"
-      ],
+      "program": "${workspaceFolder}/packages/framework/examples/market_research/example.py",
       "console": "integratedTerminal",
       "justMyCode": false,
       "cwd": "${workspaceFolder}",
@@ -231,5 +14,235 @@
         "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
       }
     }
+    // {
+    //   "name": "Python: Current File",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${file}",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": true,
+    //   "cwd": "${workspaceFolder}"
+    // },
+    // {
+    //   "name": "Python: Example 1 - Simple Agent",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/01_simple_agent.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 2 - Agent with Tools",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/02_agent_with_tools.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 3 - Advanced Agent",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/03_advanced_agent.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 4 - Streaming Tests",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/04_streaming_tests.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}"
+    // },
+    // {
+    //   "name": "Python: Example 5 - Comprehensive Properties",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/05_comprehensive_properties.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}"
+    // },
+    // {
+    //   "name": "Python: Example 6 - Edge Cases",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/06_edge_cases.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}"
+    // },
+    // {
+    //   "name": "Python: Storage: Initialization Example",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/storage/01_initialization.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 2 - Agent with Storage",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/storage/02_persistence.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 3 - Tool Call Storage",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/storage/03_tool_cal.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Memory: Example 1 - Memory Config",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/memory/01_memory_config.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Memory: Example 2 - Context Window",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/memory/02_context_window.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}"
+    // },
+    // {
+    //   "name": "Memory: Example 4 - Summarization",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Middleware: Example 1 - Input Middleware",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/middleware/01_input_middleware.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Middleware: Example 2 - Output Middleware",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/middleware/02_output_middleware.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Middleware: Example 3 - Combined Middleware",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/middleware/03_combined_middleware.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 7 - MCP",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/mcp/research_agent.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Example 8 - MCP Hybrid Agent",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/mcp/hybrid_agent.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "MCP Simple demo",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "program": "${workspaceFolder}/packages/framework/examples/mcp/simple_demo.py",
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // },
+    // {
+    //   "name": "Python: Pytest Benchmarks",
+    //   "type": "debugpy",
+    //   "request": "launch",
+    //   "module": "pytest",
+    //   "args": [
+    //     "packages/framework/tests/benchmarks/test_benchmarks.py",
+    //     "-v",
+    //     "--benchmark-only"
+    //   ],
+    //   "console": "integratedTerminal",
+    //   "justMyCode": false,
+    //   "cwd": "${workspaceFolder}",
+    //   "env": {
+    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+    //   }
+    // }
   ]
 }

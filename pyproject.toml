@@ -10,6 +10,7 @@ authors = [
 dependencies = [
     "aiohttp>=3.13.2",
     "debugpy>=1.8.17",
+    "opentelemetry-sdk>=1.38.0",
 ]
 
 
@@ -24,11 +25,9 @@ members = [
 ]
 
 [tool.uv.sources]
-# deployment = { workspace = true }  # Empty package
-framework = { workspace = true }
-# integrations = { workspace = true }  # Empty package
-memorybase = { workspace = true }
 observability = { workspace = true }
+framework = { workspace = true }
+memorybase = { workspace = true }
 # runtime = { workspace = true }  # Empty package
 
 [tool.ruff]
@@ -105,5 +104,8 @@ show_error_codes = true
 
 [dependency-groups]
 dev = [
+    "framework",
+    "memorybase",
+    "observability",
     "ruff>=0.14.6",
 ]

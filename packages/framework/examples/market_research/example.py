@@ -4,11 +4,12 @@ import asyncio
 import os
 import sys
 
-from packages.framework.examples.market_research.agent import market_research_agent
-
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../observability"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../memorybase"))
+
+from market_research.agent import market_research_agent
 
 
 async def main():

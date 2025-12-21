@@ -34,7 +34,7 @@ market_research_agent = Agent(
     name="Market Research Agent",
     model=bedrock_model,
     tools=[get_product, search, get_reviews, get_offers, autocomplete],
-    code_mode=True,
+    code_mode=False,
     instructions="""
 # Market Research Agent - SellerGeni
 

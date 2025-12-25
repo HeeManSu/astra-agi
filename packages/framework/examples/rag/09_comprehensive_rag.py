@@ -4,10 +4,9 @@ Demonstrates a complete RAG system with all features: ingestion, search, managem
 """
 
 import asyncio
-import os
 from pathlib import Path
 
-from framework.KnowledgeBase import KnowledgeBase, LanceDB, OpenAIEmbedder, RecursiveChunking
+from framework.KnowledgeBase import HuggingFaceEmbedder, KnowledgeBase, LanceDB, RecursiveChunking
 from framework.KnowledgeBase.vectordb.base import SearchType
 from framework.agents import Agent
 from framework.models import Gemini
@@ -16,16 +15,12 @@ from framework.models import Gemini
 async def main():
     """Comprehensive RAG example."""
 
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable not set")
-        return
-
     print("=" * 60)
     print("Example 9: Comprehensive RAG Workflow")
     print("=" * 60)
 
-    # Setup knowledge base with custom configuration
-    embedder = OpenAIEmbedder(model="text-embedding-3-small")
+    # Setup knowledge base with custom configuration (using HuggingFace - no API key needed)
+    embedder = HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
     vector_db = LanceDB(
         uri="examples/rag/data/lancedb_comprehensive",
         table_name="comprehensive_docs",

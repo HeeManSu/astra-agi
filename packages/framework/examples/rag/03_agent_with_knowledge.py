@@ -4,9 +4,8 @@ Shows how agents automatically use knowledge base via search_knowledge tool.
 """
 
 import asyncio
-import os
 
-from framework.KnowledgeBase import KnowledgeBase, LanceDB, OpenAIEmbedder
+from framework.KnowledgeBase import HuggingFaceEmbedder, KnowledgeBase, LanceDB
 from framework.agents import Agent
 from framework.models import Gemini
 
@@ -14,16 +13,12 @@ from framework.models import Gemini
 async def main():
     """Agent with knowledge base example."""
 
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable not set")
-        return
-
     print("=" * 60)
     print("Example 3: Agent with Knowledge Base")
     print("=" * 60)
 
-    # Setup knowledge base with company information
-    embedder = OpenAIEmbedder()
+    # Setup knowledge base with company information (using HuggingFace - no API key needed)
+    embedder = HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
     vector_db = LanceDB(uri="examples/rag/data/lancedb_agent", embedder=embedder)
 
     knowledge_base = KnowledgeBase(

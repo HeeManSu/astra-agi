@@ -4,9 +4,8 @@ Demonstrates the simplest RAG setup - adding text content and searching.
 """
 
 import asyncio
-import os
 
-from framework.KnowledgeBase import KnowledgeBase, LanceDB, OpenAIEmbedder, RecursiveChunking
+from framework.KnowledgeBase import HuggingFaceEmbedder, KnowledgeBase, LanceDB, RecursiveChunking
 from framework.agents import Agent
 from framework.models import Gemini
 
@@ -14,17 +13,12 @@ from framework.models import Gemini
 async def main():
     """Basic RAG example with text content."""
 
-    # Check for OpenAI API key
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable not set")
-        return
-
     print("=" * 60)
     print("Example 1: Basic RAG with Text Content")
     print("=" * 60)
 
-    # 1. Create embedder
-    embedder = OpenAIEmbedder(model="text-embedding-3-small")
+    # 1. Create embedder (using HuggingFace - no API key needed for public models)
+    embedder = HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
 
     # 2. Create vector database
     vector_db = LanceDB(uri="examples/rag/data/lancedb_basic", embedder=embedder)

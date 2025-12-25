@@ -136,11 +136,17 @@ class KnowledgeBase:
         try:
             if reader:
                 selected_reader = reader
-            elif isinstance(source, (Path, str)) and Path(source).exists():
-                selected_reader = ReaderFactory.get_reader_for_path(source)
             elif isinstance(source, str) and source.startswith(("http://", "https://")):
+                # URL content - check this first
                 selected_reader = ReaderFactory.get_reader_for_url(source)
+            elif isinstance(source, Path):
+                # Explicit Path object - file path
+                selected_reader = ReaderFactory.get_reader_for_path(source)
+            elif isinstance(source, str) and len(source) < 260 and self._is_valid_path(source):
+                # String that looks like a file path (short, no newlines, exists)
+                selected_reader = ReaderFactory.get_reader_for_path(source)
             else:
+                # Default: treat as raw text content
                 selected_reader = ReaderFactory.get_reader_for_text()
 
             documents = await selected_reader.read(source, name)
@@ -148,6 +154,16 @@ class KnowledgeBase:
 
         except Exception as e:
             raise ReaderError(f"Failed to read content: {e}") from e
+
+    def _is_valid_path(self, source: str) -> bool:
+        """Check if source string is likely a valid file path."""
+        # Quick checks to avoid OS errors on long strings
+        if "\n" in source or "\r" in source:
+            return False
+        try:
+            return Path(source).exists()
+        except OSError:
+            return False
 
     async def _chunk_documents(self, documents: list[Document], content_id: str) -> list[Document]:
         """Chunk documents using chunking strategy."""

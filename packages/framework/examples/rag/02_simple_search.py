@@ -4,24 +4,19 @@ Demonstrates basic search functionality with different queries.
 """
 
 import asyncio
-import os
 
-from framework.KnowledgeBase import KnowledgeBase, LanceDB, OpenAIEmbedder, RecursiveChunking
+from framework.KnowledgeBase import HuggingFaceEmbedder, KnowledgeBase, LanceDB, RecursiveChunking
 
 
 async def main():
     """Simple search example."""
 
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable not set")
-        return
-
     print("=" * 60)
     print("Example 2: Simple Knowledge Base Search")
     print("=" * 60)
 
-    # Setup knowledge base
-    embedder = OpenAIEmbedder()
+    # Setup knowledge base (using HuggingFace - no API key needed)
+    embedder = HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
     vector_db = LanceDB(uri="examples/rag/data/lancedb_search", embedder=embedder)
 
     knowledge_base = KnowledgeBase(

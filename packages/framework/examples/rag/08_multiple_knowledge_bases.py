@@ -4,9 +4,8 @@ Demonstrates using multiple knowledge bases for different domains.
 """
 
 import asyncio
-import os
 
-from framework.KnowledgeBase import KnowledgeBase, LanceDB, OpenAIEmbedder, RecursiveChunking
+from framework.KnowledgeBase import HuggingFaceEmbedder, KnowledgeBase, LanceDB, RecursiveChunking
 from framework.agents import Agent
 from framework.models import Gemini
 
@@ -14,15 +13,12 @@ from framework.models import Gemini
 async def main():
     """Multiple knowledge bases example."""
 
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable not set")
-        return
-
     print("=" * 60)
     print("Example 8: Multiple Knowledge Bases")
     print("=" * 60)
 
-    embedder = OpenAIEmbedder()
+    # Using HuggingFace - no API key needed
+    embedder = HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
 
     # 1. Create technical documentation knowledge base
     print("\n📚 Creating Technical Documentation Knowledge Base...")

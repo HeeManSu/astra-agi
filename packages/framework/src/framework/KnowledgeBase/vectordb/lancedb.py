@@ -120,7 +120,9 @@ class LanceDB(VectorDB):
 
         try:
             query_embedding = (await self.embedder.embed([query]))[0]
-            results = self._table.search(query_embedding).limit(limit).to_pylist()
+            # Use to_arrow().to_pylist() - to_pylist() doesn't exist on LanceVectorQueryBuilder
+            arrow_table = self._table.search(query_embedding).limit(limit).to_arrow()
+            results = arrow_table.to_pylist()
 
             documents: list[Document] = []
             for result in results:

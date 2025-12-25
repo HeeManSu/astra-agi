@@ -4,18 +4,13 @@ Demonstrates different chunking strategies and their effects.
 """
 
 import asyncio
-import os
 
-from framework.KnowledgeBase import KnowledgeBase, LanceDB, OpenAIEmbedder
+from framework.KnowledgeBase import HuggingFaceEmbedder, KnowledgeBase, LanceDB
 from framework.KnowledgeBase.chunking.recursive import RecursiveChunking
 
 
 async def main():
     """Custom chunking example."""
-
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable not set")
-        return
 
     print("=" * 60)
     print("Example 7: Custom Chunking Strategies")
@@ -52,7 +47,8 @@ async def main():
         * 2
     )  # Make it longer
 
-    embedder = OpenAIEmbedder()
+    # Using HuggingFace - no API key needed
+    embedder = HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2")
 
     print("\n📚 Testing different chunking strategies...\n")
 

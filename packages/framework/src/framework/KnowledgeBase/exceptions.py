@@ -21,5 +21,5 @@ class VectorDBError(KnowledgeBaseError):
     """Error during vector database operations."""
 
 
-class ContentsDBError(KnowledgeBaseError):
-    """Error during contents database operations."""
+class StorageError(KnowledgeBaseError):
+    """Error during content storage operations."""

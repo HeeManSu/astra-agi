@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
 
-from framework.KnowledgeBase.models import Document
+from framework.KnowledgeBase.vectordb.models import Document
 
 
 class SearchType(str, Enum):

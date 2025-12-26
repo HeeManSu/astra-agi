@@ -1,7 +1,7 @@
 """Recursive chunking strategy."""
 
 from framework.KnowledgeBase.chunking.base import ChunkingStrategy
-from framework.KnowledgeBase.models import Document
+from framework.KnowledgeBase.vectordb.models import Document
 
 
 class RecursiveChunking(ChunkingStrategy):

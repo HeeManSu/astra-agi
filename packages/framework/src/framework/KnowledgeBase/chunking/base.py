@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from framework.KnowledgeBase.models import Document
+from framework.KnowledgeBase.vectordb.models import Document
 
 
 class ChunkingStrategy(ABC):

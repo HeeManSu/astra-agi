@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from framework.KnowledgeBase.models import Document
+from framework.KnowledgeBase.vectordb.models import Document
 
 
 class Reader(ABC):

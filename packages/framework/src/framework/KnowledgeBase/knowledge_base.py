@@ -7,20 +7,20 @@ import uuid
 
 from framework.KnowledgeBase.chunking.base import ChunkingStrategy
 from framework.KnowledgeBase.chunking.recursive import RecursiveChunking
-from framework.KnowledgeBase.contents_db.base import ContentsDB
-from framework.KnowledgeBase.contents_db.in_memory import InMemoryContentsDB
 from framework.KnowledgeBase.embedders.base import Embedder
 from framework.KnowledgeBase.exceptions import (
     ChunkingError,
-    ContentsDBError,
     EmbeddingError,
     ReaderError,
+    StorageError,
     VectorDBError,
 )
-from framework.KnowledgeBase.models import Content, ContentStatus, Document
 from framework.KnowledgeBase.readers.base import Reader
 from framework.KnowledgeBase.readers.factory import ReaderFactory
+from framework.KnowledgeBase.storage.base import ContentStore
+from framework.KnowledgeBase.storage.in_memory import InMemoryStore
 from framework.KnowledgeBase.vectordb.base import SearchType, VectorDB
+from framework.KnowledgeBase.vectordb.models import Content, ContentStatus, Document
 
 
 class KnowledgeBase:
@@ -31,7 +31,7 @@ class KnowledgeBase:
         vector_db: VectorDB,
         embedder: Embedder | None = None,
         chunking: ChunkingStrategy | None = None,
-        contents_db: ContentsDB | None = None,
+        storage: ContentStore | None = None,
         max_results: int = 10,
     ):
         """
@@ -41,13 +41,13 @@ class KnowledgeBase:
             vector_db: Vector database instance
             embedder: Embedder instance (required if vector_db doesn't have one)
             chunking: Chunking strategy (defaults to RecursiveChunking)
-            contents_db: Contents database (defaults to InMemoryContentsDB)
+            storage: Content store (defaults to InMemoryStore)
             max_results: Default max results for search
         """
         self.vector_db = vector_db
         self.embedder = embedder or getattr(vector_db, "embedder", None)
         self.chunking = chunking or RecursiveChunking()
-        self.contents_db = contents_db or InMemoryContentsDB()
+        self.storage = storage or InMemoryStore()
         self.max_results = max_results
 
     def _build_content_hash(self, source: str, metadata: dict[str, Any] | None = None) -> str:
@@ -112,21 +112,21 @@ class KnowledgeBase:
             if skip_if_exists and self.vector_db.content_hash_exists(content_hash):
                 return content_id
 
-            await self.contents_db.create_content(content)
+            await self.storage.create(content)
 
             documents = await self._read_content(source, reader, name)
             chunked_docs = await self._chunk_documents(documents, content_id)
             await self._embed_and_store(chunked_docs, content, upsert)
 
             content.update_status(ContentStatus.COMPLETED)
-            await self.contents_db.update_content(content)
+            await self.storage.update(content)
 
             return content_id
 
         except Exception as e:
             if "content" in locals():
                 content.update_status(ContentStatus.FAILED, str(e))
-                await self.contents_db.update_content(content)
+                await self.storage.update(content)
             raise
 
     async def _read_content(
@@ -237,9 +237,9 @@ class KnowledgeBase:
         """
         try:
             await self.vector_db.delete_by_content_id(content_id)
-            await self.contents_db.delete_content(content_id)
+            await self.storage.delete(content_id)
         except Exception as e:
-            raise ContentsDBError(f"Failed to delete content: {e}") from e
+            raise StorageError(f"Failed to delete content: {e}") from e
 
     async def update_content_metadata(self, content_id: str, metadata: dict[str, Any]) -> None:
         """
@@ -249,12 +249,12 @@ class KnowledgeBase:
             content_id: Content ID
             metadata: Updated metadata
         """
-        content = await self.contents_db.get_content(content_id)
+        content = await self.storage.get(content_id)
         if not content:
-            raise ContentsDBError(f"Content not found: {content_id}")
+            raise StorageError(f"Content not found: {content_id}")
 
         content.metadata.update(metadata)
-        await self.contents_db.update_content(content)
+        await self.storage.update(content)
 
     async def list_contents(self, filters: dict[str, Any] | None = None) -> list[Content]:
         """
@@ -266,4 +266,4 @@ class KnowledgeBase:
         Returns:
             List of Content objects
         """
-        return await self.contents_db.list_contents(filters)
+        return await self.storage.list(filters)

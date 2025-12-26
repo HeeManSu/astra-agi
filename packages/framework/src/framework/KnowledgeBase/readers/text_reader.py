@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Any
 
-from framework.KnowledgeBase.models import Document
 from framework.KnowledgeBase.readers.base import Reader
+from framework.KnowledgeBase.vectordb.models import Document
 
 
 class TextReader(Reader):

@@ -1,19 +1,19 @@
-"""In-memory contents database implementation."""
+"""In-memory content store implementation."""
 
 from typing import Any
 
-from framework.KnowledgeBase.contents_db.base import ContentsDB
-from framework.KnowledgeBase.models import Content
+from framework.KnowledgeBase.storage.base import ContentStore
+from framework.KnowledgeBase.vectordb.models import Content
 
 
-class InMemoryContentsDB(ContentsDB):
-    """In-memory implementation of ContentsDB for testing and simple use cases."""
+class InMemoryStore(ContentStore):
+    """In-memory implementation of ContentStore for testing and simple use cases."""
 
     def __init__(self):
-        """Initialize in-memory database."""
+        """Initialize in-memory store."""
         self._contents: dict[str, Content] = {}
 
-    async def create_content(self, content: Content) -> str:
+    async def create(self, content: Content) -> str:
         """
         Create a content record.
 
@@ -26,7 +26,7 @@ class InMemoryContentsDB(ContentsDB):
         self._contents[content.id] = content
         return content.id
 
-    async def get_content(self, content_id: str) -> Content | None:
+    async def get(self, content_id: str) -> Content | None:
         """
         Get content by ID.
 
@@ -38,7 +38,7 @@ class InMemoryContentsDB(ContentsDB):
         """
         return self._contents.get(content_id)
 
-    async def update_content(self, content: Content) -> None:
+    async def update(self, content: Content) -> None:
         """
         Update content record.
 
@@ -49,7 +49,7 @@ class InMemoryContentsDB(ContentsDB):
             raise ValueError(f"Content not found: {content.id}")
         self._contents[content.id] = content
 
-    async def delete_content(self, content_id: str) -> None:
+    async def delete(self, content_id: str) -> None:
         """
         Delete content record.
 
@@ -59,12 +59,12 @@ class InMemoryContentsDB(ContentsDB):
         if content_id in self._contents:
             del self._contents[content_id]
 
-    async def list_contents(self, filters: dict[str, Any] | None = None) -> list[Content]:
+    async def list(self, filters: dict[str, Any] | None = None) -> list[Content]:
         """
         List all content with optional filters.
 
         Args:
-            filters: Optional filters (not fully implemented in MVP)
+            filters: Optional filters
 
         Returns:
             List of Content objects

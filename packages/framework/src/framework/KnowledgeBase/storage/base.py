@@ -1,16 +1,20 @@
-"""Base contents database interface."""
+"""Base content store interface."""
 
 from abc import ABC, abstractmethod
 from typing import Any
 
-from framework.KnowledgeBase.models import Content
+from framework.KnowledgeBase.vectordb.models import Content
 
 
-class ContentsDB(ABC):
-    """Base class for contents databases."""
+class ContentStore(ABC):
+    """Base class for content storage.
+
+    Stores metadata about ingested content (not the vectors themselves).
+    This is separate from the vector database.
+    """
 
     @abstractmethod
-    async def create_content(self, content: Content) -> str:
+    async def create(self, content: Content) -> str:
         """
         Create a content record.
 
@@ -22,7 +26,7 @@ class ContentsDB(ABC):
         """
 
     @abstractmethod
-    async def get_content(self, content_id: str) -> Content | None:
+    async def get(self, content_id: str) -> Content | None:
         """
         Get content by ID.
 
@@ -34,7 +38,7 @@ class ContentsDB(ABC):
         """
 
     @abstractmethod
-    async def update_content(self, content: Content) -> None:
+    async def update(self, content: Content) -> None:
         """
         Update content record.
 
@@ -43,7 +47,7 @@ class ContentsDB(ABC):
         """
 
     @abstractmethod
-    async def delete_content(self, content_id: str) -> None:
+    async def delete(self, content_id: str) -> None:
         """
         Delete content record.
 
@@ -52,7 +56,7 @@ class ContentsDB(ABC):
         """
 
     @abstractmethod
-    async def list_contents(self, filters: dict[str, Any] | None = None) -> list[Content]:
+    async def list(self, filters: dict[str, Any] | None = None) -> list[Content]:
         """
         List all content with optional filters.
 

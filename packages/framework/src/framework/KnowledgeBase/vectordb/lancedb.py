@@ -6,8 +6,8 @@ import lancedb
 import pyarrow as pa
 
 from framework.KnowledgeBase.exceptions import VectorDBError
-from framework.KnowledgeBase.models import Document
 from framework.KnowledgeBase.vectordb.base import SearchType, VectorDB
+from framework.KnowledgeBase.vectordb.models import Document
 
 
 class LanceDB(VectorDB):

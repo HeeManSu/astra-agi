@@ -32,6 +32,10 @@ class AgentMemory(BaseModel):
         default=True,
         description="Whether to count system messages toward window_size limit",
     )
+    include_tool_calls: bool = Field(
+        default=False,
+        description="Whether to include tool call messages (role='tool') in history. Default False to reduce noise.",
+    )
     summary_model: str | None = Field(
         default=None,
         description="Model ID for summarization (lighter/faster model). If None, uses agent's model.",

@@ -63,6 +63,10 @@ class MemoryManager:
             msg_dict = storage._message_to_dict(msg)
             context.append(msg_dict)
 
+        # Filter tool calls if disabled (default: exclude tool calls to reduce noise)
+        if not self.memory.include_tool_calls:
+            context = [msg for msg in context if msg.get("role") != "tool"]
+
         # Apply token-aware windowing if token_limit is set
         if self.memory.token_limit and max_tokens:
             context = await self._apply_token_limiting(context, max_tokens)

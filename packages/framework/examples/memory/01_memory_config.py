@@ -1,25 +1,28 @@
 """
 Example 1: AgentMemory Configuration
 
-This example demonstrates how to configure AgentMemory for your agents.
+This example demonstrates how to configure AgentMemory for your agents with the new STM features.
 
 What it demonstrates:
 1. Default memory configuration: Understanding default values
-2. Custom memory configuration: Setting custom values for memory behavior
-3. Configuration options: Available fields and their purposes
+2. Message count windowing: Using window_size for simple message limits
+3. Token-aware windowing: Using token_limit for precise token control
+4. Overflow handling: Automatic summarization when limits are exceeded
+5. System message filtering: Control whether system messages count toward limits
 
 Codebase components:
 - framework.memory.memory.AgentMemory: Pydantic model for memory configuration
-- Configuration fields:
-  * add_history_to_messages: Whether to load conversation history
-  * num_history_responses: Number of recent responses to keep in context
-  * create_session_summary: Whether to enable summarization
-  * summary_prompt: Custom prompt for generating summaries
+- New STM fields:
+  * token_limit: Token-based windowing (primary)
+  * window_size: Message count limit (fallback)
+  * summarize_overflow: Enable automatic summarization
+  * include_system_messages: Count system messages in limits
+  * summary_model: Optional lighter model for summarization
 
 Usage:
-- Use default config: AgentMemory() - Good for most cases
-- Custom config: AgentMemory(num_history_responses=5, ...) - Fine-tune behavior
-- Share config: Create once, use across multiple agents
+- Simple: AgentMemory(window_size=20) - Message count limit
+- Advanced: AgentMemory(token_limit=4000) - Token-aware with overflow handling
+- Custom: AgentMemory(token_limit=4000, summarize_overflow=True, ...)
 """
 
 from framework.memory import AgentMemory
@@ -31,59 +34,127 @@ def test_memory_defaults():
 
     Demonstrates that AgentMemory has sensible defaults:
     - History loading is enabled by default
-    - Keeps 10 recent responses in context
-    - Summarization is disabled by default
-
-    This is useful when you want standard behavior without configuration.
+    - window_size defaults to 20 messages
+    - Token-aware windowing is disabled (token_limit=None)
+    - Overflow summarization is enabled by default
     """
-    # Create memory with default settings
-    # Tests: framework.memory.memory.AgentMemory default values
     memory = AgentMemory()
 
     # Verify default values
-    assert memory.add_history_to_messages is True, "History loading should be enabled by default"
-    assert memory.num_history_responses == 10, "Should keep 10 recent responses by default"
-    assert memory.create_session_summary is False, "Summarization should be disabled by default"
+    assert memory.add_history_to_messages is True
+    assert memory.window_size == 20
+    assert memory.token_limit is None
+    assert memory.summarize_overflow is True
+    assert memory.include_system_messages is True
 
     print("✓ Default configuration verified!")
     print("  - History loading: Enabled")
-    print("  - Context window: 10 responses")
-    print("  - Summarization: Disabled")
+    print("  - Window size: 20 messages")
+    print("  - Token limit: None (using message count)")
+    print("  - Overflow summarization: Enabled")
 
 
-def test_custom_config():
+def test_message_count_windowing():
     """
-    Test custom memory configuration.
+    Test message count-based windowing.
 
-    Demonstrates how to customize memory behavior:
-    - Reduce context window size (num_history_responses)
-    - Enable summarization (create_session_summary)
-    - Set custom summary prompt (summary_prompt)
-
-    This is useful when you need:
-    - Smaller context windows (reduce token usage)
-    - Summarization for long conversations
-    - Custom summary formatting
+    Simple approach: limit by number of messages.
+    Useful when you want predictable behavior without token counting.
     """
-    # Create memory with custom settings
-    # Tests: framework.memory.memory.AgentMemory custom configuration
     memory = AgentMemory(
-        num_history_responses=5,  # Keep only 5 recent responses (instead of default 10)
-        create_session_summary=True,  # Enable summarization
-        summary_prompt="Custom prompt",  # Custom summary generation prompt
+        window_size=10,  # Keep only last 10 messages
+        token_limit=None,  # Disable token-aware windowing
     )
 
-    # Verify custom values are set correctly
-    assert memory.num_history_responses == 5, "Should keep 5 recent responses"
-    assert memory.create_session_summary is True, "Summarization should be enabled"
-    assert memory.summary_prompt == "Custom prompt", "Custom prompt should be set"
+    assert memory.window_size == 10
+    assert memory.token_limit is None
 
-    print("✓ Custom configuration verified!")
-    print("  - Context window: 5 responses (custom)")
-    print("  - Summarization: Enabled")
-    print("  - Summary prompt: Custom")
+    print("✓ Message count windowing configured!")
+    print("  - Window size: 10 messages")
+    print("  - Token limit: Disabled")
+
+
+def test_token_aware_windowing():
+    """
+    Test token-aware windowing.
+
+    Advanced approach: limit by token count for precise control.
+    Automatically trims messages to fit within token budget.
+    """
+    memory = AgentMemory(
+        token_limit=4000,  # Primary: token-based limit
+        window_size=20,  # Fallback: if token_limit not set
+        summarize_overflow=True,  # Summarize when exceeding limit
+    )
+
+    assert memory.token_limit == 4000
+    assert memory.summarize_overflow is True
+
+    print("✓ Token-aware windowing configured!")
+    print("  - Token limit: 4000 tokens")
+    print("  - Overflow handling: Summarization enabled")
+
+
+def test_system_message_filtering():
+    """
+    Test system message filtering.
+
+    Control whether system messages count toward the window limit.
+    """
+    # Include system messages in count
+    memory_with_system = AgentMemory(
+        window_size=20,
+        include_system_messages=True,  # System messages count toward limit
+    )
+
+    # Exclude system messages from count
+    memory_without_system = AgentMemory(
+        window_size=20,
+        include_system_messages=False,  # System messages don't count
+    )
+
+    assert memory_with_system.include_system_messages is True
+    assert memory_without_system.include_system_messages is False
+
+    print("✓ System message filtering configured!")
+    print("  - With system: System messages count toward limit")
+    print("  - Without system: System messages excluded from limit")
+
+
+def test_complete_config():
+    """
+    Test complete STM configuration.
+
+    Shows all new features working together.
+    """
+    memory = AgentMemory(
+        # Basic
+        add_history_to_messages=True,
+        # Windowing
+        token_limit=4000,  # Token-aware (primary)
+        window_size=20,  # Fallback message count
+        # Overflow handling
+        summarize_overflow=True,
+        summary_model="gpt-3.5-turbo",  # Lighter model for summarization
+        # System messages
+        include_system_messages=True,
+        # Summary prompt
+        summary_prompt="Summarize key decisions and facts from this conversation.",
+    )
+
+    assert memory.token_limit == 4000
+    assert memory.summarize_overflow is True
+    assert memory.summary_model == "gpt-3.5-turbo"
+
+    print("✓ Complete STM configuration!")
+    print("  - Token-aware windowing: 4000 tokens")
+    print("  - Overflow handling: Enabled with custom model")
+    print("  - System messages: Included in count")
 
 
 if __name__ == "__main__":
     test_memory_defaults()
-    test_custom_config()
+    test_message_count_windowing()
+    test_token_aware_windowing()
+    test_system_message_filtering()
+    test_complete_config()

@@ -6,8 +6,10 @@ This example comprehensively tests all STM memory features:
 2. Message count windowing
 3. Overflow handling with summarization
 4. System message filtering
-5. Token counting accuracy
-6. Edge cases
+5. Tool call filtering (default: excluded)
+6. Token counting accuracy
+7. Edge cases
+8. Backward compatibility
 
 Test scenarios:
 - Small token limits with long messages
@@ -303,9 +305,83 @@ async def test_overflow_summarization():
         os.remove(db_file)
 
 
+async def test_tool_call_filtering():
+    """Test tool call filtering (default: excluded)."""
+    print("\n=== Test 6: Tool Call Filtering ===")
+
+    db_file = "./test_tool_filtering.db"
+    if os.path.exists(db_file):
+        os.remove(db_file)
+
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=50)
+
+    # Configure with tool calls excluded (default)
+    memory = AgentMemory(
+        window_size=10,
+        include_tool_calls=False,  # Default: exclude tool calls
+    )
+
+    agent = Agent(
+        name="ToolFilterAgent",
+        instructions="You are a helpful assistant.",
+        model=model,
+        storage=storage,
+        memory=memory,
+    )
+
+    if agent.storage:
+        agent.storage.queue.debounce_seconds = 0.01
+
+    thread_id = f"thread-{uuid4().hex[:8]}"
+
+    # Send messages and manually add tool messages to simulate tool-heavy conversation
+    await agent.invoke("Hello", thread_id=thread_id)
+    await asyncio.sleep(0.1)
+
+    # Manually add tool messages to storage to simulate tool calls
+    if agent.storage:
+        # Add several tool messages
+        for i in range(5):
+            await agent.storage.add_message(
+                thread_id=thread_id,
+                role="tool",
+                content=f"Tool result {i + 1}",
+                tool_call_id=f"call_{i}",
+            )
+        await asyncio.sleep(0.1)
+
+    # Check context - tool messages should be excluded
+    assert agent.storage is not None
+    context = await agent.memory_manager.get_context(thread_id, agent.storage)
+    tool_count = sum(1 for msg in context if msg.get("role") == "tool")
+    print(f"  Tool messages in context (excluded): {tool_count}")
+    assert tool_count == 0, "Tool messages should be excluded by default"
+
+    # Test with tool calls included
+    memory_with_tools = AgentMemory(
+        window_size=10,
+        include_tool_calls=True,  # Explicitly include tool calls
+    )
+
+    agent.memory = memory_with_tools
+    agent.memory_manager.memory = memory_with_tools
+
+    context_with_tools = await agent.memory_manager.get_context(thread_id, agent.storage)
+    tool_count_with = sum(1 for msg in context_with_tools if msg.get("role") == "tool")
+    print(f"  Tool messages in context (included): {tool_count_with}")
+
+    print("✓ Tool call filtering verified!")
+
+    # Cleanup
+    await storage.disconnect()
+    if os.path.exists(db_file):
+        os.remove(db_file)
+
+
 async def test_edge_cases():
     """Test edge cases."""
-    print("\n=== Test 6: Edge Cases ===")
+    print("\n=== Test 7: Edge Cases ===")
 
     # Test empty messages
     counter = TokenCounter()
@@ -331,13 +407,12 @@ async def test_edge_cases():
 
 async def test_backward_compatibility():
     """Test backward compatibility with num_history_responses."""
-    print("\n=== Test 7: Backward Compatibility ===")
+    print("\n=== Test 8: Backward Compatibility ===")
 
     db_file = "./test_backward_compat.db"
     if os.path.exists(db_file):
         os.remove(db_file)
 
-    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
     model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
@@ -387,6 +462,7 @@ async def main():
     await test_message_count_windowing()
     await test_system_message_filtering()
     await test_overflow_summarization()
+    await test_tool_call_filtering()
     await test_edge_cases()
     await test_backward_compatibility()
 

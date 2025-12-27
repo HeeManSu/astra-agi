@@ -45,7 +45,7 @@ from uuid import uuid4
 
 from framework.agents import Agent
 from framework.memory import AgentMemory
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 from framework.storage.databases.libsql import LibSQLStorage
 
 
@@ -61,14 +61,16 @@ async def test_summarization():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    # Use local model
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Configure memory to keep only 1 recent response (2 messages)
     # and enable summarization
     memory = AgentMemory(
         num_history_responses=1,
         add_history_to_messages=True,
-        create_session_summary=True,
+        summarize_overflow=True,
         summary_prompt="Summarize the following conversation concisely, retaining key facts and decisions.",
     )
 
@@ -127,13 +129,14 @@ async def test_summarization_disabled():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Disable summarization
     memory = AgentMemory(
         num_history_responses=1,
         add_history_to_messages=True,
-        create_session_summary=False,  # Disabled
+        summarize_overflow=False,  # Disabled
     )
 
     agent = Agent(
@@ -179,13 +182,14 @@ async def test_history_window():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Keep only 2 recent responses (4 messages)
     memory = AgentMemory(
         num_history_responses=2,
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     agent = Agent(
@@ -234,13 +238,14 @@ async def test_no_history_loading():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Disable history loading
     memory = AgentMemory(
         num_history_responses=10,
         add_history_to_messages=False,  # Disabled
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     agent = Agent(
@@ -291,13 +296,14 @@ async def test_multiple_agents_shared_memory():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Shared memory configuration
     shared_memory = AgentMemory(
         num_history_responses=2,
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     # Create 3 agents with same memory config
@@ -347,13 +353,14 @@ async def test_custom_summary_prompt():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     custom_prompt = "Create a brief summary focusing on numbers and calculations."
     memory = AgentMemory(
         num_history_responses=1,
         add_history_to_messages=True,
-        create_session_summary=True,
+        summarize_overflow=True,
         summary_prompt=custom_prompt,
     )
 
@@ -398,12 +405,13 @@ async def test_empty_thread():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     memory = AgentMemory(
         num_history_responses=5,
         add_history_to_messages=True,
-        create_session_summary=True,
+        summarize_overflow=True,
     )
 
     agent = Agent(
@@ -451,12 +459,13 @@ async def test_summary_cache():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     memory = AgentMemory(
         num_history_responses=1,
         add_history_to_messages=True,
-        create_session_summary=True,
+        summarize_overflow=True,
     )
 
     agent = Agent(
@@ -501,13 +510,14 @@ async def test_shared_memory_instance():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Create ONE memory instance
     shared_memory = AgentMemory(
         num_history_responses=3,
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     # Create 2 agents with SAME memory instance
@@ -586,18 +596,19 @@ async def test_per_agent_different_memory():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Create DIFFERENT memory configs
     memory1 = AgentMemory(
         num_history_responses=2,  # Keep 2 responses
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
     memory2 = AgentMemory(
         num_history_responses=5,  # Keep 5 responses
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     # Create 2 agents with DIFFERENT memory configs
@@ -677,12 +688,13 @@ async def test_memory_manager_independent():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     shared_memory = AgentMemory(
         num_history_responses=1,
         add_history_to_messages=True,
-        create_session_summary=True,
+        summarize_overflow=True,
     )
 
     # Create 2 agents
@@ -765,12 +777,13 @@ async def test_context_loading_independent():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     memory = AgentMemory(
         num_history_responses=3,
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     # Create 2 agents
@@ -859,13 +872,14 @@ async def test_ten_agents_shared_memory():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     # Shared memory configuration
     shared_memory = AgentMemory(
         num_history_responses=2,
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     # Create 10 agents with same memory config
@@ -949,12 +963,13 @@ async def test_memory_config_immutability():
         os.remove(db_file)
 
     storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
-    model = Gemini("gemini-2.5-flash")
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{db_file}")
+    model = HuggingFaceLocal(model_id="HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=100)
 
     memory = AgentMemory(
         num_history_responses=2,
         add_history_to_messages=True,
-        create_session_summary=False,
+        summarize_overflow=False,
     )
 
     agent = Agent(
@@ -1003,20 +1018,20 @@ async def main():
     print("=" * 60)
 
     tests = [
-        # test_summarization,
-        # test_summarization_disabled,
-        # test_history_window,
-        # test_no_history_loading,
-        # test_multiple_agents_shared_memory,
-        # test_custom_summary_prompt,
-        # test_empty_thread,
-        # test_summary_cache,
-        # test_shared_memory_instance,
-        # test_per_agent_different_memory,
-        # test_memory_manager_independent,
-        # test_context_loading_independent,
+        test_summarization,
+        test_summarization_disabled,
+        test_history_window,
+        test_no_history_loading,
+        test_multiple_agents_shared_memory,
+        test_custom_summary_prompt,
+        test_empty_thread,
+        test_summary_cache,
+        test_shared_memory_instance,
+        test_per_agent_different_memory,
+        test_memory_manager_independent,
+        test_context_loading_independent,
         test_ten_agents_shared_memory,
-        # test_memory_config_immutability,
+        test_memory_config_immutability,
     ]
 
     passed = 0

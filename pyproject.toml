@@ -9,11 +9,13 @@ authors = [
 ]
 dependencies = [
     "aiohttp>=3.13.2",
+    "beanie>=2.0.1",
     "debugpy>=1.8.17",
     "huggingface-hub>=0.23.0",
     "lancedb>=0.26.0",
     "openai>=2.14.0",
     "pyarrow>=22.0.0",
+    "motor>=3.7.1",
 ]
 
 

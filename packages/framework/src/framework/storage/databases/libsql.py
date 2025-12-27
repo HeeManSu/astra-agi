@@ -14,9 +14,9 @@ from sqlalchemy import (
     Select,
     String,
     Table,
+    delete,
     event,
     func,
-    insert,
     select,
     text,
     update,
@@ -37,6 +37,7 @@ astra_threads = Table(
     Column("title", String(255), nullable=True),
     Column("metadata", JSON, nullable=True),
     Column("is_archived", Boolean, nullable=False, server_default="0"),
+    Column("deleted_at", DateTime(timezone=True), nullable=True, index=True),
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
     Column(
         "updated_at",
@@ -47,6 +48,7 @@ astra_threads = Table(
     # Indexes for common query patterns
     Index("idx_threads_created_at", "created_at"),
     Index("idx_threads_is_archived", "is_archived"),
+    Index("idx_threads_deleted_at", "deleted_at"),
     Index("idx_threads_resource_id_created", "resource_id", "created_at"),
 )
 
@@ -65,20 +67,13 @@ astra_messages = Table(
     Column("content", TEXT, nullable=False),
     Column("metadata", JSON, nullable=True),
     Column("sequence", INTEGER, nullable=False),  # ordering within thread
+    Column("deleted_at", DateTime(timezone=True), nullable=True, index=True),
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
     # Indexes for common query patterns
     Index("idx_messages_thread_sequence", "thread_id", "sequence"),
     Index("idx_messages_thread_role", "thread_id", "role"),
     Index("idx_messages_created_at", "created_at"),
-)
-
-astra_schema_versions = Table(
-    "astra_schema_versions",
-    metadata,
-    Column("table_name", String(255), primary_key=True),
-    Column("version", String(64), nullable=False),
-    Column("created_at", DateTime(timezone=True), server_default=func.now()),
-    Column("updated_at", DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
+    Index("idx_messages_deleted_at", "deleted_at"),
 )
 
 
@@ -149,25 +144,6 @@ class LibSQLStorage(StorageBackend):
             # Create tables if they don't exist
             await conn.run_sync(metadata.create_all)
 
-            async def _upsert_version(table: str, version: str):
-                stmt = select(astra_schema_versions.c.version).where(
-                    astra_schema_versions.c.table_name == table
-                )
-                result = await conn.execute(stmt)
-                if result.first():
-                    await conn.execute(
-                        update(astra_schema_versions)
-                        .where(astra_schema_versions.c.table_name == table)
-                        .values(version=version)
-                    )
-                else:
-                    await conn.execute(
-                        insert(astra_schema_versions).values(table_name=table, version=version)
-                    )
-
-            await _upsert_version("astra_threads", "1.0.0")
-            await _upsert_version("astra_messages", "1.0.0")
-
         self._initialized = True
 
     async def disconnect(self) -> None:
@@ -192,27 +168,6 @@ class LibSQLStorage(StorageBackend):
         async with self.engine.begin() as conn:
             await conn.run_sync(metadata.create_all)
 
-            # Helper to upsert version
-            async def _upsert_version(table: str, version: str):
-                # Check exist
-                stmt = select(astra_schema_versions.c.version).where(
-                    astra_schema_versions.c.table_name == table
-                )
-                result = await conn.execute(stmt)
-                if result.first():
-                    await conn.execute(
-                        update(astra_schema_versions)
-                        .where(astra_schema_versions.c.table_name == table)
-                        .values(version=version)
-                    )
-                else:
-                    await conn.execute(
-                        insert(astra_schema_versions).values(table_name=table, version=version)
-                    )
-
-            await _upsert_version("astra_threads", "1.0.0")
-            await _upsert_version("astra_messages", "1.0.0")
-
         self._initialized = True
 
     async def execute(
@@ -228,7 +183,6 @@ class LibSQLStorage(StorageBackend):
         Returns:
             Number of rows affected (if available), otherwise -1.
         """
-        # Auto-connect if not initialized
         if not self._initialized:
             await self.connect()
 
@@ -236,33 +190,6 @@ class LibSQLStorage(StorageBackend):
             result = await conn.execute(statement, params or {})
             rowcount = getattr(result, "rowcount", None)
             return int(rowcount) if rowcount is not None else -1
-
-    async def execute_in_transaction(
-        self, statements: list[Executable], params: list[Mapping[str, Any] | None] | None = None
-    ) -> list[int]:
-        """
-        Execute multiple statements in a single transaction.
-
-        Args:
-            statements: List of SQLAlchemy Core statements
-            params: Optional list of parameter mappings (one per statement)
-
-        Returns:
-            List of row counts for each statement
-
-        Note: SQLite/LibSQL supports transactions, so this ensures atomicity.
-        """
-        param_list: list[Mapping[str, Any] | None] = (
-            params if params is not None else [None] * len(statements)
-        )
-
-        results = []
-        async with self.engine.begin() as conn:
-            for stmt, param in zip(statements, param_list, strict=True):
-                result = await conn.execute(stmt, param or {})
-                rowcount = getattr(result, "rowcount", None)
-                results.append(int(rowcount) if rowcount is not None else -1)
-        return results
 
     async def fetch_all(
         self,
@@ -312,36 +239,153 @@ class LibSQLStorage(StorageBackend):
             row = result.mappings().first()
             return dict(row) if row is not None else None
 
-    async def fetch_many(
-        self,
-        statement: Select,
-        params: Mapping[str, Any] | None = None,
-        limit: int | None = None,
-    ) -> list[dict[str, Any]]:
+    def _get_table(self, collection_name: str) -> Table:
         """
-        Optional helper: fetch with limit.
+        Get SQLAlchemy table for collection name.
 
-        Domain stores can use this for pagination or simple limiting.
+        Maps collection names to SQLAlchemy Table objects.
         """
-        if limit is not None:
-            statement = statement.limit(limit)
-        return await self.fetch_all(statement, params)
+        if collection_name == "astra_threads":
+            return astra_threads
+        elif collection_name == "astra_messages":
+            return astra_messages
+        raise ValueError(f"Unknown collection: {collection_name}")
 
-    async def table_exists(self, table_name: str) -> bool:
+    def build_insert_query(self, collection: str, data: dict[str, Any]) -> Any:
         """
-        Check if a table exists in the database.
+        Build SQL insert query for a single document.
 
         Args:
-            table_name: Name of the table to check
+            collection: Collection/table name
+            data: Document data as dict
 
         Returns:
-            True if table exists, False otherwise
+            SQLAlchemy insert statement
         """
-        # Auto-connect if not initialized
-        if not self._initialized:
-            await self.connect()
+        table = self._get_table(collection)
+        return table.insert().values(**data)
 
-        async with self.engine.connect() as conn:
-            stmt = text("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :table_name")
-            result = await conn.execute(stmt, {"table_name": table_name})
-            return result.scalar() is not None
+    def build_insert_many_query(self, collection: str, data: list[dict[str, Any]]) -> Any:
+        """
+        Build SQL bulk insert query for multiple documents.
+
+        Args:
+            collection: Collection/table name
+            data: List of document data dicts
+
+        Returns:
+            SQLAlchemy bulk insert statement
+        """
+        table = self._get_table(collection)
+        return table.insert().values(data)
+
+    def build_select_query(
+        self,
+        collection: str,
+        filter_dict: dict[str, Any] | None = None,
+        sort: list[tuple[str, int]] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> Any:
+        """
+        Build SQL select query with filters, sorting, and pagination.
+
+        Args:
+            collection: Collection/table name
+            filter_dict: Filter conditions {field: value}
+            sort: Sort order [(field, direction)] where direction is 1 (asc) or -1 (desc)
+            limit: Maximum number of results
+            offset: Number of results to skip
+
+        Returns:
+            SQLAlchemy select statement
+        """
+        table = self._get_table(collection)
+        stmt = select(table)
+
+        # Soft-deleted records are filtered out
+        stmt = stmt.where(table.c.deleted_at.is_(None))
+
+        # Apply filters
+        if filter_dict:
+            for key, value in filter_dict.items():
+                stmt = stmt.where(table.c[key] == value)
+
+        if sort:
+            for field, direction in sort:
+                if direction == -1:
+                    stmt = stmt.order_by(table.c[field].desc())
+                else:
+                    stmt = stmt.order_by(table.c[field].asc())
+
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        if offset is not None and offset > 0:
+            stmt = stmt.offset(offset)
+
+        return stmt
+
+    def build_update_query(
+        self,
+        collection: str,
+        filter_dict: dict[str, Any],
+        update_data: dict[str, Any],
+    ) -> Any:
+        """
+        Build SQL update query.
+
+        Args:
+            collection: Collection/table name
+            filter_dict: Filter conditions {field: value}
+            update_data: Fields to update {field: new_value}
+
+        Returns:
+            SQLAlchemy update statement
+        """
+        table = self._get_table(collection)
+        stmt = update(table).values(**update_data)
+
+        for key, value in filter_dict.items():
+            stmt = stmt.where(table.c[key] == value)
+
+        return stmt
+
+    def build_delete_query(self, collection: str, filter_dict: dict[str, Any]) -> Any:
+        """
+        Build SQL delete query.
+
+        Args:
+            collection: Collection/table name
+            filter_dict: Filter conditions {field: value}
+
+        Returns:
+            SQLAlchemy delete statement
+        """
+        table = self._get_table(collection)
+        stmt = delete(table)
+
+        for key, value in filter_dict.items():
+            stmt = stmt.where(table.c[key] == value)
+
+        return stmt
+
+    async def get_max_value(self, collection: str, field: str, filter_dict: dict[str, Any]) -> int:
+        """
+        Get maximum value of a field using SQL MAX aggregation.
+
+        Args:
+            collection: Collection/table name
+            field: Field name to get max value of
+            filter_dict: Filter conditions {field: value}
+
+        Returns:
+            Maximum value as int (0 if no records found)
+        """
+        table = self._get_table(collection)
+        stmt = select(func.max(table.c[field]).label("max_seq"))
+
+        for key, value in filter_dict.items():
+            stmt = stmt.where(table.c[key] == value)
+
+        row = await self.fetch_one(stmt)
+        return int(row["max_seq"]) if row and row.get("max_seq") is not None else 0

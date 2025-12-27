@@ -1,8 +1,10 @@
 from collections.abc import AsyncIterator
+import json
 import logging
+import re
 import threading
 import time
-from typing import Any
+from typing import Any, ClassVar
 
 import torch
 from transformers import (
@@ -22,8 +24,20 @@ logger = logging.getLogger(__name__)
 class HuggingFaceLocal(Model):
     """
     Local Hugging Face model provider using `transformers` library.
-    Runs models locally on CPU/GPU.
+    Runs models locally on CPU/GPU with tool calling support.
     """
+
+    # Common tool call patterns in model outputs
+    TOOL_CALL_PATTERNS: ClassVar[list[re.Pattern[str]]] = [
+        # Hermes/NousResearch format: <tool_call>{"name": "...", "arguments": {...}}</tool_call>
+        re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL),
+        # Alternative format: [TOOL_CALL]{"name": "...", "arguments": {...}}[/TOOL_CALL]
+        re.compile(r"\[TOOL_CALL\]\s*(\{.*?\})\s*\[/TOOL_CALL\]", re.DOTALL),
+        # Function call format: {"function_call": {"name": "...", "arguments": "..."}}
+        re.compile(r'\{"function_call":\s*(\{.*?\})\}', re.DOTALL),
+        # Direct JSON object with name and arguments at end of response
+        re.compile(r'```json\s*(\{"name":\s*"[^"]+",\s*"arguments":\s*\{.*?\}\})\s*```', re.DOTALL),
+    ]
 
     def __init__(
         self,
@@ -92,6 +106,121 @@ class HuggingFaceLocal(Model):
             logger.error(f"Failed to load model {self.model_id}: {e}")
             raise RuntimeError(f"Failed to load model {self.model_id}: {e}") from e
 
+    def _format_tools(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Convert Astra tool definitions to HuggingFace format.
+
+        Astra format:
+        {
+            "type": "function",
+            "function": {
+                "name": "tool_name",
+                "description": "...",
+                "parameters": {...}
+            }
+        }
+
+        HuggingFace format (for apply_chat_template):
+        {
+            "type": "function",
+            "function": {
+                "name": "tool_name",
+                "description": "...",
+                "parameters": {...}
+            }
+        }
+
+        The formats are compatible, but we normalize for safety.
+        """
+        hf_tools = []
+        for tool in tools:
+            if tool.get("type") == "function":
+                func = tool.get("function", {})
+                hf_tools.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": func.get("name", ""),
+                            "description": func.get("description", ""),
+                            "parameters": func.get("parameters", {}),
+                        },
+                    }
+                )
+            else:
+                # Pass through other tool types
+                hf_tools.append(tool)
+        return hf_tools
+
+    def _parse_tool_calls(self, content: str) -> list[dict[str, Any]]:
+        """
+        Parse tool calls from model output.
+
+        Supports multiple formats:
+        - Hermes: <tool_call>{"name": "...", "arguments": {...}}</tool_call>
+        - Mistral: [TOOL_CALL]...[/TOOL_CALL]
+        - JSON code blocks with function call objects
+
+        Returns a list of tool call dictionaries with:
+        - id: Generated unique ID
+        - type: "function"
+        - function: {"name": "...", "arguments": {...}}
+        """
+        tool_calls: list[dict[str, Any]] = []
+
+        # Collect all matches first
+        all_matches: list[str] = []
+        for pattern in self.TOOL_CALL_PATTERNS:
+            all_matches.extend(pattern.findall(content))
+
+        # Parse matches using helper (avoids try-except in loop - PERF203)
+        for match in all_matches:
+            parsed = self._try_parse_tool_match(match, len(tool_calls))
+            if parsed:
+                tool_calls.append(parsed)
+
+        return tool_calls
+
+    def _try_parse_tool_match(self, match: str, idx: int) -> dict[str, Any] | None:
+        """Try to parse a single tool call match. Returns None on failure."""
+        try:
+            parsed = json.loads(match)
+
+            # Handle different JSON structures
+            if "name" in parsed and "arguments" in parsed:
+                # Direct format: {"name": "...", "arguments": {...}}
+                return {
+                    "id": f"call_{idx}_{int(time.time() * 1000)}",
+                    "type": "function",
+                    "function": {
+                        "name": parsed["name"],
+                        "arguments": parsed["arguments"]
+                        if isinstance(parsed["arguments"], str)
+                        else json.dumps(parsed["arguments"]),
+                    },
+                }
+            elif "function_call" in parsed:
+                # OpenAI-style: {"function_call": {"name": "...", "arguments": "..."}}
+                fc = parsed["function_call"]
+                return {
+                    "id": f"call_{idx}_{int(time.time() * 1000)}",
+                    "type": "function",
+                    "function": {
+                        "name": fc.get("name", ""),
+                        "arguments": fc.get("arguments", "{}"),
+                    },
+                }
+        except json.JSONDecodeError:
+            logger.debug(f"Failed to parse tool call JSON: {match[:100]}...")
+
+        return None
+
+    def _strip_tool_calls(self, content: str) -> str:
+        """Remove tool call markers from content for cleaner text response."""
+        result = content
+        for pattern in self.TOOL_CALL_PATTERNS:
+            result = pattern.sub("", result)
+        return result.strip()
+
     async def invoke(
         self,
         messages: list[dict[str, str]],
@@ -107,16 +236,32 @@ class HuggingFaceLocal(Model):
 
         start_time = time.perf_counter()
 
-        # Apply chat template
-        # Note: tools are not natively supported by this simple implementation yet
-        # unless the model template supports them specificially.
-        # For now we ignore tools or could warn.
-        if tools:
-            logger.warning("Tools are not currently supported in HuggingFaceLocal provider.")
+        # Format tools for HuggingFace if provided
+        hf_tools = self._format_tools(tools) if tools else None
 
-        prompt = self._tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        # Apply chat template with tools if supported
+        try:
+            if hf_tools:
+                prompt = self._tokenizer.apply_chat_template(
+                    messages,
+                    tools=hf_tools,  # type: ignore[arg-type]
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            else:
+                prompt = self._tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+        except TypeError:
+            # Model doesn't support tools parameter
+            if hf_tools:
+                logger.warning(
+                    f"Model {self.model_id} tokenizer does not support tools parameter. "
+                    "Tool calling may not work correctly."
+                )
+            prompt = self._tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
 
         inputs = self._tokenizer(str(prompt), return_tensors="pt").to(self._model.device)  # type: ignore
 
@@ -135,6 +280,15 @@ class HuggingFaceLocal(Model):
         generated_tokens = outputs[0][input_len:]
         content = self._tokenizer.decode(generated_tokens, skip_special_tokens=True)
 
+        # Parse tool calls from response
+        tool_calls = self._parse_tool_calls(content) if tools else []
+
+        # Clean content if tool calls were found
+        if tool_calls:
+            clean_content = self._strip_tool_calls(content)
+        else:
+            clean_content = content
+
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
         usage = {
@@ -144,13 +298,15 @@ class HuggingFaceLocal(Model):
         }
 
         return ModelResponse(
-            content=content,
+            content=clean_content,
+            tool_calls=tool_calls if tool_calls else None,
             usage=usage,
             metadata={
                 "provider": "huggingface-local",
                 "model_id": self.model_id,
                 "latency_ms": latency_ms,
                 "device": str(self._model.device),
+                "raw_content": content if tool_calls else None,  # Include raw if tools parsed
             },
         )
 
@@ -169,12 +325,28 @@ class HuggingFaceLocal(Model):
 
         start_time = time.perf_counter()
 
-        if tools:
-            logger.warning("Tools are not currently supported in HuggingFaceLocal provider.")
+        # Format tools for HuggingFace if provided
+        hf_tools = self._format_tools(tools) if tools else None
 
-        prompt = self._tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        # Apply chat template with tools if supported
+        try:
+            if hf_tools:
+                prompt = self._tokenizer.apply_chat_template(
+                    messages,
+                    tools=hf_tools,  # type: ignore[arg-type]
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            else:
+                prompt = self._tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+        except TypeError:
+            if hf_tools:
+                logger.warning(f"Model {self.model_id} tokenizer does not support tools parameter.")
+            prompt = self._tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
 
         inputs = self._tokenizer(str(prompt), return_tensors="pt").to(self._model.device)  # type: ignore
         input_len = inputs.input_ids.shape[1]
@@ -195,23 +367,28 @@ class HuggingFaceLocal(Model):
         thread.start()
 
         token_count = 0
+        full_content = ""
 
-        # In a real async loop we might want to run this iteration differently
-        # but this simple yield loop works for many cases if not purely async blocked.
-        # Since transformers is blocking, we rely on the thread.
+        # Stream tokens
         for new_text in streamer:
-            token_count += 1  # Approximation
+            token_count += 1
+            full_content += new_text
             yield ModelResponse(content=new_text, metadata={"is_stream": True})
 
         thread.join()
 
+        # Parse tool calls from complete response
+        tool_calls = self._parse_tool_calls(full_content) if tools else []
+
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
+        # Final response with usage and tool calls
         yield ModelResponse(
             content="",
+            tool_calls=tool_calls if tool_calls else None,
             usage={
                 "input_tokens": input_len,
-                "output_tokens": token_count,  # Approx
+                "output_tokens": token_count,
             },
             metadata={
                 "provider": "huggingface-local",

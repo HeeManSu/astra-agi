@@ -6,7 +6,7 @@ Tests tool execution, error handling, and retry logic.
 import asyncio
 
 from framework.agents import Agent, tool
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 
 
 # Define tools
@@ -94,7 +94,7 @@ async def main():
         When asked about weather, use the get_weather tool.
         When asked to search, use the search_web tool.
         Always use tools when appropriate.""",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[calculator, get_weather, search_web],
         temperature=0.3,
         max_retries=3,

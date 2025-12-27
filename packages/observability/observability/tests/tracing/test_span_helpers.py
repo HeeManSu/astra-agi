@@ -1,52 +1,64 @@
+
 import unittest
 from unittest.mock import patch, MagicMock
 from opentelemetry import trace
 from observability.tracing.span_helpers import trace_span, start_span, set_span_attributes, add_event
-from observability.tracing.tracer import AstraTracer
-from observability.config import Config
 
 class TestSpanHelpers(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # Initialize with console exporter to avoid network calls
-        AstraTracer._instance = None
-        AstraTracer._is_initialized = False
-        cls.tracer = AstraTracer()
-        config = Config(SERVICE_NAME="test-service", OTLP_ENDPOINT="console")
-        cls.tracer.initialize(config=config, enable_tracing=True)
+    def setUp(self):
+        self.mock_tracer = MagicMock()
+        self.mock_span = MagicMock()
+        self.mock_tracer.start_as_current_span.return_value.__enter__.return_value = self.mock_span
+        
+        self.patcher = patch("observability.tracing.span_helpers._get_tracer", return_value=self.mock_tracer)
+        self.patcher.start()
 
-    @classmethod
-    def tearDownClass(cls):
-        # Clean up after all tests
-        try:
-            if cls.tracer.is_initialized:
-                cls.tracer.shutdown()
-        except:
-            pass
-        AstraTracer._instance = None
+    def tearDown(self):
+        self.patcher.stop()
 
     def test_trace_span_decorator(self):
-        @trace_span(name="decorated-function", attributes={"key": "value"})
-        def my_func():
-            return "success"
+        """Test the @trace_span decorator."""
+        
+        @trace_span(name="test_func", attributes={"key": "value"})
+        def sample_function(arg):
+            return f"processed {arg}"
+            
+        result = sample_function("data")
+        
+        self.assertEqual(result, "processed data")
+        self.mock_tracer.start_as_current_span.assert_called_with("test_func")
+        self.mock_span.set_attributes.assert_called_with({"key": "value"})
 
-        result = my_func()
-        self.assertEqual(result, "success")
-        # Verification of span creation would ideally involve a memory exporter or mock
+    def test_trace_span_decorator_exception(self):
+        """Test decorator handles exceptions correctly."""
+        
+        @trace_span()
+        def failing_function():
+            raise ValueError("oops")
+            
+        with self.assertRaises(ValueError):
+            failing_function()
+            
+        # Should record exception on span
+        self.mock_span.record_exception.assert_called()
+        self.mock_span.set_status.assert_called()
 
     def test_start_span_context_manager(self):
-        with start_span("manual-span", attributes={"foo": "bar"}) as span:
-            self.assertTrue(span.is_recording())
-            set_span_attributes({"extra": "attr"})
-            add_event("something_happened")
+        """Test start_span context manager."""
+        with start_span("manual_span", {"attr": "1"}) as span:
+            span.set_attribute("inner", "val")
+            
+        self.mock_tracer.start_as_current_span.assert_called_with("manual_span", attributes={"attr": "1"})
 
-    def test_trace_span_exception(self):
-        @trace_span()
-        def failing_func():
-            raise ValueError("oops")
-
-        with self.assertRaises(ValueError):
-            failing_func()
+    @patch("observability.tracing.span_helpers.trace.get_current_span")
+    def test_set_span_attributes(self, mock_get_current):
+        """Test helper to set attributes on active span."""
+        mock_active_span = MagicMock()
+        mock_get_current.return_value = mock_active_span
+        
+        set_span_attributes({"new_key": "new_val"})
+        
+        mock_active_span.set_attributes.assert_called_with({"new_key": "new_val"})
 
 if __name__ == "__main__":
     unittest.main()

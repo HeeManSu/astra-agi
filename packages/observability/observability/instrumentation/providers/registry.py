@@ -29,13 +29,13 @@ def register_builtin_providers(registry: InstrumentationRegistry) -> None:
         ),
     )
     
-    # AWS Bedrock (Placeholder for future implementation)
-    # registry.register(
-    #     package_name="boto3",
-    #     spec=InstrumentorSpec(
-    #         module_path="observability.instrumentation.providers.aws_bedrock.instrumentor",
-    #         class_name="AWSBedrockInstrumentor",
-    #         min_version="1.0.0",
-    #         priority=10,
-    #     ),
-    # )
+    # AWS Bedrock
+    registry.register(
+        package_name="boto3",
+        spec=InstrumentorSpec(
+            module_path="observability.instrumentation.providers.bedrock.instrumentor",
+            class_name="BedrockInstrumentor",
+            min_version="1.0.0",
+            priority=10,
+        ),
+    )

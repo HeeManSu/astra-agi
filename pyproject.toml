@@ -9,6 +9,7 @@ authors = [
 ]
 dependencies = [
     "aiohttp>=3.13.2",
+    "boto3>=1.40.61",
     "debugpy>=1.8.17",
     "opentelemetry-sdk>=1.38.0",
 ]

@@ -6,6 +6,7 @@ from typing import Any, AsyncIterator, Callable, Dict, Iterator, Optional, TypeV
 
 from opentelemetry.metrics import Counter, Histogram
 from opentelemetry.trace import StatusCode
+from opentelemetry import baggage
 
 from observability.instrumentation.common.metrics import get_meter
 from observability.instrumentation.common.span_management import end_span, set_attributes, start_span
@@ -94,6 +95,28 @@ def _record_agent_run(
         trace_id = format(span.get_span_context().trace_id, "032x")
         span_id = format(span.get_span_context().span_id, "016x")
         
+        # Extract agent info from span attributes if available
+        # Note: Accessing attributes from a Span object might depend on the SDK implementation.
+        # If it's a ReadableSpan (which it usually is in export time), attributes are available.
+        # But here 'span' is the object returned by start_span. 
+        # We'll try to access it if possible, or fallback to unknown.
+        agent_id = "unknown"
+        agent_name = "unknown"
+        execution_mode = "traditional"
+        
+        if hasattr(span, "attributes") and span.attributes:
+            agent_id = span.attributes.get("agent.id", "unknown")
+            agent_name = span.attributes.get("agent.name", "unknown")
+            execution_mode = span.attributes.get("agent.execution_mode", "traditional")
+
+        # Fallback to Baggage if still unknown
+        if agent_id == "unknown":
+            agent_id = baggage.get_baggage("agent.id") or "unknown"
+        if agent_name == "unknown":
+            agent_name = baggage.get_baggage("agent.name") or "unknown"
+        if execution_mode == "traditional":
+             execution_mode = baggage.get_baggage("agent.execution_mode") or "traditional"
+
         # Gather context for adapter
         metadata = {
             "duration_seconds": duration_s,
@@ -106,6 +129,9 @@ def _record_agent_run(
             "trace_id": trace_id,
             "span_id": span_id,
             "span_name": span.name,
+            "agent_id": agent_id,
+            "agent_name": agent_name,
+            "execution_mode": execution_mode,
             # Extract resource attributes if available
             "service_name": span.resource.attributes.get("service.name", "unknown") if hasattr(span, "resource") else "unknown",
             "service_namespace": span.resource.attributes.get("service.namespace", "unknown") if hasattr(span, "resource") else "unknown",

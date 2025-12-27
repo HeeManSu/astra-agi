@@ -1,18 +1,18 @@
+
 import unittest
 from unittest.mock import patch, MagicMock
 from opentelemetry import trace
 from observability.tracing.tracer import AstraTracer
 from observability.config import Config
+from observability.exceptions import InitializationError
 
 class TestAstraTracer(unittest.TestCase):
     def setUp(self):
-        # Reset singleton for testing
         AstraTracer._instance = None
         AstraTracer._is_initialized = False
         self.tracer = AstraTracer()
 
     def tearDown(self):
-        # Clean up after each test
         try:
             if self.tracer.is_initialized:
                 self.tracer.shutdown()
@@ -20,42 +20,48 @@ class TestAstraTracer(unittest.TestCase):
             pass
         AstraTracer._instance = None
 
+    def test_singleton_pattern(self):
+        """Verify that AstraTracer behaves as a singleton."""
+        tracer1 = AstraTracer()
+        tracer2 = AstraTracer()
+        self.assertIs(tracer1, tracer2)
+
     @patch("observability.tracing.tracer.create_astra_resource")
     @patch("observability.tracing.tracer.create_astra_exporter")
     @patch("observability.tracing.tracer.create_astra_processor")
     @patch("observability.tracing.tracer.TracerProvider")
-    def test_initialization(self, mock_provider, mock_processor, mock_exporter, mock_resource):
-        # Create config
-        config = Config(
-            SERVICE_NAME="test-service",
-            OTLP_ENDPOINT="http://localhost:4317"
-        )
-
+    def test_initialize_success(self, mock_provider, mock_processor, mock_exporter, mock_resource):
+        """Test successful initialization with mocking."""
+        config = Config(SERVICE_NAME="test-service")
+        
         # Setup mocks
-        mock_resource.return_value = MagicMock()
-        mock_exporter.return_value = MagicMock()
-        mock_processor.return_value = MagicMock()
         mock_provider_instance = MagicMock()
         mock_provider.return_value = mock_provider_instance
-
-        # Initialize
+        
         self.tracer.initialize(config=config, enable_tracing=True)
-
-        # Verify calls
+        
+        # Verify flow
         mock_resource.assert_called_once_with(config)
         mock_exporter.assert_called_once_with(config)
         mock_processor.assert_called_once()
         mock_provider_instance.add_span_processor.assert_called_once()
+        
+        self.assertTrue(self.tracer.is_initialized)
+        self.assertIsNotNone(self.tracer.get_tracer())
 
-        # Verify tracer is initialized
+    def test_initialize_disabled_tracing(self):
+        """Test initialization when tracing is disabled."""
+        self.tracer.initialize(enable_tracing=False)
+        
         self.assertTrue(self.tracer.is_initialized)
         tracer = self.tracer.get_tracer()
-        self.assertIsNotNone(tracer)
+        # Should rely on NoOp tracer
+        self.assertTrue(isinstance(self.tracer._tracer_provider, trace.NoOpTracerProvider))
 
-    def test_singleton_behavior(self):
-        tracer1 = AstraTracer()
-        tracer2 = AstraTracer()
-        self.assertIs(tracer1, tracer2)
+    def test_get_tracer_uninitialized(self):
+        """Test that get_tracer raises error if not initialized."""
+        with self.assertRaises(InitializationError):
+            self.tracer.get_tracer()
 
 if __name__ == "__main__":
     unittest.main()

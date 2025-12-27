@@ -12,6 +12,7 @@ class Thread(BaseModel):
     title: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     is_archived: bool = False
+    deleted_at: datetime | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -25,6 +26,7 @@ class Message(BaseModel):
     content: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     sequence: int = 0
+    deleted_at: datetime | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("role")

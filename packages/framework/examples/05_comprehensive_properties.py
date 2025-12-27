@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from framework.agents import Agent
 from framework.agents.exceptions import ValidationError
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 
 
 async def test_basic_properties():
@@ -20,7 +20,7 @@ async def test_basic_properties():
     agent = Agent(
         name="TestAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         id="custom-id-123",
         description="Test agent description",
     )
@@ -46,7 +46,7 @@ async def test_execution_properties():
     agent = Agent(
         name="ExecAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         max_retries=5,
         temperature=0.5,
         max_tokens=1000,
@@ -74,7 +74,7 @@ async def test_default_properties():
     agent = Agent(
         name="DefaultAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     assert agent.max_retries == 3, "Default max_retries should be 3"
@@ -83,7 +83,6 @@ async def test_default_properties():
     assert agent.stream_enabled is False, "Default stream_enabled should be False"
     assert agent.tools is None, "Default tools should be None"
     assert agent.storage is None, "Default storage should be None"
-    assert agent.knowledge is None, "Default knowledge should be None"
 
     print("All defaults match expected values")
     print("PASS: Default properties work")
@@ -100,7 +99,7 @@ async def test_temperature_range():
         agent = Agent(
             name="TempAgent",
             instructions="You are helpful.",
-            model=Gemini("gemini-2.5-flash"),
+            model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
             temperature=temp,
         )
         assert agent.temperature == temp, f"Temperature {temp} should be set"
@@ -110,7 +109,7 @@ async def test_temperature_range():
     agent = Agent(
         name="TempAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         temperature=0.5,  # Valid for init
     )
 
@@ -133,7 +132,7 @@ async def test_max_retries():
         agent = Agent(
             name="RetryAgent",
             instructions="You are helpful.",
-            model=Gemini("gemini-2.5-flash"),
+            model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
             max_retries=retries,
         )
         assert agent.max_retries == retries, f"max_retries {retries} should be set"
@@ -152,7 +151,7 @@ async def test_max_tokens():
     agent = Agent(
         name="TokenAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         max_tokens=None,
     )
     assert agent.max_tokens is None, "max_tokens None should work"
@@ -163,7 +162,7 @@ async def test_max_tokens():
         agent = Agent(
             name="TokenAgent",
             instructions="You are helpful.",
-            model=Gemini("gemini-2.5-flash"),
+            model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
             max_tokens=tokens,
         )
         assert agent.max_tokens == tokens, f"max_tokens {tokens} should be set"
@@ -173,7 +172,7 @@ async def test_max_tokens():
     agent = Agent(
         name="TokenAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     try:
@@ -201,7 +200,7 @@ async def test_tools_property():
     agent_with_tools = Agent(
         name="ToolAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[test_tool],
     )
     assert agent_with_tools.tools is not None, "Tools should be set"
@@ -212,7 +211,7 @@ async def test_tools_property():
     agent_no_tools = Agent(
         name="NoToolAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=None,
     )
     assert agent_no_tools.tools is None, "Tools should be None"
@@ -222,7 +221,7 @@ async def test_tools_property():
     agent_empty_tools = Agent(
         name="EmptyToolAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[],
     )
     assert agent_empty_tools.tools == [], "Tools should be empty list"
@@ -240,16 +239,14 @@ async def test_optional_properties():
     agent = Agent(
         name="OptionalAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         storage=None,
-        knowledge=None,
         input_middlewares=None,
         output_middlewares=None,
         guardrails=None,
     )
 
     assert agent.storage is None, "storage should be None"
-    assert agent.knowledge is None, "knowledge should be None"
     assert agent.input_middlewares is None, "input_middlewares should be None"
     assert agent.output_middlewares is None, "output_middlewares should be None"
     assert agent.guardrails is None, "guardrails should be None"
@@ -267,7 +264,7 @@ async def test_property_override():
     agent = Agent(
         name="OverrideAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         temperature=0.3,
         max_tokens=100,
     )
@@ -294,13 +291,13 @@ async def test_auto_generated_id():
     agent1 = Agent(
         name="AutoIDAgent1",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     agent2 = Agent(
         name="AutoIDAgent2",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     assert agent1.id != agent2.id, "IDs should be unique"

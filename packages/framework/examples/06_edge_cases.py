@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from framework.agents import Agent, tool
 from framework.agents.exceptions import ValidationError
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 
 
 @tool
@@ -26,7 +26,7 @@ async def test_empty_string():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     try:
@@ -46,7 +46,7 @@ async def test_whitespace_only():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     try:
@@ -66,7 +66,7 @@ async def test_very_long_message():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     # Test at boundary (100,000 chars)
@@ -98,7 +98,7 @@ async def test_temperature_boundaries():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     # Test valid boundaries
@@ -130,7 +130,7 @@ async def test_max_tokens_boundaries():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     # Test valid values
@@ -162,7 +162,7 @@ async def test_zero_retries():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         max_retries=0,
     )
 
@@ -186,7 +186,7 @@ async def test_very_high_retries():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         max_retries=100,
     )
 
@@ -209,7 +209,7 @@ async def test_special_characters():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     special_messages = [
@@ -241,17 +241,15 @@ async def test_none_values():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         description=None,
         tools=None,
         storage=None,
-        knowledge=None,
     )
 
     assert agent.description is None, "None description should work"
     assert agent.tools is None, "None tools should work"
     assert agent.storage is None, "None storage should work"
-    assert agent.knowledge is None, "None knowledge should work"
 
     # Should still work
     response = await agent.invoke("Hello")
@@ -269,7 +267,7 @@ async def test_unicode_and_emojis():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     unicode_messages = [
@@ -298,7 +296,7 @@ async def test_concurrent_invocations():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     async def invoke_question(q: str) -> str:
@@ -327,7 +325,7 @@ async def test_rapid_sequential_calls():
     agent = Agent(
         name="EdgeAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     for i in range(5):

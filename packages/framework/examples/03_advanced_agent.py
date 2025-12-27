@@ -7,7 +7,7 @@ import asyncio
 
 from framework.agents import Agent, tool
 from framework.agents.exceptions import ValidationError
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 
 
 call_count = 0
@@ -87,7 +87,7 @@ async def main():
     agent = Agent(
         name="AdvancedAgent",
         instructions="You are a helpful assistant. Use tools when appropriate.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[unreliable_tool, strict_validator, data_processor],
         temperature=0.5,
         max_retries=5,
@@ -167,7 +167,7 @@ async def main():
     simple_agent = Agent(
         name="SimpleAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=None,
     )
     response = await simple_agent.invoke("What is 5+5?")
@@ -177,10 +177,14 @@ async def main():
     # Test 10: Multiple agents
     print("Test 10: Multiple Agents")
     agent1 = Agent(
-        name="Agent1", instructions="You are a math expert.", model=Gemini("gemini-2.5-flash")
+        name="Agent1",
+        instructions="You are a math expert.",
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
     agent2 = Agent(
-        name="Agent2", instructions="You are a history expert.", model=Gemini("gemini-2.5-flash")
+        name="Agent2",
+        instructions="You are a history expert.",
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     r1 = await agent1.invoke("What is calculus?")

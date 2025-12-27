@@ -63,7 +63,7 @@ class Agent:
         tools: list[Any] | None = None,
         code_mode: bool = True,
         storage: Any | None = None,
-        knowledge: Any | None = None,
+        knowledge_base: Any | None = None,
         memory: AgentMemory | None = None,
         max_retries: int = 3,
         temperature: float = 0.7,
@@ -86,7 +86,7 @@ class Agent:
             tools: Optional list of tools
             code_mode: Whether to enable code mode (default: True)
             storage: Optional storage backend (e.g., SQLiteStorage)
-            knowledge: Optional knowledge base (e.g., PDFKnowledgeBase)
+            knowledge_base: Optional knowledge base (KnowledgeBase instance)
             memory: Optional memory configuration (AgentMemory)
             max_retries: Maximum retry attempts for failed requests (default: 3)
             temperature: Sampling temperature for model responses (default: 0.7, range: 0.0-2.0)
@@ -138,7 +138,7 @@ class Agent:
                 storage=storage, max_messages=self.memory.num_history_responses
             )
 
-        self.knowledge = knowledge
+        self.knowledge_base = knowledge_base
 
         # Execution config
         self.max_retries = max_retries
@@ -428,6 +428,43 @@ class Agent:
 
         return messages
 
+    def _create_search_knowledge_tool(self) -> Any | None:
+        """Create search_knowledge tool for knowledge base."""
+        if not self.knowledge_base:
+            return None
+
+        from framework.agents.tool import tool
+
+        knowledge_base = self.knowledge_base
+
+        @tool(
+            name="search_knowledge",
+            description="Search the knowledge base for relevant information to answer questions.",
+        )
+        async def search_knowledge(query: str, limit: int = 10) -> str:
+            """
+            Search the knowledge base for relevant information.
+
+            Args:
+                query: Search query string
+                limit: Maximum number of results (default: 10)
+
+            Returns:
+                JSON string of search results
+            """
+            try:
+                results = await knowledge_base.search(query=query, limit=limit)
+                if not results:
+                    return "No relevant information found in knowledge base."
+
+                import json
+
+                return json.dumps([doc.to_dict() for doc in results], indent=2)
+            except Exception as e:
+                return f"Error searching knowledge base: {e!s}"
+
+        return search_knowledge
+
     async def _invoke_with_retry(
         self,
         messages: list[dict[str, Any]],
@@ -712,16 +749,23 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                     )
                 # Fall through to traditional tool calling
 
-        # 2. Prepare execution context
+        # 2. Add knowledge_base search tool if available
+        final_tools = list(tools) if tools else list(self.tools) if self.tools else []
+        if self.knowledge_base:
+            search_tool = self._create_search_knowledge_tool()
+            if search_tool:
+                final_tools.append(search_tool)
+
+        # 3. Prepare execution context
         context = ExecutionContext(
             agent_id=self.id,
             temperature=temperature or self.temperature,
             max_tokens=max_tokens or self.max_tokens,
-            tools=tools or self.tools,
+            tools=final_tools,
             observability=self.context.observability if self._context else None,
         )
 
-        # 3. Prepare messages
+        # 4. Prepare messages
         thread_id = kwargs.get("thread_id")
 
         # Load history if enabled
@@ -867,11 +911,17 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             message=message, temperature=temperature, max_tokens=max_tokens
         )
 
+        final_tools = list(tools) if tools else list(self.tools) if self.tools else []
+        if self.knowledge_base:
+            search_tool = self._create_search_knowledge_tool()
+            if search_tool:
+                final_tools.append(search_tool)
+
         context = ExecutionContext(
             agent_id=self.id,
             temperature=temperature or self.temperature,
             max_tokens=max_tokens or self.max_tokens,
-            tools=tools or self.tools,
+            tools=final_tools,
             observability=self.context.observability if self._context else None,
         )
 

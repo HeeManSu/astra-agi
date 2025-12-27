@@ -6,7 +6,7 @@ Tests basic invoke functionality with no tools.
 import asyncio
 
 from framework.agents import Agent
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 
 
 async def main():
@@ -16,7 +16,7 @@ async def main():
     agent = Agent(
         name="SimpleAssistant",
         instructions="You are a helpful assistant. Be concise and clear.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         temperature=0.7,
         max_tokens=500,
         max_retries=1,

@@ -8,7 +8,7 @@ from collections.abc import Callable
 import time
 
 from framework.agents import Agent, tool
-from framework.models import Gemini
+from framework.models.huggingface import HuggingFaceLocal
 
 
 @tool
@@ -105,7 +105,7 @@ async def test_streaming_basic():
     agent = Agent(
         name="StreamingAgent",
         instructions="You are a helpful assistant. Be concise.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         stream_enabled=False,  # Default, but we'll call stream() explicitly
     )
 
@@ -137,7 +137,7 @@ async def test_stream_enabled_property():
     agent_enabled = Agent(
         name="StreamEnabledAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         stream_enabled=True,
     )
 
@@ -147,7 +147,7 @@ async def test_stream_enabled_property():
     agent_disabled = Agent(
         name="StreamDisabledAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         stream_enabled=False,
     )
 
@@ -157,7 +157,7 @@ async def test_stream_enabled_property():
     agent_default = Agent(
         name="StreamDefaultAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     print(f"Agent stream_enabled (default): {agent_default.stream_enabled}")
@@ -171,7 +171,7 @@ async def test_streaming_with_tools():
     agent = Agent(
         name="StreamingToolAgent",
         instructions="Use tools when needed. Be concise.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[slow_calculator],
         stream_enabled=False,
     )
@@ -196,7 +196,7 @@ async def test_streaming_long_response():
     agent = Agent(
         name="LongStreamAgent",
         instructions="Provide detailed explanations. Be thorough.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     print("Q: Explain what Python is and its main features (streaming)")
@@ -230,7 +230,7 @@ async def test_streaming_parameter_override():
     agent = Agent(
         name="OverrideStreamAgent",
         instructions="Be creative.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         temperature=0.3,  # Low temperature
         max_tokens=100,
     )
@@ -261,7 +261,7 @@ async def test_streaming_error_handling():
     agent = Agent(
         name="ErrorStreamAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     # Test with invalid temperature (should be caught by validation)
@@ -296,7 +296,7 @@ async def test_streaming_vs_invoke():
     agent = Agent(
         name="CompareAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     question = "What is 2+2?"
@@ -330,7 +330,7 @@ async def test_streaming_multiple_tools():
         name="MultiToolStreamAgent",
         instructions="""You are a helpful assistant. When asked to perform multiple calculations,
         use the calculator tool for each operation. Be clear about each step.""",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[calculator, get_weather],
     )
 
@@ -358,7 +358,7 @@ async def test_streaming_parallel_tool_calls():
         name="ParallelToolStreamAgent",
         instructions="""You are a helpful assistant. When asked about multiple things,
         call multiple tools in parallel if possible.""",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[calculator, get_weather],
     )
 
@@ -387,7 +387,7 @@ async def test_streaming_tool_call_loop():
         instructions="""You are a helpful assistant. When asked to perform calculations,
         use the calculator tool. If you need to use the result in another calculation,
         do so step by step.""",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[calculator],
     )
 
@@ -415,7 +415,7 @@ async def test_streaming_with_three_tools():
         name="ThreeToolStreamAgent",
         instructions="""You are a helpful assistant with access to calculator, weather, and search tools.
         Use the appropriate tool for each request.""",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[calculator, get_weather, search_web],
     )
 
@@ -452,7 +452,7 @@ async def test_streaming_tool_error_handling():
     agent = Agent(
         name="ErrorToolStreamAgent",
         instructions="You are helpful. Use tools when needed.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
         tools=[failing_tool],
     )
 
@@ -481,7 +481,7 @@ async def test_concurrent_streaming():
     agent = Agent(
         name="ConcurrentStreamAgent",
         instructions="You are helpful.",
-        model=Gemini("gemini-2.5-flash"),
+        model=HuggingFaceLocal("HuggingFaceTB/SmolLM2-360M-Instruct", max_new_tokens=200),
     )
 
     async def stream_question(q: str, num: int) -> tuple[int, str]:

@@ -94,6 +94,15 @@ class MongoDBStorage(StorageBackend):
         await message_collection.create_index("created_at")
         await message_collection.create_index("deleted_at")
 
+        # astra_facts indexes (for LTM/PersistentFacts)
+        facts_collection = self._db["astra_facts"]
+        await facts_collection.create_index("id", unique=True)
+        await facts_collection.create_index([("key", 1), ("scope", 1), ("scope_id", 1)])
+        await facts_collection.create_index([("scope", 1), ("scope_id", 1)])
+        await facts_collection.create_index("created_at")
+        await facts_collection.create_index("deleted_at")
+        await facts_collection.create_index("expires_at")
+
     async def execute(self, query: Mapping[str, Any], params: dict[str, Any] | None = None) -> None:
         """
         Execute a write operation.
@@ -283,6 +292,7 @@ class MongoDBStorage(StorageBackend):
         collection: str,
         filter_dict: dict[str, Any],
         update_data: dict[str, Any],
+        update_many: bool = False,
     ) -> Any:
         """
         Build MongoDB update query.
@@ -291,6 +301,7 @@ class MongoDBStorage(StorageBackend):
             collection: Collection name
             filter_dict: Filter conditions {field: value}
             update_data: Fields to update {field: new_value}
+            update_many: If True, update all matching documents (default: False)
 
         Returns:
             MongoDB query dict with collection, action, filter, and update
@@ -299,7 +310,7 @@ class MongoDBStorage(StorageBackend):
         converted_filter = self._convert_id_filter(filter_dict)
         return {
             "collection": collection,
-            "action": "update_one",
+            "action": "update_many" if update_many else "update_one",
             "filter": converted_filter,
             "update": {"$set": update_data},
         }
@@ -346,3 +357,19 @@ class MongoDBStorage(StorageBackend):
         if doc and len(doc) > 0:
             return int(doc[0].get(field, 0))
         return 0
+
+    async def table_exists(self, table_name: str) -> bool:
+        """
+        Check if a collection exists in the MongoDB database.
+
+        Args:
+            table_name: Name of the collection to check
+
+        Returns:
+            True if the collection exists, False otherwise
+        """
+        if not self._initialized:
+            await self.connect()
+
+        collection_names = await self.db.list_collection_names()
+        return table_name in collection_names

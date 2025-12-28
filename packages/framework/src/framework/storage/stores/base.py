@@ -80,14 +80,15 @@ class BaseStore(Generic[TModel]):
         """
         Prepare document for insertion.
 
-        For MongoDB: Converts id to _id
+        For MongoDB: Sets _id from id but KEEPS id field for our indexes
         For SQL: Keeps id as is
         """
         doc = dict(data)
 
         if isinstance(self._storage, MongoDBStorage):
             # MongoDB uses _id as primary key
+            # We keep 'id' for our own index but also set '_id' for MongoDB
             if "id" in doc and "_id" not in doc:
-                doc["_id"] = doc.pop("id")
+                doc["_id"] = doc["id"]  # Copy, don't pop - keep both fields
 
         return doc

@@ -180,6 +180,38 @@ class AgentStorage:
         """
         await self.messages.soft_delete(message_id)
 
+    def _message_to_dict(self, message: Message) -> dict[str, Any]:
+        """
+        Convert Message to dict format for LLM context.
+
+        Reconstructs proper message format with tool_calls if present.
+
+        Args:
+            message: Message object from storage
+
+        Returns:
+            Dict in format: {"role": str, "content": str, "tool_calls": list, "name": str}
+        """
+        msg_dict: dict[str, Any] = {
+            "role": message.role,
+            "content": message.content,
+        }
+
+        # Add tool_calls for assistant messages
+        if message.role == "assistant" and message.metadata.get("tool_calls"):
+            msg_dict["tool_calls"] = message.metadata["tool_calls"]
+
+        # Add name for tool messages
+        if message.role == "tool":
+            tool_call_id = message.metadata.get("tool_call_id")
+            tool_name = message.metadata.get("tool_name")
+            if tool_call_id:
+                msg_dict["tool_call_id"] = tool_call_id
+            if tool_name:
+                msg_dict["name"] = tool_name
+
+        return msg_dict
+
     async def stop(self) -> None:
         """Stop the queue manager."""
         await self.queue.stop()

@@ -93,6 +93,7 @@ class StorageBackend:
         collection: str,
         filter_dict: dict[str, Any],
         update_data: dict[str, Any],
+        update_many: bool = False,
     ) -> Any:
         """
         Build update query.
@@ -101,6 +102,9 @@ class StorageBackend:
             collection: Collection/table name
             filter_dict: Filter conditions {field: value}
             update_data: Fields to update {field: new_value}
+            update_many: If True, update all matching rows (default: False)
+                        For SQL backends this has no effect (all matching rows are updated).
+                        For MongoDB, this uses update_many instead of update_one.
 
         Returns:
             Database-specific query object
@@ -136,3 +140,15 @@ class StorageBackend:
             Maximum value as int (0 if no records found)
         """
         raise NotImplementedError("Storage backend must implement get_max_value")
+
+    async def table_exists(self, table_name: str) -> bool:
+        """
+        Check if a table/collection exists in the database.
+
+        Args:
+            table_name: Name of the table/collection to check
+
+        Returns:
+            True if the table exists, False otherwise
+        """
+        raise NotImplementedError("Storage backend must implement table_exists")

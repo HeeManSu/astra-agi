@@ -76,6 +76,33 @@ astra_messages = Table(
     Index("idx_messages_deleted_at", "deleted_at"),
 )
 
+astra_facts = Table(
+    "astra_facts",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("key", String(255), nullable=False),
+    Column("value", JSON, nullable=False),
+    Column("scope", String(32), nullable=False),  # "user", "session", "agent", "global"
+    Column("scope_id", String(64), nullable=True),  # user_id, session_id, agent_id, etc.
+    Column("schema_type", String(128), nullable=True),  # Optional schema name
+    Column("tags", JSON, nullable=True),  # Array of tags
+    Column("metadata", JSON, nullable=True),  # Additional metadata
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+    Column(
+        "updated_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    ),
+    Column("expires_at", DateTime(timezone=True), nullable=True),
+    Column("deleted_at", DateTime(timezone=True), nullable=True, index=True),
+    # Indexes for common query patterns
+    Index("idx_facts_key_scope", "key", "scope", "scope_id"),
+    Index("idx_facts_scope", "scope", "scope_id"),
+    Index("idx_facts_created_at", "created_at"),
+    Index("idx_facts_deleted_at", "deleted_at"),
+)
+
 
 class LibSQLStorage(StorageBackend):
     """
@@ -249,6 +276,8 @@ class LibSQLStorage(StorageBackend):
             return astra_threads
         elif collection_name == "astra_messages":
             return astra_messages
+        elif collection_name == "astra_facts":
+            return astra_facts
         raise ValueError(f"Unknown collection: {collection_name}")
 
     def build_insert_query(self, collection: str, data: dict[str, Any]) -> Any:
@@ -330,6 +359,7 @@ class LibSQLStorage(StorageBackend):
         collection: str,
         filter_dict: dict[str, Any],
         update_data: dict[str, Any],
+        update_many: bool = False,  # Ignored for SQL - always updates all matching rows
     ) -> Any:
         """
         Build SQL update query.
@@ -338,6 +368,7 @@ class LibSQLStorage(StorageBackend):
             collection: Collection/table name
             filter_dict: Filter conditions {field: value}
             update_data: Fields to update {field: new_value}
+            update_many: Ignored for SQL (always updates all matching rows)
 
         Returns:
             SQLAlchemy update statement
@@ -389,3 +420,23 @@ class LibSQLStorage(StorageBackend):
 
         row = await self.fetch_one(stmt)
         return int(row["max_seq"]) if row and row.get("max_seq") is not None else 0
+
+    async def table_exists(self, table_name: str) -> bool:
+        """
+        Check if a table exists in the SQLite database.
+
+        Args:
+            table_name: Name of the table to check
+
+        Returns:
+            True if the table exists, False otherwise
+        """
+        if not self._initialized:
+            await self.connect()
+
+        async with self.engine.connect() as conn:
+            result = await conn.execute(
+                text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+            )
+            row = result.fetchone()
+            return row is not None

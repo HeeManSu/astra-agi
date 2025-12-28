@@ -53,6 +53,42 @@ class MessageStore(BaseStore[Message]):
         # Reverse to get chronological order (oldest to newest)
         return [self._row_to_model(row) for row in reversed(rows)]
 
+    async def add(self, message: Message) -> Message:
+        """
+        Add a single message to the store.
+
+        Args:
+            message: Message object to insert
+
+        Returns:
+            The inserted Message object
+        """
+        data = message.model_dump(exclude_unset=True)
+        prepared_data = self._prepare_document(data)
+        query = self.storage.build_insert_query(self.collection_name, prepared_data)
+        await self.storage.execute(query)
+        return message
+
+    async def get_by_thread(self, thread_id: str, limit: int | None = None) -> list[Message]:
+        """
+        Get all messages for a thread, ordered by sequence.
+
+        Args:
+            thread_id: Thread identifier
+            limit: Optional limit on number of messages
+
+        Returns:
+            List of Message objects in sequence order (oldest to newest)
+        """
+        query = self.storage.build_select_query(
+            collection=self.collection_name,
+            filter_dict={"thread_id": thread_id},
+            sort=[("sequence", 1)],  # 1 for ascending
+            limit=limit,
+        )
+        rows = await self.storage.fetch_all(query)
+        return [self._row_to_model(row) for row in rows]
+
     async def soft_delete(self, message_id: str) -> None:
         """
         Soft delete a message by setting deleted_at timestamp.

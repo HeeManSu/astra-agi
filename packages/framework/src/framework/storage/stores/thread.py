@@ -75,3 +75,57 @@ class ThreadStore(BaseStore[Thread]):
             update_data={"deleted_at": datetime.now(timezone.utc)},
         )
         await self.storage.execute(query)
+
+    async def delete(self, thread_id: str) -> None:
+        """
+        Hard delete a thread (permanent deletion).
+
+        Note: This will cascade delete associated messages if foreign key
+        constraints are set with ON DELETE CASCADE.
+
+        Args:
+            thread_id: Thread identifier to delete
+        """
+        query = self.storage.build_delete_query(
+            collection=self.collection_name,
+            filter_dict={"id": thread_id},
+        )
+        await self.storage.execute(query)
+
+    async def update(
+        self,
+        thread_id: str,
+        title: str | None = None,
+        metadata: dict | None = None,
+        is_archived: bool | None = None,
+    ) -> Thread | None:
+        """
+        Update thread fields.
+
+        Args:
+            thread_id: Thread identifier to update
+            title: New title (optional)
+            metadata: New metadata dict (optional)
+            is_archived: New archived status (optional)
+
+        Returns:
+            Updated Thread object or None if not found
+        """
+        # Build update data from non-None args
+        update_data: dict = {"updated_at": datetime.now(timezone.utc)}
+        if title is not None:
+            update_data["title"] = title
+        if metadata is not None:
+            update_data["metadata"] = metadata
+        if is_archived is not None:
+            update_data["is_archived"] = is_archived
+
+        query = self.storage.build_update_query(
+            collection=self.collection_name,
+            filter_dict={"id": thread_id},
+            update_data=update_data,
+        )
+        await self.storage.execute(query)
+
+        # Return updated thread
+        return await self.get(thread_id)

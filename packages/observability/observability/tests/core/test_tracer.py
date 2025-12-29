@@ -1,10 +1,13 @@
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from opentelemetry import trace
-from observability.tracing.tracer import AstraTracer
-from observability.config import Config
-from observability.exceptions import InitializationError
+
+from observability.core.config import Config
+from observability.core.exceptions import InitializationError
+from observability.core.tracer import AstraTracer
+
 
 class TestAstraTracer(unittest.TestCase):
     def setUp(self):
@@ -26,33 +29,33 @@ class TestAstraTracer(unittest.TestCase):
         tracer2 = AstraTracer()
         self.assertIs(tracer1, tracer2)
 
-    @patch("observability.tracing.tracer.create_astra_resource")
-    @patch("observability.tracing.tracer.create_astra_exporter")
-    @patch("observability.tracing.tracer.create_astra_processor")
-    @patch("observability.tracing.tracer.TracerProvider")
+    @patch("observability.core.tracer.create_astra_resource")
+    @patch("observability.core.tracer.create_astra_exporter")
+    @patch("observability.core.tracer.create_astra_processor")
+    @patch("observability.core.tracer.TracerProvider")
     def test_initialize_success(self, mock_provider, mock_processor, mock_exporter, mock_resource):
         """Test successful initialization with mocking."""
         config = Config(SERVICE_NAME="test-service")
-        
+
         # Setup mocks
         mock_provider_instance = MagicMock()
         mock_provider.return_value = mock_provider_instance
-        
+
         self.tracer.initialize(config=config, enable_tracing=True)
-        
+
         # Verify flow
         mock_resource.assert_called_once_with(config)
         mock_exporter.assert_called_once_with(config)
         mock_processor.assert_called_once()
         mock_provider_instance.add_span_processor.assert_called_once()
-        
+
         self.assertTrue(self.tracer.is_initialized)
         self.assertIsNotNone(self.tracer.get_tracer())
 
     def test_initialize_disabled_tracing(self):
         """Test initialization when tracing is disabled."""
         self.tracer.initialize(enable_tracing=False)
-        
+
         self.assertTrue(self.tracer.is_initialized)
         tracer = self.tracer.get_tracer()
         # Should rely on NoOp tracer

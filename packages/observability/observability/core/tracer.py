@@ -1,27 +1,26 @@
 import atexit
 import logging
 import threading
-import warnings
 from typing import Optional
+import warnings
 
 from opentelemetry import trace
-from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from observability.config import Config
-from observability.exceptions import (
+from observability.core.config import Config
+from observability.core.exceptions import (
     ExporterError,
     InitializationError,
     ShutdownError,
     TracingDisabledWarning,
 )
-from observability.core.exporters.otlp_exporter import create_otlp_exporter
 from observability.utils.tracing_helpers import (
-    create_astra_resource,
     create_astra_exporter,
     create_astra_processor,
+    create_astra_resource,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +58,9 @@ class AstraTracer:
 
     _instance: Optional["AstraTracer"] = None
     _lock = threading.Lock()
-    _tracer_provider: Optional[trace.TracerProvider] = None
-    _tracer: Optional[trace.Tracer] = None
-    _span_processor: Optional[BatchSpanProcessor] = None
+    _tracer_provider: trace.TracerProvider | None = None
+    _tracer: trace.Tracer | None = None
+    _span_processor: BatchSpanProcessor | None = None
     _is_initialized: bool = False
     _tracing_enabled: bool = True
 
@@ -75,7 +74,7 @@ class AstraTracer:
 
     def initialize(
         self,
-        config: Optional[Config] = None,
+        config: Config | None = None,
         enable_tracing: bool = True,
     ) -> None:
         """
@@ -109,7 +108,7 @@ class AstraTracer:
                 # Ensure config is provided
                 if config is None:
                      raise InitializationError("Config object is required for initialization when tracing is enabled")
-                
+
                 cfg = config
 
                 # Create resource

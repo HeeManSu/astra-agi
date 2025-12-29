@@ -1,6 +1,8 @@
 import time
 import unittest
-from observability.semantic import trace_agent, trace_tool, trace_llm_call, trace_step, trace_error
+
+from observability.semantic import trace_agent, trace_error, trace_llm_call, trace_step, trace_tool
+
 
 class TestDecoratorBenchmarks(unittest.TestCase):
     def test_benchmark_agent(self):

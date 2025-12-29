@@ -9,9 +9,12 @@ This module contains the execution pipeline for the agents:
 import asyncio
 from dataclasses import dataclass
 import inspect
+import json
 from typing import Any
 
 from observability import Observability
+from observability.core.span import start_span, end_span, set_attributes
+from observability.semantic.conventions import AstraAttributes, AstraSpanKind
 
 
 @dataclass
@@ -80,6 +83,18 @@ async def execute_tool_call(
     """
 
     try:
+        span_ctx, span = start_span(
+            f"tool.{tool_name}",
+            {
+                AstraAttributes.SPAN_KIND: AstraSpanKind.TOOL,
+                AstraAttributes.TOOL_NAME: tool_name,
+                AstraAttributes.TOOL_TYPE: "function",
+            },
+        )
+        try:
+            set_attributes(span, {AstraAttributes.TOOL_INPUT: json.dumps(arguments, ensure_ascii=False)})
+        except Exception:
+            pass
         # Validate arguments
         validate_tool_arguments(tool, arguments)
 
@@ -97,10 +112,14 @@ async def execute_tool_call(
         if inspect.iscoroutinefunction(invoke_func):
             result = await invoke_func(**arguments)
         else:
-            # Run sync function in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(None, lambda: invoke_func(**arguments))
 
+        try:
+            set_attributes(span, {AstraAttributes.TOOL_OUTPUT: json.dumps(result, ensure_ascii=False)})
+        except Exception:
+            pass
+        end_span(span_ctx, span)
         return {
             "tool": tool_name,
             "result": result,
@@ -108,6 +127,11 @@ async def execute_tool_call(
         }
 
     except Exception as e:
+        try:
+            set_attributes(span, {AstraAttributes.TOOL_ERROR: json.dumps({"error": str(e)}, ensure_ascii=False)})
+        except Exception:
+            pass
+        end_span(span_ctx, span, error=e)
         return {
             "tool": tool_name,
             "error": str(e),

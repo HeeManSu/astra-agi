@@ -1,9 +1,9 @@
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 
-from observability.config import Config
-from observability.exceptions import ExporterError
-from observability.core.exporters.otlp_exporter import create_otlp_exporter
+from observability.core.config import Config
+from observability.exporters.otlp_exporter import create_otlp_exporter
+from observability.core.exceptions import ExporterError
 
 
 def create_astra_resource(config: Config) -> Resource:
@@ -36,7 +36,7 @@ def create_astra_exporter(config: Config) -> SpanExporter:
         )
     except Exception as e:
         raise ExporterError(
-            f"Failed to create OTLP exporter for endpoint {config.OTLP_ENDPOINT}", 
+            f"Failed to create OTLP exporter for endpoint {config.OTLP_ENDPOINT}",
             cause=e
         )
 

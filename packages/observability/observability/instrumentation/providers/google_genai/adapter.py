@@ -1,24 +1,36 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Tuple
+from collections.abc import Iterable
+from datetime import datetime
+from typing import Any
+import uuid
 
-from observability.semantic.conventions import GenAIAttributes, LLMAttributes
 from observability.core.span import truncate_text
-from observability.instrumentation.models.llm import LLMRequest, LLMResponse, Message, TokenUsage
-from observability.instrumentation.providers.base.adapter import ProviderAdapter
 from observability.instrumentation.core.operations import OperationSpec
+from observability.instrumentation.models.llm import LLMRequest, LLMResponse, Message, TokenUsage
+from observability.instrumentation.models.observation import (
+    AgentInfo,
+    CostUsage,
+    InputInfo,
+    LLMInfo,
+    LatencyUsage,
+    Message as ObsMessage,
+    MetricsInfo,
+    Observation,
+    OutputInfo,
+    ResourceInfo,
+    ServiceInfo,
+    TelemetryInfo,
+    TokenUsage as ObsTokenUsage,
+    ToolsInfo,
+    TraceInfo,
+    UsageInfo,
+)
+from observability.instrumentation.providers.base.adapter import ProviderAdapter
 from observability.instrumentation.providers.google_genai.attributes import _extract_usage_metadata
 from observability.pricing.google_gemini import estimate_gemini_usage_cost_breakdown
-import uuid
-from datetime import datetime
+from observability.semantic.conventions import GenAIAttributes, LLMAttributes
 
-
-from observability.instrumentation.models.observation import (
-    Observation, TraceInfo, LLMInfo, AgentInfo, InputInfo, OutputInfo, 
-    UsageInfo, TokenUsage as ObsTokenUsage, LatencyUsage, CostUsage, 
-    ToolsInfo, MetricsInfo, ResourceInfo, ServiceInfo, TelemetryInfo,
-    Message as ObsMessage
-)
 
 class GoogleGenAIAdapter(ProviderAdapter):
     name = "google_genai"
@@ -26,9 +38,9 @@ class GoogleGenAIAdapter(ProviderAdapter):
     def calculate_cost(
         self,
         operation: OperationSpec,
-        request: Optional[LLMRequest],
-        response: Optional[LLMResponse],
-    ) -> Dict[str, Any]:
+        request: LLMRequest | None,
+        response: LLMResponse | None,
+    ) -> dict[str, Any]:
         if operation.kind != "generate":
             return {}
         if response is None or response.usage is None:
@@ -38,14 +50,14 @@ class GoogleGenAIAdapter(ProviderAdapter):
             model = request.model
         if not model:
             return {}
-        
+
         prompt_tokens = response.usage.prompt_tokens
         completion_tokens = response.usage.completion_tokens
-        
+
         breakdown = estimate_gemini_usage_cost_breakdown(model, prompt_tokens, completion_tokens)
         if breakdown is None:
             return {}
-            
+
         return {
             "llm.cost.usd": breakdown.total_usd,
             "genai.cost.total_usd": breakdown.total_usd,
@@ -58,9 +70,9 @@ class GoogleGenAIAdapter(ProviderAdapter):
         operation: OperationSpec,
         request: LLMRequest,
         response: LLMResponse,
-        metadata: Dict[str, Any],
-    ) -> Optional[Observation]:
-        
+        metadata: dict[str, Any],
+    ) -> Observation | None:
+
         # 1. Trace Info
         # Metadata must contain trace details passed from wrapper
         start_time_ns = metadata.get("start_time_ns", 0)
@@ -68,7 +80,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
         start_time = datetime.fromtimestamp(start_time_ns / 1e9)
         end_time = datetime.fromtimestamp(end_time_ns / 1e9)
         duration_ms = (end_time_ns - start_time_ns) / 1e6
-        
+
         trace_info = TraceInfo(
             trace_id=metadata.get("trace_id", "unknown"),
             span_id=metadata.get("span_id", "unknown"),
@@ -103,7 +115,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
         messages = []
         for msg in request.messages:
             messages.append(ObsMessage(role=msg.role, content=msg.content))
-        
+
         # If no messages parsed but we have raw prompt
         if not messages and request.metadata.get("prompt_text"):
              messages.append(ObsMessage(role="user", content=request.metadata["prompt_text"]))
@@ -124,7 +136,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
         input_tokens = usage.prompt_tokens or 0
         output_tokens = usage.completion_tokens or 0
         total_tokens = usage.total_tokens or (input_tokens + output_tokens)
-        
+
         duration_seconds = duration_ms / 1000.0
         tokens_per_second = 0.0
         if duration_seconds > 0 and output_tokens > 0:
@@ -224,9 +236,11 @@ class GoogleGenAIAdapter(ProviderAdapter):
                 temperature = req_config.get("temperature")
             if max_tokens is None:
                 max_tokens = req_config.get("max_output_tokens")
-        prompt_text: Optional[str] = None
+        prompt_text: str | None = None
         try:
-            from observability.instrumentation.providers.google_genai.attributes import _extract_prompt_text
+            from observability.instrumentation.providers.google_genai.attributes import (
+                _extract_prompt_text,
+            )
 
             prompt_text = _extract_prompt_text(contents, truncate_limit)
         except Exception:
@@ -294,18 +308,14 @@ class GoogleGenAIAdapter(ProviderAdapter):
         self,
         operation: OperationSpec,
         request: LLMRequest,
-    ) -> Dict[str, Any]:
-        attrs: Dict[str, Any] = {
-            GenAIAttributes.SYSTEM: "google",
-            GenAIAttributes.OPERATION: operation.name,
-            GenAIAttributes.REQUEST_MODEL: request.model,
-            GenAIAttributes.REQUEST_TEMPERATURE: request.temperature,
-            GenAIAttributes.REQUEST_MAX_TOKENS: request.max_tokens,
-            LLMAttributes.SYSTEM: request.system,
+    ) -> dict[str, Any]:
+        attrs: dict[str, Any] = {
+            LLMAttributes.SYSTEM: request.system, # request.system should be "Gemini"
+            LLMAttributes.OPERATION: operation.name,
             LLMAttributes.REQUEST_MODEL: request.model,
-            LLMAttributes.REQUEST_STREAMING: request.streaming,
             LLMAttributes.REQUEST_TEMPERATURE: request.temperature,
             LLMAttributes.REQUEST_MAX_TOKENS: request.max_tokens,
+            LLMAttributes.REQUEST_STREAMING: request.streaming,
             LLMAttributes.REQUEST_TOP_P: request.top_p,
             LLMAttributes.REQUEST_TOP_K: request.top_k,
             LLMAttributes.REQUEST_SEED: request.seed,
@@ -313,7 +323,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
         }
         prompt_text = request.metadata.get("prompt_text")
         if isinstance(prompt_text, str):
-            attrs[GenAIAttributes.REQUEST_PROMPT] = prompt_text
+            attrs[LLMAttributes.REQUEST_PROMPT] = prompt_text
         for idx, message in enumerate(request.messages):
             key_content = f"{LLMAttributes.PROMPT_CONTENT_PREFIX}{idx}]"
             key_role = f"{LLMAttributes.PROMPT_ROLE_PREFIX}{idx}]"
@@ -325,9 +335,9 @@ class GoogleGenAIAdapter(ProviderAdapter):
         self,
         operation: OperationSpec,
         response: LLMResponse,
-    ) -> Dict[str, Any]:
-        attrs: Dict[str, Any] = {
-            GenAIAttributes.RESPONSE_TEXT: response.content,
+    ) -> dict[str, Any]:
+        attrs: dict[str, Any] = {
+            "llm.response.text": response.content,
             LLMAttributes.RESPONSE_MODEL: response.model,
         }
         if response.content is not None:
@@ -341,32 +351,29 @@ class GoogleGenAIAdapter(ProviderAdapter):
     def build_usage_attributes(
         self,
         operation: OperationSpec,
-        usage: Optional[TokenUsage],
-    ) -> Dict[str, Any]:
+        usage: TokenUsage | None,
+    ) -> dict[str, Any]:
         if usage is None:
             return {}
-        attrs: Dict[str, Any] = {}
+        attrs: dict[str, Any] = {}
         if usage.prompt_tokens is not None:
-            attrs[GenAIAttributes.USAGE_INPUT_TOKENS] = usage.prompt_tokens
             attrs[LLMAttributes.USAGE_PROMPT_TOKENS] = usage.prompt_tokens
         if usage.completion_tokens is not None:
-            attrs[GenAIAttributes.USAGE_OUTPUT_TOKENS] = usage.completion_tokens
             attrs[LLMAttributes.USAGE_COMPLETION_TOKENS] = usage.completion_tokens
         if usage.total_tokens is not None:
-            attrs[GenAIAttributes.USAGE_TOTAL_TOKENS] = usage.total_tokens
             attrs[LLMAttributes.USAGE_TOTAL_TOKENS] = usage.total_tokens
         if usage.cached_tokens is not None:
-            attrs[GenAIAttributes.USAGE_CACHED_TOKENS] = usage.cached_tokens
+            attrs[LLMAttributes.USAGE_CACHED_TOKENS] = usage.cached_tokens
         return attrs
 
-    def init_stream_state(self, operation: OperationSpec, request: LLMRequest) -> Dict[str, Any]:
+    def init_stream_state(self, operation: OperationSpec, request: LLMRequest) -> dict[str, Any]:
         return {
             "combined_text": "",
             "usage_acc": {
-                GenAIAttributes.USAGE_INPUT_TOKENS: 0,
-                GenAIAttributes.USAGE_OUTPUT_TOKENS: 0,
-                GenAIAttributes.USAGE_TOTAL_TOKENS: 0,
-                GenAIAttributes.USAGE_CACHED_TOKENS: 0,
+                LLMAttributes.USAGE_PROMPT_TOKENS: 0,
+                LLMAttributes.USAGE_COMPLETION_TOKENS: 0,
+                LLMAttributes.USAGE_TOTAL_TOKENS: 0,
+                LLMAttributes.USAGE_CACHED_TOKENS: 0,
             },
             "have_usage": False,
         }
@@ -375,7 +382,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
         self,
         operation: OperationSpec,
         request: LLMRequest,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         chunk: Any,
     ) -> None:
         text = getattr(chunk, "text", None)
@@ -399,10 +406,10 @@ class GoogleGenAIAdapter(ProviderAdapter):
     def finalize_stream(
         self,
         operation: OperationSpec,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         truncate_limit: int,
-        request: Optional[LLMRequest] = None,
-    ) -> Tuple[LLMResponse, Optional[Iterable[Any]]]:
+        request: LLMRequest | None = None,
+    ) -> tuple[LLMResponse, Iterable[Any] | None]:
         combined_text = state.get("combined_text") or ""
         usage_acc = state.get("usage_acc") or {}
         have_usage = bool(state.get("have_usage"))
@@ -419,7 +426,7 @@ class GoogleGenAIAdapter(ProviderAdapter):
         )
         return response, None
 
-    def _usage_from_genai_dict(self, usage: Dict[str, Any]) -> Optional[TokenUsage]:
+    def _usage_from_genai_dict(self, usage: dict[str, Any]) -> TokenUsage | None:
         prompt = usage.get(GenAIAttributes.USAGE_INPUT_TOKENS)
         completion = usage.get(GenAIAttributes.USAGE_OUTPUT_TOKENS)
         total = usage.get(GenAIAttributes.USAGE_TOTAL_TOKENS)

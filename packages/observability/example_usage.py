@@ -1,7 +1,6 @@
 from google import genai
 from observability.client import Client as ObservabilityClient
-from opentelemetry import trace
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+
 
 # Initialize Observability Client
 # This will automatically instrument supported libraries like google-genai
@@ -9,7 +8,7 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProces
 obs_client = ObservabilityClient(
     service_name="example-usage",
     enable_tracing=True,
-    endpoint="console"
+    endpoint="json"
 )
 
 # Initialize client with API key

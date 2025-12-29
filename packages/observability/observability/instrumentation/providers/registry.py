@@ -1,5 +1,5 @@
-from typing import List
 from observability.instrumentation.core.registry import InstrumentationRegistry, InstrumentorSpec
+
 
 def register_builtin_providers(registry: InstrumentationRegistry) -> None:
     """
@@ -8,7 +8,7 @@ def register_builtin_providers(registry: InstrumentationRegistry) -> None:
     This function serves as the central catalog for all supported LLM providers.
     To add a new provider (e.g., AWS Bedrock), add its specification here.
     """
-    
+
     # Google GenAI
     registry.register(
         package_name="google.genai",
@@ -28,7 +28,7 @@ def register_builtin_providers(registry: InstrumentationRegistry) -> None:
             priority=10,
         ),
     )
-    
+
     # AWS Bedrock
     registry.register(
         package_name="boto3",

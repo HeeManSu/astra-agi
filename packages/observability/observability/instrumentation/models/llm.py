@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -13,34 +11,34 @@ class Message(BaseModel):
 
 
 class TokenUsage(BaseModel):
-    prompt_tokens: Optional[int] = None
-    completion_tokens: Optional[int] = None
-    total_tokens: Optional[int] = None
-    cached_tokens: Optional[int] = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    cached_tokens: int | None = None
 
 
 class LLMRequest(BaseModel):
-    system: Optional[str] = None
-    operation: Optional[str] = None
-    model: Optional[str] = None
-    messages: List[Message] = Field(default_factory=list)
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
-    top_k: Optional[int] = None
-    seed: Optional[int] = None
-    stop_sequences: Optional[List[str]] = None
+    system: str | None = None
+    operation: str | None = None
+    model: str | None = None
+    messages: list[Message] = Field(default_factory=list)
+    temperature: float | None = None
+    max_tokens: int | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    seed: int | None = None
+    stop_sequences: list[str] | None = None
     streaming: bool = False
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    provider_params: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    provider_params: dict[str, Any] = Field(default_factory=dict)
 
 
 class LLMResponse(BaseModel):
-    system: Optional[str] = None
-    operation: Optional[str] = None
-    model: Optional[str] = None
-    content: Optional[str] = None
-    role: Optional[str] = None
-    finish_reason: Optional[str] = None
-    usage: Optional[TokenUsage] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    system: str | None = None
+    operation: str | None = None
+    model: str | None = None
+    content: str | None = None
+    role: str | None = None
+    finish_reason: str | None = None
+    usage: TokenUsage | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)

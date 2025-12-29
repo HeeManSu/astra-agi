@@ -1,20 +1,24 @@
 from __future__ import annotations
-import inspect
+
+from collections.abc import Callable
 import functools
-from typing import Any, Callable, Dict, Optional, TypeVar
-from observability.core.span import start_span, end_span, set_attributes
+import inspect
+from typing import Any, TypeVar
+
+from observability.core.span import end_span, set_attributes, start_span
+from observability.semantic.conventions import AstraAttributes, AstraSpanKind
+
 from .utils import sanitize_args, to_json_str
 
-from observability.semantic.conventions import AstraAttributes, AstraSpanKind
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-def trace_tool(name: Optional[str] = None) -> Callable[[F], F]:
+def trace_tool(name: str | None = None) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         tool_name = name or getattr(func, "__name__", "tool")
         if inspect.iscoroutinefunction(func):
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-                attrs: Dict[str, Any] = {
+                attrs: dict[str, Any] = {
                     AstraAttributes.SPAN_KIND: AstraSpanKind.TOOL,
                     AstraAttributes.TOOL_NAME: tool_name,
                     AstraAttributes.TOOL_TYPE: "function", # Default type
@@ -34,7 +38,7 @@ def trace_tool(name: Optional[str] = None) -> Callable[[F], F]:
             return functools.wraps(func)(async_wrapper)  # type: ignore
         else:
             def wrapper(*args: Any, **kwargs: Any) -> Any:
-                attrs: Dict[str, Any] = {
+                attrs: dict[str, Any] = {
                     AstraAttributes.SPAN_KIND: AstraSpanKind.TOOL,
                     AstraAttributes.TOOL_NAME: tool_name,
                     AstraAttributes.TOOL_TYPE: "function", # Default type

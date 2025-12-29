@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import importlib
+import io
+import json
 import logging
 import time
-import json
-import io
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
-from opentelemetry.trace import StatusCode
-
+from observability.core.span import end_span, set_attributes, start_span
 from observability.instrumentation.core.base_instrumentor import BaseInstrumentor
 from observability.instrumentation.core.operations import OperationSpec
-from observability.core.span import start_span, end_span, set_attributes
-from observability.instrumentation.providers.bedrock.adapter import BedrockAdapter
 from observability.instrumentation.core.wrapper_factory import _record_agent_run, _record_metrics
+from observability.instrumentation.providers.bedrock.adapter import BedrockAdapter
+from opentelemetry.trace import StatusCode
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +33,10 @@ class BedrockInstrumentor(BaseInstrumentor):
             return
 
         self._original_make_api_call = botocore.client.BaseClient._make_api_call
-        
+
         def wrapper(client_instance, operation_name, api_params):
             return self._make_api_call_wrapper(client_instance, operation_name, api_params)
-            
+
         botocore.client.BaseClient._make_api_call = wrapper
 
     def _do_uninstrument(self) -> None:
@@ -69,7 +68,7 @@ class BedrockInstrumentor(BaseInstrumentor):
                 asynchronous=False
             )
         # TODO: Handle InvokeModelWithResponseStream
-        
+
         if not op_spec or not self._config or not self._config.instrument_llm_calls:
             return self._original_make_api_call(client_instance, operation_name, api_params)
 
@@ -77,7 +76,7 @@ class BedrockInstrumentor(BaseInstrumentor):
         adapter = BedrockAdapter()
         start_ns = time.perf_counter_ns()
         truncate_limit = int(self._config.privacy_truncate_chars) if self._config.privacy_truncate_chars else 2000
-        
+
         # Parse request
         # args for parse_request: (client_instance, operation_name, api_params)
         try:
@@ -87,46 +86,46 @@ class BedrockInstrumentor(BaseInstrumentor):
         except Exception as e:
             logger.warning(f"Failed to start span for Bedrock: {e}")
             return self._original_make_api_call(client_instance, operation_name, api_params)
-        
+
         success = False
         response_model = None
         result = None
-        
+
         try:
             # Call original
             result = self._original_make_api_call(client_instance, operation_name, api_params)
-            
+
             # Handle body
             if isinstance(result, dict) and 'body' in result:
                 from botocore.response import StreamingBody
-                
+
                 body_stream = result['body']
                 # Only read if it is a StreamingBody
                 if isinstance(body_stream, StreamingBody):
                     body_bytes = body_stream.read()
-                    
+
                     # Restore the stream for the user
                     new_stream = io.BytesIO(body_bytes)
                     result['body'] = StreamingBody(new_stream, len(body_bytes))
-                    
+
                     # Parse the body
                     try:
                         parsed_body = json.loads(body_bytes)
                         result['_astra_response_body'] = parsed_body
                     except:
                         pass
-            
+
             # Parse response
             response_model = adapter.parse_response(op_spec, result, truncate_limit)
             response_attrs = adapter.build_response_attributes(op_spec, response_model)
             usage_attrs = adapter.build_usage_attributes(op_spec, response_model.usage)
             cost_attrs = adapter.calculate_cost(op_spec, request, response_model)
-            
+
             set_attributes(span, response_attrs)
             set_attributes(span, usage_attrs)
             if cost_attrs:
                 set_attributes(span, cost_attrs)
-                
+
             _record_agent_run(span, adapter, op_spec, request, response_model, cost_attrs, start_ns)
             end_span(span_ctx, span, status_code=StatusCode.OK)
             success = True

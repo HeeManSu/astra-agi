@@ -33,6 +33,8 @@ from framework.memory.manager import MemoryManager
 from framework.middlewares import InputMiddleware, MiddlewareContext, OutputMiddleware
 from framework.models import Model, ModelResponse
 from framework.storage.memory import AgentStorage
+from observability.core.span import start_span, end_span, set_attributes, truncate_text
+from observability.semantic.conventions import LLMAttributes, AstraAttributes, AstraSpanKind
 
 
 class Agent:
@@ -428,6 +430,40 @@ class Agent:
 
         return messages
 
+    def _estimate_cost(self, model_id: str | None, input_tokens: int, output_tokens: int) -> tuple[float, float]:
+        """Estimate cost based on model and token usage."""
+        if not model_id:
+            return 0.0, 0.0
+
+        # Simple pricing map (per 1M tokens) - approximate
+        # Input cost, Output cost
+        PRICING = {
+            "us.amazon.nova-pro-v1:0": (0.80, 3.20),
+            "us.amazon.nova-lite-v1:0": (0.06, 0.24),
+            "us.amazon.nova-micro-v1:0": (0.035, 0.14),
+            "gemini-1.5-flash": (0.075, 0.30),
+            "gemini-1.5-pro": (1.25, 5.00),
+            "claude-3-5-sonnet": (3.00, 15.00),
+            "gpt-4o": (2.50, 10.00),
+        }
+        
+        rate = None
+        # Try exact match
+        if model_id in PRICING:
+            rate = PRICING[model_id]
+        else:
+            # Try partial match
+            for key, val in PRICING.items():
+                if key in model_id:
+                    rate = val
+                    break
+        
+        if rate:
+            input_cost = (input_tokens / 1_000_000.0) * rate[0]
+            output_cost = (output_tokens / 1_000_000.0) * rate[1]
+            return input_cost, output_cost
+            
+        return 0.0, 0.0
     async def _invoke_with_retry(
         self,
         messages: list[dict[str, Any]],
@@ -440,12 +476,81 @@ class Agent:
         )
 
         async def _invoke():
-            return await self.model.invoke(
-                messages=messages,
-                tools=self.tools_schema if context.tools else None,
-                temperature=context.temperature,
-                max_tokens=context.max_tokens,
-            )
+            attrs: dict[str, Any] = {
+                AstraAttributes.SPAN_KIND: AstraSpanKind.LLM,
+                LLMAttributes.REQUEST_MODEL: getattr(self, "model", None) and getattr(self.model, "model_id", None),
+                LLMAttributes.REQUEST_TEMPERATURE: context.temperature,
+                LLMAttributes.REQUEST_MAX_TOKENS: context.max_tokens,
+            }
+            try:
+                user_msgs = [m for m in messages if m.get("role") == "user"]
+                if user_msgs:
+                    prompt = str(user_msgs[-1].get("content", ""))
+                    attrs[LLMAttributes.REQUEST_PROMPT] = truncate_text(prompt, 4096)
+                
+                # Capture full context (messages + tools) for deeper debugging
+                # This explains why token usage > prompt length
+                attrs["context.prompt"] = json.dumps({
+                    "messages": messages,
+                    "tools": self.tools_schema if context.tools else None
+                }, default=str)
+                
+            except Exception:
+                pass
+            span_ctx, span = start_span("llm.call", attrs)
+            try:
+                result = await self.model.invoke(
+                    messages=messages,
+                    tools=self.tools_schema if context.tools else None,
+                    temperature=context.temperature,
+                    max_tokens=context.max_tokens,
+                )
+                try:
+                    usage = result.usage or {}
+                    prompt_tokens = usage.get("input_tokens", 0)
+                    completion_tokens = usage.get("output_tokens", 0)
+                    total_tokens = usage.get("total_tokens", prompt_tokens + completion_tokens)
+                    
+                    # Update span attributes
+                    attrs_to_update = {
+                        LLMAttributes.RESPONSE_TEXT: truncate_text(result.content or "", 4096),
+                        LLMAttributes.USAGE_PROMPT_TOKENS: prompt_tokens,
+                        LLMAttributes.USAGE_COMPLETION_TOKENS: completion_tokens,
+                        LLMAttributes.USAGE_TOTAL_TOKENS: total_tokens,
+                    }
+                    
+                    # Calculate and add cost
+                    model_id = getattr(self.model, "model_id", None)
+                    input_cost, output_cost = self._estimate_cost(model_id, prompt_tokens, completion_tokens)
+                    attrs_to_update.update({
+                        "llm.cost.input": input_cost,
+                        "llm.cost.output": output_cost,
+                        "llm.cost.total": input_cost + output_cost
+                    })
+                    
+                    set_attributes(span, attrs_to_update)
+                except Exception:
+                    pass
+                end_span(span_ctx, span)
+                if context.observability and getattr(context.observability, "logger", None):
+                    usage = result.usage or {}
+                    provider = (result.metadata or {}).get("provider")
+                    model_id = (result.metadata or {}).get("model_id")
+                    latency_ms = (result.metadata or {}).get("latency_ms", 0)
+                    context.observability.logger.info(
+                        f"Model call completed: {model_id}",
+                        event_type="model_call",
+                        model_name=model_id,
+                        provider=provider,
+                        tokens_input=usage.get("input_tokens", 0),
+                        tokens_output=usage.get("output_tokens", 0),
+                        total_tokens=usage.get("total_tokens", 0),
+                        duration_ms=latency_ms,
+                    )
+                return result
+            except Exception as e:
+                end_span(span_ctx, span, error=e)
+                raise
 
         try:
             response = await retry_with_backoff(_invoke, config, context)
@@ -613,6 +718,50 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        
+        # Ensure context (and TracerProvider) is initialized before creating spans
+        # This is critical - TracerProvider must be set up before any spans are created
+        _ = self.context
+        
+        # Start top-level agent span to group all child spans (LLM calls, tool calls)
+        agent_span_attrs = {
+            AstraAttributes.SPAN_KIND: AstraSpanKind.AGENT,
+            AstraAttributes.AGENT_NAME: self.name,
+            AstraAttributes.AGENT_TYPE: "agent",
+        }
+        agent_span_ctx, agent_span = start_span("agent.invoke", agent_span_attrs)
+        
+        try:
+            result = await self._invoke_internal(
+                message=message,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                tools=tools,
+                stream=stream,
+                **kwargs,
+            )
+            # Set agent output
+            set_attributes(agent_span, {
+                "agent.input": truncate_text(message, 4096),
+                "agent.output": truncate_text(result, 4096),
+            })
+            end_span(agent_span_ctx, agent_span)
+            return result
+        except Exception as e:
+            end_span(agent_span_ctx, agent_span, error=e)
+            raise
+    
+    async def _invoke_internal(
+        self,
+        message: str,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[Any] | None = None,
+        stream: bool | None = None,
+        **kwargs: Any,
+    ) -> str:
+        """Internal implementation of invoke, wrapped by agent span."""
 
         # 1.5. Lazy initialization: Populate tool registry if not done yet
         if self.code_mode and len(self._tool_registry) == 0 and self._tools:
@@ -660,7 +809,7 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                         temperature=temperature or self.temperature,
                         max_tokens=max_tokens or self.max_tokens,
                         tools=None,  # No tools needed for code generation
-                        observability=self.context.observability if self._context else None,
+                        observability=self.context.observability,
                     )
 
                     # Generate code via LLM
@@ -718,7 +867,7 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             temperature=temperature or self.temperature,
             max_tokens=max_tokens or self.max_tokens,
             tools=tools or self.tools,
-            observability=self.context.observability if self._context else None,
+            observability=self.context.observability,
         )
 
         # 3. Prepare messages

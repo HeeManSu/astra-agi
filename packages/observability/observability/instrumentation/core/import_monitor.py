@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import builtins
 import importlib
-import sys
 import logging
+import sys
 from typing import Any
+
+from observability.instrumentation.core.base_instrumentor import InstrumentorConfig
 from observability.instrumentation.core.registry import InstrumentationRegistry, InstrumentorSpec
 from observability.instrumentation.core.version_checker import VersionChecker
-from observability.instrumentation.core.base_instrumentor import InstrumentorConfig
+
 
 logger = logging.getLogger(__name__)
 

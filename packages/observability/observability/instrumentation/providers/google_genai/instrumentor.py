@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from observability.instrumentation.core.base_instrumentor import BaseInstrumentor
 from observability.instrumentation.core.operations import OperationSpec
@@ -14,13 +14,14 @@ from observability.instrumentation.core.wrapper_factory import (
 )
 from observability.instrumentation.providers.google_genai.adapter import GoogleGenAIAdapter
 
+
 logger = logging.getLogger(__name__)
 
 
 class GoogleGenAIInstrumentor(BaseInstrumentor):
     def __init__(self) -> None:
         super().__init__()
-        self._originals: Dict[str, Any] = {}
+        self._originals: dict[str, Any] = {}
 
     @property
     def target_packages(self) -> tuple[str, ...]:

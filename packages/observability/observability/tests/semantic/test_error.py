@@ -1,6 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from observability.semantic import trace_error
+
 
 class TestTraceError(unittest.TestCase):
     def setUp(self):

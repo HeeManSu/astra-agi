@@ -1,6 +1,8 @@
 
 import unittest
+
 from observability.instrumentation.core.registry import InstrumentationRegistry, InstrumentorSpec
+
 
 class TestRegistry(unittest.TestCase):
     def setUp(self):
@@ -13,9 +15,9 @@ class TestRegistry(unittest.TestCase):
             class_name="TestInstrumentor",
             min_version="1.0.0"
         )
-        
+
         self.registry.register("test-package", spec)
-        
+
         retrieved = self.registry.get_spec("test-package")
         self.assertEqual(retrieved, spec)
 
@@ -35,10 +37,10 @@ class TestRegistry(unittest.TestCase):
             class_name="High",
             priority=100
         )
-        
+
         self.registry.register("conflict-pkg", low_prio)
         self.registry.register("conflict-pkg", high_prio)
-        
+
         result = self.registry.get_spec("conflict-pkg")
         self.assertIsNotNone(result)
         if result:

@@ -1,6 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from observability.semantic import trace_step
+
 
 class TestTraceStep(unittest.TestCase):
     def setUp(self):

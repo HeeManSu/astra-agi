@@ -1,13 +1,16 @@
 from __future__ import annotations
+
+from collections.abc import Callable
 import functools
 import inspect
-from typing import Any, Callable, Dict, TypeVar, Union
-from observability.core.span import get_tracer
+from typing import Any, TypeVar
+
 from opentelemetry import trace
+
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-def with_context(attributes: Dict[str, Any] = None, **kwargs: Any) -> Union[Callable[[F], F], Any]:
+def with_context(attributes: dict[str, Any] = None, **kwargs: Any) -> Callable[[F], F] | Any:
     """
     Decorator and context manager to add context attributes to the current span.
     

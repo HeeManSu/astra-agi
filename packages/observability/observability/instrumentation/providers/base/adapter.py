@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, Optional, Tuple, Callable, Iterator, AsyncIterator
+from collections.abc import AsyncIterator, Callable, Iterable, Iterator
+from typing import Any
 
+from observability.instrumentation.core.operations import OperationSpec
 from observability.instrumentation.models.llm import LLMRequest, LLMResponse, TokenUsage
 from observability.instrumentation.models.observation import Observation
-from observability.instrumentation.core.operations import OperationSpec
 
 
 class ProviderAdapter(ABC):
@@ -15,8 +16,8 @@ class ProviderAdapter(ABC):
     def parse_request(
         self,
         operation: OperationSpec,
-        args: Tuple[Any, ...],
-        kwargs: Dict[str, Any],
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
         truncate_limit: int,
     ) -> LLMRequest:
         raise NotImplementedError
@@ -35,7 +36,7 @@ class ProviderAdapter(ABC):
         self,
         operation: OperationSpec,
         request: LLMRequest,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod
@@ -43,15 +44,15 @@ class ProviderAdapter(ABC):
         self,
         operation: OperationSpec,
         response: LLMResponse,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod
     def build_usage_attributes(
         self,
         operation: OperationSpec,
-        usage: Optional[TokenUsage],
-    ) -> Dict[str, Any]:
+        usage: TokenUsage | None,
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod
@@ -60,8 +61,8 @@ class ProviderAdapter(ABC):
         operation: OperationSpec,
         request: LLMRequest,
         response: LLMResponse,
-        metadata: Dict[str, Any],
-    ) -> Optional[Observation]:
+        metadata: dict[str, Any],
+    ) -> Observation | None:
         """
         Convert the normalized request/response to the Observation model.
         """
@@ -140,14 +141,14 @@ class ProviderAdapter(ABC):
             response_model, _ = self.finalize_stream(operation, state, truncate_limit, request)
             instrumentation_callback(response_model)
 
-    def init_stream_state(self, operation: OperationSpec, request: LLMRequest) -> Dict[str, Any]:
+    def init_stream_state(self, operation: OperationSpec, request: LLMRequest) -> dict[str, Any]:
         return {}
 
     def accumulate_stream_chunk(
         self,
         operation: OperationSpec,
         request: LLMRequest,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         chunk: Any,
     ) -> None:
         pass
@@ -155,19 +156,19 @@ class ProviderAdapter(ABC):
     def finalize_stream(
         self,
         operation: OperationSpec,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         truncate_limit: int,
-        request: Optional[LLMRequest] = None,
-    ) -> Tuple[LLMResponse, Optional[Iterable[Any]]]:
+        request: LLMRequest | None = None,
+    ) -> tuple[LLMResponse, Iterable[Any] | None]:
         response = LLMResponse()
         return response, None
 
     def calculate_cost(
         self,
         operation: OperationSpec,
-        request: Optional[LLMRequest],
-        response: Optional[LLMResponse],
-    ) -> Dict[str, Any]:
+        request: LLMRequest | None,
+        response: LLMResponse | None,
+    ) -> dict[str, Any]:
         """
         Calculate cost for the operation.
         """

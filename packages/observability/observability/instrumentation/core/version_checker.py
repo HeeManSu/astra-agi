@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
+
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ _VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)(?:[.-]?([a-zA-Z0-9]+))?")
 
 
 class VersionChecker:
-    def parse(self, version_str: Optional[str]) -> Optional[tuple[int, int, int, Optional[str]]]:
+    def parse(self, version_str: str | None) -> tuple[int, int, int, str | None] | None:
         if not version_str:
             return None
         m = _VERSION_RE.match(version_str)
@@ -23,7 +23,7 @@ class VersionChecker:
         except Exception:
             return None
 
-    def is_compatible(self, installed: Optional[str], required_min: Optional[str]) -> bool:
+    def is_compatible(self, installed: str | None, required_min: str | None) -> bool:
         if required_min is None or installed is None:
             return True
         pi = self.parse(installed)

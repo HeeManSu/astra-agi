@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
+import json
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 
 _PRICING_PATH = Path(__file__).with_suffix("").with_name("google_gemini_pricing.json")
@@ -12,11 +11,11 @@ _PRICING_PATH = Path(__file__).with_suffix("").with_name("google_gemini_pricing.
 @dataclass
 class GeminiModelPricing:
     model_id: str
-    input_tokens_per_1k: Optional[float] = None
-    output_tokens_per_1k: Optional[float] = None
+    input_tokens_per_1k: float | None = None
+    output_tokens_per_1k: float | None = None
 
 
-_PRICING_CACHE: Dict[str, GeminiModelPricing] = {}
+_PRICING_CACHE: dict[str, GeminiModelPricing] = {}
 
 
 def _load_pricing() -> None:
@@ -42,7 +41,7 @@ def _load_pricing() -> None:
         )
 
 
-def get_gemini_pricing(model: str) -> Optional[GeminiModelPricing]:
+def get_gemini_pricing(model: str) -> GeminiModelPricing | None:
     if not _PRICING_CACHE:
         _load_pricing()
     return _PRICING_CACHE.get(model)
@@ -57,27 +56,27 @@ class GeminiUsageCost:
 
 def estimate_gemini_usage_cost_breakdown(
     model: str,
-    prompt_tokens: Optional[int],
-    completion_tokens: Optional[int],
-) -> Optional[GeminiUsageCost]:
+    prompt_tokens: int | None,
+    completion_tokens: int | None,
+) -> GeminiUsageCost | None:
     pricing = get_gemini_pricing(model)
     if pricing is None:
         return None
-    
+
     input_cost = 0.0
     output_cost = 0.0
-    
+
     if isinstance(prompt_tokens, int) and pricing.input_tokens_per_1k is not None:
         input_cost = (prompt_tokens / 1000.0) * pricing.input_tokens_per_1k
-        
+
     if isinstance(completion_tokens, int) and pricing.output_tokens_per_1k is not None:
         output_cost = (completion_tokens / 1000.0) * pricing.output_tokens_per_1k
-        
+
     total_cost = input_cost + output_cost
-    
+
     if total_cost == 0.0 and input_cost == 0.0 and output_cost == 0.0:
         return None
-        
+
     return GeminiUsageCost(
         total_usd=total_cost,
         input_usd=input_cost,
@@ -87,9 +86,9 @@ def estimate_gemini_usage_cost_breakdown(
 
 def estimate_gemini_usage_cost(
     model: str,
-    prompt_tokens: Optional[int],
-    completion_tokens: Optional[int],
-) -> Optional[float]:
+    prompt_tokens: int | None,
+    completion_tokens: int | None,
+) -> float | None:
     breakdown = estimate_gemini_usage_cost_breakdown(model, prompt_tokens, completion_tokens)
     return breakdown.total_usd if breakdown else None
 

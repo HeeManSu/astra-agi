@@ -1,7 +1,8 @@
 import asyncio
+
 from observability.client import Client
 from observability.semantic import trace_tool
-from opentelemetry import trace
+
 
 # Initialize Observability with Console Exporter to see output
 client = Client(service_name="test-error-service", endpoint="console", enable_tracing=True)

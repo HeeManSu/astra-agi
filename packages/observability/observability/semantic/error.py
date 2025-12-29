@@ -1,10 +1,15 @@
 from __future__ import annotations
-import inspect
+
+from collections.abc import Callable
 import functools
+import inspect
 import traceback
-from typing import Any, Callable, Dict, TypeVar
+from typing import Any, TypeVar
+
 from opentelemetry import trace
-from observability.core.span import start_span, end_span, set_attributes
+
+from observability.core.span import set_attributes
+
 
 F = TypeVar("F", bound=Callable[..., Any])
 

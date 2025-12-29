@@ -1,7 +1,9 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from observability.semantic import trace_llm_call
-from observability.semantic.conventions import LLMAttributes, GenAIAttributes
+from observability.semantic.conventions import LLMAttributes
+
 
 class TestTraceLLM(unittest.TestCase):
     def setUp(self):
@@ -13,7 +15,7 @@ class TestTraceLLM(unittest.TestCase):
         self.trunc_patch = patch("observability.semantic.llm.truncate_text", side_effect=lambda s, l: s[:l])
         self.mock_start = self.start_patch.start()
         self.end_patch.start()
-        self.set_patch.start()
+        self.set_mock = self.set_patch.start()
         self.trunc_patch.start()
 
     def tearDown(self):
@@ -33,6 +35,10 @@ class TestTraceLLM(unittest.TestCase):
         self.assertEqual(attrs[LLMAttributes.REQUEST_MODEL], "gpt-4")
         self.assertEqual(attrs[LLMAttributes.REQUEST_TEMPERATURE], 0.7)
         self.assertEqual(attrs[LLMAttributes.REQUEST_MAX_TOKENS], 128)
+        self.assertEqual(attrs[LLMAttributes.REQUEST_PROMPT], "hello")
+
+        # Verify response attribute was set
+        self.set_mock.assert_called_with(self.mock_span, {LLMAttributes.RESPONSE_TEXT: "response"})
 
 if __name__ == "__main__":
     unittest.main()

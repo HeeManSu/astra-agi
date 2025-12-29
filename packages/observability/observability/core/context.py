@@ -1,5 +1,6 @@
-from typing import Optional
+
 from opentelemetry import trace
+
 
 def get_current_span() -> trace.Span:
     """
@@ -7,7 +8,7 @@ def get_current_span() -> trace.Span:
     """
     return trace.get_current_span()
 
-def get_current_trace_id() -> Optional[str]:
+def get_current_trace_id() -> str | None:
     """
     Returns the current trace ID as a hex string.
     Returns None if no active span context exists.
@@ -17,7 +18,7 @@ def get_current_trace_id() -> Optional[str]:
         return format(span.get_span_context().trace_id, "032x")
     return None
 
-def get_current_span_id() -> Optional[str]:
+def get_current_span_id() -> str | None:
     """
     Returns the current span ID as a hex string.
     Returns None if no active span context exists.
@@ -32,4 +33,4 @@ def attach_context(token: object):
     Attaches a context token. 
     (Wrapper around context.attach if needed, but usually context management is automatic)
     """
-    pass # OpenTelemetry handles this via ContextVars automatically
+    # OpenTelemetry handles this via ContextVars automatically

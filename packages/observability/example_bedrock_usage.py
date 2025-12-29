@@ -1,7 +1,8 @@
-import boto3
 import json
-import os
+
+import boto3
 from observability.client import Client as ObservabilityClient
+
 
 # User provided API Key
 # Note: AWS Bedrock typically uses AWS Access Key ID and Secret Access Key via IAM.
@@ -37,7 +38,7 @@ request_body = {
     "system": [{"text": "You are a creative content generator."}],
     "messages": [
         {
-            "role": "user", 
+            "role": "user",
             "content": [{"text": "Give me content idea for tech based youtube channel"}]
         }
     ],
@@ -55,11 +56,11 @@ try:
         modelId=model_id,
         body=json.dumps(request_body)
     )
-    
+
     # Parse Nova response
     body_bytes = response["body"].read()
     response_json = json.loads(body_bytes)
-    
+
     # Extract content from Nova's specific response structure
     # Structure: output -> message -> content -> list of items
     content_text = ""
@@ -69,9 +70,9 @@ try:
             for item in message["content"]:
                 if "text" in item:
                     content_text += item["text"]
-                
+
     print("\nNova Pro Response:")
     print(content_text)
-    
+
 except Exception as e:
     print(f"Error invoking model: {e}")

@@ -1,9 +1,8 @@
 import asyncio
-import os
+
 from observability.client import Client
-from observability.semantic import trace_agent, trace_tool, trace_llm, trace_step, with_context
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter
-from opentelemetry import trace
+from observability.semantic import trace_agent, trace_llm, trace_step, trace_tool, with_context
+
 
 # Initialize Observability with Console Exporter to see output
 client = Client(service_name="test-service", endpoint="console", enable_tracing=True)

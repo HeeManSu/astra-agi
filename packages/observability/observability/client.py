@@ -1,8 +1,11 @@
-from typing import Optional
+
 from opentelemetry import trace
-from observability.config import Config
-from observability.core.tracer import AstraTracer
+
+from observability.core.config import Config
 from observability.instrumentation import init as instrumentation_init
+from observability.core.logger import JsonLogger
+from observability.core.tracer import AstraTracer
+
 
 class Client:
     """
@@ -17,15 +20,15 @@ class Client:
         tracer = client.tracer
     """
     def __init__(
-        self, 
-        service_name: Optional[str] = None,
-        service_version: Optional[str] = None,
-        service_namespace: Optional[str] = None,
-        endpoint: Optional[str] = None,
-        insecure: Optional[bool] = None,
+        self,
+        service_name: str | None = None,
+        service_version: str | None = None,
+        service_namespace: str | None = None,
+        endpoint: str | None = None,
+        insecure: bool | None = None,
         enable_tracing: bool = True,
-        enable_otlp_export: Optional[bool] = None,
-        config: Optional[Config] = None
+        enable_otlp_export: bool | None = None,
+        config: Config | None = None
     ):
         """
         Initialize the Observability Client.
@@ -42,7 +45,7 @@ class Client:
         """
         # Initialize config with defaults or provided object
         self.config = config or Config()
-        
+
         # Override config with direct arguments if provided
         if service_name:
             self.config.SERVICE_NAME = service_name
@@ -56,9 +59,10 @@ class Client:
             self.config.INSECURE = insecure
         if enable_otlp_export is not None:
             self.config.ENABLE_OTLP_EXPORT = enable_otlp_export
-            
+
         self.tracer_manager = AstraTracer()
-        
+        self.logger: JsonLogger | None = None
+
         # Initialize tracing with config object
         self.tracer_manager.initialize(
             config=self.config,

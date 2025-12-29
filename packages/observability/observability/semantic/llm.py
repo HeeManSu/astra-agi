@@ -1,19 +1,22 @@
 from __future__ import annotations
-import inspect
+
+from collections.abc import Callable
 import functools
-from typing import Any, Callable, Optional, TypeVar, Dict
-from observability.semantic.conventions import LLMAttributes, GenAIAttributes, AstraAttributes, AstraSpanKind
-from observability.core.span import start_span, end_span, set_attributes, truncate_text
-from .utils import to_json_str
+import inspect
+from typing import Any, TypeVar
+
+from observability.core.span import end_span, set_attributes, start_span, truncate_text
+from observability.semantic.conventions import AstraAttributes, AstraSpanKind, LLMAttributes
+
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-def trace_llm_call(model: Optional[str] = None, temperature: Optional[float] = None, max_tokens: Optional[int] = None, prompt_extractor: Optional[Callable[..., str]] = None, response_extractor: Optional[Callable[[Any], str]] = None) -> Callable[[F], F]:
+def trace_llm_call(model: str | None = None, temperature: float | None = None, max_tokens: int | None = None, prompt_extractor: Callable[..., str] | None = None, response_extractor: Callable[[Any], str] | None = None) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         span_name = "llm.call"
         if inspect.iscoroutinefunction(func):
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-                attrs: Dict[str, Any] = {
+                attrs: dict[str, Any] = {
                     AstraAttributes.SPAN_KIND: AstraSpanKind.LLM,
                     LLMAttributes.REQUEST_MODEL: model,
                     LLMAttributes.REQUEST_TEMPERATURE: temperature,
@@ -22,7 +25,7 @@ def trace_llm_call(model: Optional[str] = None, temperature: Optional[float] = N
                 try:
                     if prompt_extractor is not None:
                         prompt = prompt_extractor(*args, **kwargs)
-                        attrs[GenAIAttributes.REQUEST_PROMPT] = truncate_text(prompt, 4096)
+                        attrs[LLMAttributes.REQUEST_PROMPT] = truncate_text(prompt, 4096)
                 except Exception:
                     pass
                 span_ctx, span = start_span(span_name, attrs)
@@ -31,7 +34,7 @@ def trace_llm_call(model: Optional[str] = None, temperature: Optional[float] = N
                     try:
                         if response_extractor is not None:
                             resp_text = response_extractor(result)
-                            set_attributes(span, {GenAIAttributes.RESPONSE_TEXT: truncate_text(resp_text, 4096)})
+                            set_attributes(span, {LLMAttributes.RESPONSE_TEXT: truncate_text(resp_text, 4096)})
                     except Exception:
                         pass
                     end_span(span_ctx, span)
@@ -42,7 +45,7 @@ def trace_llm_call(model: Optional[str] = None, temperature: Optional[float] = N
             return functools.wraps(func)(async_wrapper)  # type: ignore
         else:
             def wrapper(*args: Any, **kwargs: Any) -> Any:
-                attrs: Dict[str, Any] = {
+                attrs: dict[str, Any] = {
                     AstraAttributes.SPAN_KIND: AstraSpanKind.LLM,
                     LLMAttributes.REQUEST_MODEL: model,
                     LLMAttributes.REQUEST_TEMPERATURE: temperature,
@@ -51,7 +54,7 @@ def trace_llm_call(model: Optional[str] = None, temperature: Optional[float] = N
                 try:
                     if prompt_extractor is not None:
                         prompt = prompt_extractor(*args, **kwargs)
-                        attrs[GenAIAttributes.REQUEST_PROMPT] = truncate_text(prompt, 4096)
+                        attrs[LLMAttributes.REQUEST_PROMPT] = truncate_text(prompt, 4096)
                 except Exception:
                     pass
                 span_ctx, span = start_span(span_name, attrs)
@@ -60,7 +63,7 @@ def trace_llm_call(model: Optional[str] = None, temperature: Optional[float] = N
                     try:
                         if response_extractor is not None:
                             resp_text = response_extractor(result)
-                            set_attributes(span, {GenAIAttributes.RESPONSE_TEXT: truncate_text(resp_text, 4096)})
+                            set_attributes(span, {LLMAttributes.RESPONSE_TEXT: truncate_text(resp_text, 4096)})
                     except Exception:
                         pass
                     end_span(span_ctx, span)

@@ -1,11 +1,12 @@
 
-import unittest
-import json
 import io
-from unittest.mock import MagicMock, patch
+import json
+import unittest
+
+from observability.instrumentation.core.operations import OperationSpec
 from observability.instrumentation.models.llm import LLMRequest, LLMResponse
 from observability.instrumentation.providers.bedrock.adapter import BedrockAdapter
-from observability.instrumentation.core.operations import OperationSpec
+
 
 class TestBedrockAdapter(unittest.TestCase):
     def setUp(self):
@@ -27,9 +28,9 @@ class TestBedrockAdapter(unittest.TestCase):
             "body": json.dumps(body),
             "modelId": "anthropic.claude-3-sonnet"
         }
-        
+
         request = self.adapter.parse_request(self.op, (), kwargs, truncate_limit=1000)
-        
+
         self.assertIsInstance(request, LLMRequest)
         self.assertEqual(request.messages[0].content, "Hello")
 
@@ -39,15 +40,15 @@ class TestBedrockAdapter(unittest.TestCase):
             "content": [{"type": "text", "text": "Hi there"}],
             "usage": {"input_tokens": 10, "output_tokens": 5}
         }
-        
+
         # Simulate botocore response structure
         response = {
             "body": io.BytesIO(json.dumps(response_body).encode("utf-8")),
             "_astra_response_body": response_body
         }
-        
+
         llm_response = self.adapter.parse_response(self.op, response, truncate_limit=1000)
-        
+
         self.assertIsInstance(llm_response, LLMResponse)
         self.assertEqual(llm_response.content, "Hi there")
         self.assertIsNotNone(llm_response.usage)

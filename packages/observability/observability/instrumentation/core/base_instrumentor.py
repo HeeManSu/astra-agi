@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Mapping
 import logging
+from typing import Any
+
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +15,13 @@ class InstrumentorConfig:
     instrument_llm_calls: bool = True
     privacy_truncate_chars: int = 2000
     fail_safe: bool = True
-    provider_options: Optional[Dict[str, Any]] = None
+    provider_options: dict[str, Any] | None = None
     provider_configs: Mapping[str, Any] = field(default_factory=dict)
 
 
 class BaseInstrumentor:
     _is_instrumented: bool
-    _config: Optional[InstrumentorConfig]
+    _config: InstrumentorConfig | None
 
     def __init__(self) -> None:
         self._is_instrumented = False

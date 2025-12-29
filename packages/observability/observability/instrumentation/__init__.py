@@ -7,20 +7,21 @@ Initializes import monitoring and instruments already-imported modules when enab
 import logging
 from typing import Optional
 
-from observability.instrumentation.core.registry import InstrumentationRegistry, InstrumentorSpec
-from observability.instrumentation.core.import_monitor import ImportMonitor
-from observability.instrumentation.core.version_checker import VersionChecker
 from observability.instrumentation.core.base_instrumentor import InstrumentorConfig
+from observability.instrumentation.core.import_monitor import ImportMonitor
+from observability.instrumentation.core.registry import InstrumentationRegistry, InstrumentorSpec
+from observability.instrumentation.core.version_checker import VersionChecker
 from observability.instrumentation.providers.registry import register_builtin_providers
+
 
 logger = logging.getLogger(__name__)
 
 _registry = InstrumentationRegistry()
-_import_monitor: Optional[ImportMonitor] = None
+_import_monitor: ImportMonitor | None = None
 _is_initialized: bool = False
 
 
-def init(auto_instrument: bool = True, config: Optional[InstrumentorConfig] = None) -> None:
+def init(auto_instrument: bool = True, config: InstrumentorConfig | None = None) -> None:
     """
     Initialize auto-instrumentation system.
     - Registers built-in instrumentors

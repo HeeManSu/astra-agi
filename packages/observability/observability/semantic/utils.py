@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import json
-from typing import Any, Dict, Tuple
+from typing import Any
+
 from observability.core.span import truncate_text
+
 
 _REDACT_KEYS = {"api_key", "apikey", "token", "auth", "authorization", "password", "secret", "key"}
 
@@ -12,8 +15,8 @@ def _redact_value(v: Any) -> Any:
         return "***"
     return "***"
 
-def sanitize_args(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    out: Dict[str, Any] = {"args": [], "kwargs": {}}
+def sanitize_args(args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {"args": [], "kwargs": {}}
     for a in args:
         out["args"].append(_to_jsonable(a))
     for k, v in kwargs.items():

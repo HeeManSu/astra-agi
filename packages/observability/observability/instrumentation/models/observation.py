@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
+import uuid
+
 from pydantic import BaseModel, Field
+
 
 # --- Nested Models ---
 
 class TraceInfo(BaseModel):
     trace_id: str
     span_id: str
-    parent_span_id: Optional[str] = None
+    parent_span_id: str | None = None
     name: str
     kind: str
     status: str
@@ -38,11 +40,11 @@ class Message(BaseModel):
 
 class InputInfo(BaseModel):
     prompt: str
-    messages: List[Message]
+    messages: list[Message]
 
 class OutputInfo(BaseModel):
     completion_text: str
-    finish_reason: Optional[str] = None
+    finish_reason: str | None = None
 
 class TokenUsage(BaseModel):
     prompt: int
@@ -51,7 +53,7 @@ class TokenUsage(BaseModel):
 
 class LatencyUsage(BaseModel):
     total_seconds: float
-    time_to_first_token_seconds: Optional[float] = None
+    time_to_first_token_seconds: float | None = None
     tokens_per_second: float
 
 class CostUsage(BaseModel):
@@ -66,11 +68,11 @@ class UsageInfo(BaseModel):
 
 class ToolCall(BaseModel):
     name: str
-    arguments: Optional[Dict[str, Any]] = None
+    arguments: dict[str, Any] | None = None
 
 class ToolsInfo(BaseModel):
     tool_calls_count: int
-    tool_calls: List[ToolCall]
+    tool_calls: list[ToolCall]
 
 class MetricsInfo(BaseModel):
     llm_latency_ms: float
@@ -107,4 +109,4 @@ class Observation(BaseModel):
     tools: ToolsInfo
     metrics: MetricsInfo
     resource: ResourceInfo
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)

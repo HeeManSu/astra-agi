@@ -1,14 +1,17 @@
 from __future__ import annotations
-import inspect
-import functools
-from typing import Any, Callable, Dict, Optional, TypeVar
-from observability.core.span import start_span, end_span
 
+from collections.abc import Callable
+import functools
+import inspect
+from typing import Any, TypeVar
+
+from observability.core.span import end_span, start_span
 from observability.semantic.conventions import AstraAttributes, AstraSpanKind
+
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-def trace_step(step_name: str, step_type: str = "reasoning", step_purpose: Optional[str] = None) -> Callable[[F], F]:
+def trace_step(step_name: str, step_type: str = "reasoning", step_purpose: str | None = None) -> Callable[[F], F]:
     def decorator(func: F) -> F:
         span_label = f"agent.step.{step_name}"
         if inspect.iscoroutinefunction(func):

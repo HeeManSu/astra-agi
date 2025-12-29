@@ -1,5 +1,6 @@
 
-from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+from opentelemetry.sdk.trace.export import SpanExportResult, SpanExporter
+
 
 class InMemorySpanExporter(SpanExporter):
     """

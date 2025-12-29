@@ -3,6 +3,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SpanExportResult
 from opentelemetry.sdk.trace import ReadableSpan
 import json
+import os
 
 class AgentRunConsoleExporter(ConsoleSpanExporter):
     """
@@ -29,6 +30,44 @@ class AgentRunConsoleExporter(ConsoleSpanExporter):
             
         return SpanExportResult.SUCCESS
 
+class JsonFileSpanExporter(ConsoleSpanExporter):
+    """
+    Exporter that saves spans as JSON arrays in the 'jsons' directory.
+    Each trace is saved in a separate file named <trace_id>.json.
+    """
+    def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
+        # Hardcoded path as per requirement/environment
+        output_dir = "/Users/apple/OpenSource/astra-v2/astra-agi/jsons"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        for span in spans:
+            trace_id = f"{span.get_span_context().trace_id:032x}"
+            file_path = os.path.join(output_dir, f"{trace_id}.json")
+            
+            span_data = json.loads(span.to_json())
+            
+            current_data = []
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, "r") as f:
+                        content = f.read()
+                        if content:
+                            current_data = json.loads(content)
+                            if not isinstance(current_data, list):
+                                # If existing content is not a list, wrap it or start new (safest to listify)
+                                current_data = [current_data]
+                except Exception:
+                    # If file is corrupt or unreadable, start fresh
+                    pass
+            
+            current_data.append(span_data)
+            
+            with open(file_path, "w") as f:
+                json.dump(current_data, f, indent=4)
+        
+        return SpanExportResult.SUCCESS
+
 def create_otlp_exporter(endpoint: str, insecure: bool):
     """
     Creates and configures an OTLP Span Exporter.
@@ -43,8 +82,10 @@ def create_otlp_exporter(endpoint: str, insecure: bool):
     if not endpoint:
         raise ValueError("Endpoint must be provided")
 
-    # For debugging purposes, if endpoint is 'console', return AgentRunConsoleExporter
     if endpoint.lower() == "console":
         return AgentRunConsoleExporter()
+
+    if endpoint.lower() == "json":
+        return JsonFileSpanExporter()
 
     return OTLPSpanExporter(endpoint=endpoint, insecure=insecure)

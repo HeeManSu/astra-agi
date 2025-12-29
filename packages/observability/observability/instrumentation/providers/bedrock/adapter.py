@@ -166,7 +166,7 @@ class BedrockAdapter(ProviderAdapter):
         operation: OperationSpec,
         request: LLMRequest,
     ) -> Dict[str, Any]:
-        from observability.instrumentation.common.semconv import GenAIAttributes, LLMAttributes
+        from observability.semantic.conventions import GenAIAttributes, LLMAttributes
         
         attrs = {
             GenAIAttributes.SYSTEM: "bedrock",
@@ -203,7 +203,7 @@ class BedrockAdapter(ProviderAdapter):
         operation: OperationSpec,
         response: LLMResponse,
     ) -> Dict[str, Any]:
-        from observability.instrumentation.common.semconv import GenAIAttributes, LLMAttributes
+        from observability.semantic.conventions import GenAIAttributes, LLMAttributes
         
         attrs = {
             LLMAttributes.RESPONSE_MODEL: response.model or "unknown",
@@ -218,7 +218,7 @@ class BedrockAdapter(ProviderAdapter):
         operation: OperationSpec,
         usage: Optional[LLMTokenUsage],
     ) -> Dict[str, Any]:
-        from observability.instrumentation.common.semconv import GenAIAttributes, LLMAttributes
+        from observability.semantic.conventions import GenAIAttributes, LLMAttributes
         
         if not usage:
             return {}

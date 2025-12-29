@@ -35,3 +35,39 @@ class LLMAttributes:
     USAGE_COMPLETION_TOKENS = "llm.usage.completion_tokens"
     USAGE_TOTAL_TOKENS = "llm.usage.total_tokens"
 
+
+class AstraSpanKind:
+    AGENT = "agent"
+    TOOL = "tool"
+    STEP = "step"
+    LLM = "llm"
+
+
+class AstraAttributes:
+    # Common
+    SPAN_KIND = "astra.span.kind"
+    
+    # Agent
+    AGENT_NAME = "agent.name"
+    AGENT_TYPE = "agent.type"
+    AGENT_THREAD_ID = "agent.thread_id"
+    AGENT_CONVERSATION_ID = "agent.conversation_id"
+    
+    # Step
+    STEP_NAME = "step.name"
+    STEP_TYPE = "step.type"
+    STEP_PURPOSE = "step.purpose"
+    
+    # Tool
+    TOOL_NAME = "tool.name"
+    TOOL_TYPE = "tool.type"
+    TOOL_INPUT = "tool.input"
+    TOOL_OUTPUT = "tool.output"
+    TOOL_ERROR = "tool.error"
+
+
+class AstraErrorAttributes:
+    TYPE = "error.type"
+    RETRYABLE = "error.retryable"
+    STAGE = "error.stage"
+    CATEGORY = "error.category"

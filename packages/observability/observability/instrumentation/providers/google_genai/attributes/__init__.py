@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Iterable
 
-from observability.instrumentation.common.semconv import GenAIAttributes
-from observability.instrumentation.common.span_management import truncate_text
+from observability.semantic.conventions import GenAIAttributes
+from observability.core.span import truncate_text
 
 
 def _extract_prompt_text(contents: Any, truncate_limit: int) -> Optional[str]:

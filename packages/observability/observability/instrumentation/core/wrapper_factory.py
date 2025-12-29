@@ -9,7 +9,7 @@ from opentelemetry.trace import StatusCode
 from opentelemetry import baggage
 
 from observability.instrumentation.common.metrics import get_meter
-from observability.instrumentation.common.span_management import end_span, set_attributes, start_span
+from observability.core.span import end_span, set_attributes, start_span
 from observability.instrumentation.core.base_instrumentor import InstrumentorConfig
 from observability.instrumentation.core.operations import OperationSpec
 from observability.instrumentation.models.llm import LLMRequest, LLMResponse, TokenUsage

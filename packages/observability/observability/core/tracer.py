@@ -16,7 +16,7 @@ from observability.exceptions import (
     ShutdownError,
     TracingDisabledWarning,
 )
-from observability.tracing.exporters.otlp_exporter import create_otlp_exporter
+from observability.core.exporters.otlp_exporter import create_otlp_exporter
 from observability.utils.tracing_helpers import (
     create_astra_resource,
     create_astra_exporter,

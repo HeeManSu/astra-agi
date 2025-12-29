@@ -1,7 +1,7 @@
 from typing import Optional
 from opentelemetry import trace
 from observability.config import Config
-from observability.tracing.tracer import AstraTracer
+from observability.core.tracer import AstraTracer
 from observability.instrumentation import init as instrumentation_init
 
 class Client:

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import inspect
 from typing import Any
 
-from observability.core import Observability
+from observability import Observability
 
 
 @dataclass

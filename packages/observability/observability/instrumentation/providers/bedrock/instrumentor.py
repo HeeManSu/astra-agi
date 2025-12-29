@@ -11,7 +11,7 @@ from opentelemetry.trace import StatusCode
 
 from observability.instrumentation.core.base_instrumentor import BaseInstrumentor
 from observability.instrumentation.core.operations import OperationSpec
-from observability.instrumentation.common.span_management import start_span, end_span, set_attributes
+from observability.core.span import start_span, end_span, set_attributes
 from observability.instrumentation.providers.bedrock.adapter import BedrockAdapter
 from observability.instrumentation.core.wrapper_factory import _record_agent_run, _record_metrics
 

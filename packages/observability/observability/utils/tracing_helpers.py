@@ -3,7 +3,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 
 from observability.config import Config
 from observability.exceptions import ExporterError
-from observability.tracing.exporters.otlp_exporter import create_otlp_exporter
+from observability.core.exporters.otlp_exporter import create_otlp_exporter
 
 
 def create_astra_resource(config: Config) -> Resource:

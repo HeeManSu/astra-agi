@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Optional, Tuple
 
-from observability.instrumentation.common.semconv import GenAIAttributes, LLMAttributes
-from observability.instrumentation.common.span_management import truncate_text
+from observability.semantic.conventions import GenAIAttributes, LLMAttributes
+from observability.core.span import truncate_text
 from observability.instrumentation.models.llm import LLMRequest, LLMResponse, Message, TokenUsage
 from observability.instrumentation.providers.base.adapter import ProviderAdapter
 from observability.instrumentation.core.operations import OperationSpec

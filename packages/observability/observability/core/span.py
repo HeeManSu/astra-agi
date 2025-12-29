@@ -46,10 +46,33 @@ def start_span(name: str, attributes: Optional[Dict[str, Any]] = None):
 
 
 def end_span(span_ctx, span, status_code: StatusCode = StatusCode.UNSET, error: Optional[Exception] = None):
+    from observability.semantic.conventions import AstraErrorAttributes
     try:
         if error:
             span.record_exception(error)
             span.set_status(Status(status_code=StatusCode.ERROR, description=str(error)))
+            
+            # Extract standard error attributes if present on the exception object
+            # Check for retryable
+            retryable = getattr(error, "retryable", None)
+            if retryable is not None:
+                span.set_attribute(AstraErrorAttributes.RETRYABLE, bool(retryable))
+                
+            # Check for error type
+            error_type = getattr(error, "error_type", getattr(error, "type", None))
+            if error_type:
+                span.set_attribute(AstraErrorAttributes.TYPE, str(error_type))
+                
+            # Check for stage
+            stage = getattr(error, "stage", None)
+            if stage:
+                span.set_attribute(AstraErrorAttributes.STAGE, str(stage))
+                
+            # Check for category
+            category = getattr(error, "category", None)
+            if category:
+                span.set_attribute(AstraErrorAttributes.CATEGORY, str(category))
+
         elif status_code is not StatusCode.UNSET:
             span.set_status(Status(status_code=status_code))
         try:

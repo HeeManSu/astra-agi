@@ -21,7 +21,7 @@ import uuid
 from framework.agents.exceptions import ModelError, RetryExhaustedError, ToolError, ValidationError
 from framework.agents.execution import ExecutionContext, execute_tool_parallel
 from framework.agents.retry import RetryConfig, retry_with_backoff
-from framework.agents.tool import Tool
+from framework.agents.tool import Tool, tool
 from framework.astra import AstraContext
 from framework.code_mode.api_generator import VirtualAPIGenerator
 from framework.code_mode.sandbox import SandboxExecutor, synthesize_response
@@ -63,7 +63,8 @@ class Agent:
         tools: list[Any] | None = None,
         code_mode: bool = True,
         storage: Any | None = None,
-        knowledge_base: Any | None = None,
+        rag_pipeline: Any | None = None,
+        rag_pipelines: dict[str, Any] | None = None,
         memory: AgentMemory | None = None,
         max_retries: int = 3,
         temperature: float = 0.7,
@@ -73,6 +74,8 @@ class Agent:
         input_middlewares: list[Any] | Callable | None = None,
         output_middlewares: list[Any] | Callable | None = None,
         guardrails: dict[str, Any] | None = None,
+        enable_persistent_facts: bool = False,
+        persistent_facts: Any | None = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -86,7 +89,8 @@ class Agent:
             tools: Optional list of tools
             code_mode: Whether to enable code mode (default: True)
             storage: Optional storage backend (e.g., SQLiteStorage)
-            knowledge_base: Optional knowledge base (KnowledgeBase instance)
+            rag_pipeline: Optional Rag for RAG capabilities
+            rag_pipelines: Optional dict of named Rag instances for multi-RAG
             memory: Optional memory configuration (AgentMemory)
             max_retries: Maximum retry attempts for failed requests (default: 3)
             temperature: Sampling temperature for model responses (default: 0.7, range: 0.0-2.0)
@@ -138,7 +142,22 @@ class Agent:
                 storage=storage, max_messages=self.memory.num_history_responses
             )
 
-        self.knowledge_base = knowledge_base
+        # Persistent Facts (Long-Term Memory)
+        self.persistent_facts: Any | None = None
+        if persistent_facts:
+            self.persistent_facts = persistent_facts
+        elif enable_persistent_facts and storage:
+            # Auto-initialize with defaults using existing storage
+            from framework.memory.persistent_facts import MemoryScope, PersistentFacts
+
+            self.persistent_facts = PersistentFacts(
+                storage=storage,  # Use existing storage backend
+                scope=MemoryScope.USER,  # Default: USER scope
+                auto_extract=True,
+            )
+
+        self.rag_pipeline = rag_pipeline
+        self.rag_pipelines = rag_pipelines or {}
 
         # Execution config
         self.max_retries = max_retries
@@ -428,42 +447,179 @@ class Agent:
 
         return messages
 
-    def _create_search_knowledge_tool(self) -> Any | None:
-        """Create search_knowledge tool for knowledge base."""
-        if not self.knowledge_base:
+    def _create_retrieve_evidence_tool(self, name_suffix: str = "") -> Any | None:
+        """Create retrieve_evidence tool for RAG.
+
+        Args:
+            name_suffix: Optional suffix for tool name (used for multi-RAG)
+        """
+        rag_pipeline = self.rag_pipeline
+        if not rag_pipeline:
             return None
 
-        from framework.agents.tool import tool
-
-        knowledge_base = self.knowledge_base
+        max_results = getattr(rag_pipeline, "max_results", 10)
+        tool_name = f"retrieve_evidence{f'_{name_suffix}' if name_suffix else ''}"
 
         @tool(
-            name="search_knowledge",
-            description="Search the knowledge base for relevant information to answer questions.",
+            name=tool_name,
+            description=f"Retrieve evidence from {'the ' + name_suffix + ' ' if name_suffix else ''}knowledge base to support your reasoning.",
         )
-        async def search_knowledge(query: str, limit: int = 10) -> str:
+        async def retrieve_evidence(
+            query: str,
+            limit: int = 10,
+        ) -> str:
             """
-            Search the knowledge base for relevant information.
+            Retrieve evidence to support reasoning.
 
             Args:
-                query: Search query string
-                limit: Maximum number of results (default: 10)
+                query: What evidence do you need?
+                limit: Maximum number of results to return (default: 10)
 
             Returns:
-                JSON string of search results
+                JSON string of evidence with content, source, and metadata
             """
             try:
-                results = await knowledge_base.search(query=query, limit=limit)
+                effective_limit = min(limit, max_results)
+
+                # Use query() for Rag
+                results = await rag_pipeline.query(
+                    query=query,
+                    top_k=effective_limit,
+                )
+
                 if not results:
-                    return "No relevant information found in knowledge base."
+                    return "No relevant evidence found."
 
-                import json
+                # Format as evidence
+                evidence = [
+                    {
+                        "content": getattr(doc, "content", str(doc)),
+                        "source": getattr(doc, "source", None) or getattr(doc, "name", "unknown"),
+                        "metadata": getattr(doc, "metadata", {}),
+                    }
+                    for doc in results
+                ]
 
-                return json.dumps([doc.to_dict() for doc in results], indent=2)
+                return json.dumps(evidence, indent=2)
             except Exception as e:
-                return f"Error searching knowledge base: {e!s}"
+                return f"Error retrieving evidence: {e!s}"
 
-        return search_knowledge
+        return retrieve_evidence
+
+    def _create_multi_rag_tools(self) -> list[Any]:
+        """Create retrieve_evidence tools for multiple RAG pipelines."""
+        tools = []
+        for name, pipeline in self.rag_pipelines.items():
+            # Temporarily set rag_pipeline for tool creation
+            original = self.rag_pipeline
+            self.rag_pipeline = pipeline
+            tool_fn = self._create_retrieve_evidence_tool(name_suffix=name)
+            self.rag_pipeline = original
+            if tool_fn:
+                tools.append(tool_fn)
+        return tools
+
+    async def ingest(
+        self,
+        path: str | None = None,
+        url: str | None = None,
+        text: str | None = None,
+        name: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        """Ingest content into the agent's RAG knowledge base.
+
+        This is a convenience passthrough to rag_pipeline.ingest().
+        Allows ingestion without needing a separate reference to the pipeline.
+
+        Args:
+            path: File path to ingest
+            url: URL to fetch and ingest
+            text: Raw text to ingest
+            name: Name for the content
+            metadata: Additional metadata
+
+        Returns:
+            Content ID
+
+        Raises:
+            ValueError: If no rag_pipeline is configured
+
+        Example:
+            agent = Agent(..., rag_pipeline=rag)
+            await agent.ingest(text="Python is...", name="Python Guide")
+            response = await agent.invoke("What is Python?")
+        """
+        if not self.rag_pipeline:
+            raise ValueError("No rag_pipeline configured. Cannot ingest.")
+
+        return await self.rag_pipeline.ingest(
+            path=path,
+            url=url,
+            text=text,
+            name=name,
+            metadata=metadata,
+        )
+
+    async def ingest_batch(self, items: list[dict[str, Any]]) -> list[str]:
+        """Ingest multiple documents in batch.
+
+        This is a convenience passthrough to rag_pipeline.ingest_batch().
+
+        Args:
+            items: List of dicts with keys: path, url, text, name, metadata
+
+        Returns:
+            List of content IDs
+
+        Raises:
+            ValueError: If no rag_pipeline is configured
+
+        Example:
+            agent = Agent(..., rag_pipeline=rag)
+            ids = await agent.ingest_batch([
+                {"text": "Python is...", "name": "Python Guide"},
+                {"path": "./doc.txt", "name": "Documentation"},
+            ])
+        """
+        if not self.rag_pipeline:
+            raise ValueError("No rag_pipeline configured. Cannot ingest.")
+
+        return await self.rag_pipeline.ingest_batch(items)
+
+    async def ingest_directory(
+        self,
+        directory: str,
+        pattern: str = "*.txt",
+        recursive: bool = False,
+    ) -> list[str]:
+        """Ingest all files from a directory.
+
+        This is a convenience passthrough to rag_pipeline.ingest_directory().
+
+        Args:
+            directory: Directory path
+            pattern: Glob pattern for file matching
+            recursive: Whether to search recursively
+
+        Returns:
+            List of content IDs
+
+        Raises:
+            ValueError: If no rag_pipeline is configured
+
+        Example:
+            agent = Agent(..., rag_pipeline=rag)
+            ids = await agent.ingest_directory("./docs", pattern="*.md", recursive=True)
+        """
+        if not self.rag_pipeline:
+            raise ValueError("No rag_pipeline configured. Cannot ingest.")
+
+        return await self.rag_pipeline.ingest_directory(
+            directory=directory,
+            pattern=pattern,
+            recursive=recursive,
+        )
 
     async def _invoke_with_retry(
         self,
@@ -749,12 +905,17 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                     )
                 # Fall through to traditional tool calling
 
-        # 2. Add knowledge_base search tool if available
+        # 2. Add retrieve_evidence tool if rag_pipeline available
         final_tools = list(tools) if tools else list(self.tools) if self.tools else []
-        if self.knowledge_base:
-            search_tool = self._create_search_knowledge_tool()
-            if search_tool:
-                final_tools.append(search_tool)
+        if self.rag_pipeline:
+            evidence_tool = self._create_retrieve_evidence_tool()
+            if evidence_tool:
+                final_tools.append(evidence_tool)
+
+        # Add multi-RAG tools if rag_pipelines provided
+        if self.rag_pipelines:
+            multi_rag_tools = self._create_multi_rag_tools()
+            final_tools.extend(multi_rag_tools)
 
         # 3. Prepare execution context
         context = ExecutionContext(
@@ -771,7 +932,18 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         # Load history if enabled
         history = None
         if self.storage and thread_id and self.memory.add_history_to_messages:
-            history = await self.memory_manager.get_context(thread_id, self.storage)
+            # Calculate max tokens for context (use token_limit if set, else default to 8000 with safety margin)
+            # Reserve 20% for response generation
+            max_context_tokens = None
+            if self.memory.token_limit:
+                max_context_tokens = int(self.memory.token_limit * 0.8)  # Reserve 20% for response
+            else:
+                # Default: assume 10k context window, reserve 2k for response
+                max_context_tokens = 8000
+
+            history = await self.memory_manager.get_context(
+                thread_id, self.storage, max_tokens=max_context_tokens
+            )
 
         messages = self._prepare_messages(message, context, history=history)
 
@@ -780,6 +952,52 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             agent=self,
             thread_id=thread_id,
         )
+
+        # Extract facts if persistent facts enabled
+        user_id = kwargs.get("user_id")
+        if self.persistent_facts and self.persistent_facts.auto_extract and user_id:
+            extracted_facts = await self.persistent_facts.extract_from_messages(
+                messages=[{"role": "user", "content": message}],
+                scope_id=user_id,
+                model=self.model,
+            )
+            # Store extracted facts
+            for fact in extracted_facts:
+                fact.scope_id = user_id
+                try:
+                    existing = await self.persistent_facts.get(key=fact.key, scope_id=user_id)
+                    if existing:
+                        await self.persistent_facts.update(
+                            key=fact.key, value=fact.value, scope_id=user_id
+                        )
+                    else:
+                        await self.persistent_facts.add(
+                            key=fact.key,
+                            value=fact.value,
+                            scope_id=user_id,
+                            tags=fact.tags,
+                        )
+                except Exception:
+                    # Ignore extraction errors
+                    pass
+
+        # Retrieve relevant facts for context
+        if self.persistent_facts and user_id:
+            relevant_facts = await self.persistent_facts.get_all(scope_id=user_id)
+            if relevant_facts:
+                # Add facts to context as system message
+                facts_text = "\n".join(
+                    [f"- {fact.key}: {fact.value}" for fact in relevant_facts[:10]]
+                )
+                facts_message = {
+                    "role": "system",
+                    "content": f"User context:\n{facts_text}",
+                }
+                # Insert after system instructions but before history
+                if messages and messages[0].get("role") == "system":
+                    messages.insert(1, facts_message)
+                else:
+                    messages.insert(0, facts_message)
 
         # Input Middleware
         if self.input_middlewares and isinstance(self.input_middlewares, list):
@@ -912,10 +1130,15 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         )
 
         final_tools = list(tools) if tools else list(self.tools) if self.tools else []
-        if self.knowledge_base:
-            search_tool = self._create_search_knowledge_tool()
-            if search_tool:
-                final_tools.append(search_tool)
+        if self.rag_pipeline:
+            evidence_tool = self._create_retrieve_evidence_tool()
+            if evidence_tool:
+                final_tools.append(evidence_tool)
+
+        # Add multi-RAG tools if rag_pipelines provided
+        if self.rag_pipelines:
+            multi_rag_tools = self._create_multi_rag_tools()
+            final_tools.extend(multi_rag_tools)
 
         context = ExecutionContext(
             agent_id=self.id,
@@ -930,7 +1153,16 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         # Load history if enabled
         history = None
         if self.storage and thread_id and self.memory.add_history_to_messages:
-            history = await self.memory_manager.get_context(thread_id, self.storage)
+            # Calculate max tokens for context
+            max_context_tokens = None
+            if self.memory.token_limit:
+                max_context_tokens = int(self.memory.token_limit * 0.8)
+            else:
+                max_context_tokens = 8000
+
+            history = await self.memory_manager.get_context(
+                thread_id, self.storage, max_tokens=max_context_tokens
+            )
 
         messages = self._prepare_messages(message, context, history=history)
 

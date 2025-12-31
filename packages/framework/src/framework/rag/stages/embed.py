@@ -21,7 +21,7 @@ class EmbedStage(Stage):
     def stage_type(self) -> Literal["ingestion", "query", "both"]:
         return "both"
 
-    async def process(self, state: StageState, rag_context: RagContext) -> StageState:
+    async def process(self, state: StageState, rag_context: "RagContext") -> StageState:
         """Generate embeddings using embedder from RagContext."""
         embedder = rag_context.embedder
 

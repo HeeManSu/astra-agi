@@ -51,7 +51,7 @@ class Pipeline:
     (shared dependencies) to each stage.
     """
 
-    def __init__(self, name: str, stages: list[Stage]):
+    def __init__(self, name: str, stages: list["Stage"]):
         """Initialize Pipeline.
 
         Args:

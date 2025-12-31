@@ -32,10 +32,10 @@ class Stage(ABC):
         """What operations this stage supports."""
 
     @abstractmethod
-    async def process(self, state: StageState, rag_context: RagContext) -> StageState:
+    async def process(self, state: StageState, rag_context: "RagContext") -> StageState:
         """Process data and return updated state."""
 
-    async def __call__(self, state: StageState, rag_context: RagContext) -> StageState:
+    async def __call__(self, state: StageState, rag_context: "RagContext") -> StageState:
         """Allow stages to be called directly."""
         result = await self.process(state, rag_context)
         result.mark_stage_complete(self.name)

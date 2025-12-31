@@ -43,7 +43,7 @@ class ChunkStage(Stage):
             )
         return self._chunker
 
-    async def process(self, state: StageState, rag_context: RagContext) -> StageState:
+    async def process(self, state: StageState, rag_context: "RagContext") -> StageState:
         """Chunk documents."""
         if not state.documents:
             state.add_error("No documents to chunk")

@@ -1,41 +1,18 @@
-[project]
-name = "astra"
-version = "0.1.0"
-description = "Astra is an AI Backend-as-a-Service platform. It provides a high-performance runtime for building, executing, and scaling AI agents with memory, orchestration, and observability."
-readme = "README.md"
-requires-python = ">=3.10,<3.14"
-authors = [
-    { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
-]
-dependencies = [
-    "aiohttp>=3.13.2",
-    "beanie>=2.0.1",
-    "debugpy>=1.8.17",
-    "huggingface-hub>=0.23.0",
-    "lancedb>=0.26.0",
-    "openai>=2.14.0",
-    "pyarrow>=22.0.0",
-    "motor>=3.7.1",
-]
-
+# Root workspace configuration for Astra monorepo
+# This file only contains workspace and tooling configuration.
+# Package dependencies are defined in each package's pyproject.toml
 
 [tool.uv.workspace]
 members = [
-    # "packages/deployment",  # Empty package, commented out temporarily
     "packages/framework",
-    # "packages/integrations",  # Empty package, commented out temporarily
-    "packages/memorybase",
     "packages/observability",
-    # "packages/runtime",  # Empty package, commented out temporarily
+    "packages/runtime",
 ]
 
 [tool.uv.sources]
-# deployment = { workspace = true }  # Empty package
 framework = { workspace = true }
-# integrations = { workspace = true }  # Empty package
-memorybase = { workspace = true }
 observability = { workspace = true }
-# runtime = { workspace = true }  # Empty package
+runtime = { workspace = true }
 
 [tool.ruff]
 target-version = "py310"
@@ -112,4 +89,5 @@ show_error_codes = true
 [dependency-groups]
 dev = [
     "ruff>=0.14.6",
+    "debugpy>=1.8.17",  # For IDE debugging support
 ]

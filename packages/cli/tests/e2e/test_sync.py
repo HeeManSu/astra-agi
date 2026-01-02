@@ -11,15 +11,17 @@ class TestSyncCommand:
 
     def test_sync_no_changes_needed(self, temp_project, cli_runner):
         """Should report project in sync when no changes needed."""
-        # Create all expected files first
-        (temp_project / "app").mkdir(exist_ok=True)
-        (temp_project / "app" / "main.py").write_text("")
-        (temp_project / "app" / "settings.py").write_text("")
-        # ... other files would be created here in real scenario
+        # Use init to create a fully synced project state
+        cli_runner.invoke(
+            ["init", "server", "sync-test", "--auth", "none", "-y"],
+            cwd=str(temp_project.parent),
+        )
+        # Update temp_project to point to the new init-ed project
+        project_path = temp_project.parent / "sync-test"
 
         result = cli_runner.invoke(
             ["sync"],
-            cwd=str(temp_project),
+            cwd=str(project_path),
         )
 
         assert result.exit_code == 0

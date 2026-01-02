@@ -1,0 +1,36 @@
+"""Admin API endpoints."""
+
+from fastapi import APIRouter
+
+from app.settings import settings
+from app.agents import list_agents
+
+router = APIRouter()
+
+
+@router.get("/info")
+async def server_info():
+    """Get server information."""
+    return {
+        "name": settings.app_name,
+        "version": "0.1.0",
+        "agents_count": len(list_agents()),
+    }
+
+
+@router.get("/agents")
+async def admin_list_agents():
+    """List all agents with details (admin view)."""
+    agents = list_agents()
+    return {
+        "agents": [
+            {
+                "id": a.name,
+                "name": a.name,
+                "instructions_length": len(a.instructions),
+                "has_tools": bool(getattr(a, "tools", None)),
+                "has_rag": bool(getattr(a, "rag_pipeline", None)),
+            }
+            for a in agents
+        ]
+    }

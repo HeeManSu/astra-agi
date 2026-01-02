@@ -1,0 +1,61 @@
+"""JWT Authentication Middleware."""
+
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
+from jose import JWTError, jwt
+
+from app.settings import settings
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token."""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.jwt_expiry_minutes))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def verify_token(token: str) -> Optional[dict]:
+    """Verify a JWT token."""
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return payload
+    except JWTError:
+        return None
+
+
+def get_auth_middleware():
+    """Get the JWT auth middleware."""
+    
+    async def jwt_middleware(request: Request, call_next):
+        # Skip auth for health endpoints
+        if request.url.path in ["/health", "/ready", "/docs", "/openapi.json"]:
+            return await call_next(request)
+        
+        # Get token from header
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Missing authorization header"},
+            )
+        
+        token = auth_header.replace("Bearer ", "")
+        
+        # Verify token
+        payload = verify_token(token)
+        if not payload:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or expired token"},
+            )
+        
+        # Add user info to request state
+        request.state.user = payload
+        
+        return await call_next(request)
+    
+    return jwt_middleware

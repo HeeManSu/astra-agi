@@ -1,2 +1,12 @@
 [general]
 disableTypeErrors = false
+
+[project]
+extraPaths = [
+    "/Users/himanshu/Desktop/open-source/Astra/packages/framework/src",
+    "/Users/himanshu/Desktop/open-source/Astra/packages/observability",
+    "/Users/himanshu/Desktop/open-source/Astra/packages/runtime/src",
+    "/Users/himanshu/Desktop/open-source/Astra/packages/cli/src",
+]
+
+

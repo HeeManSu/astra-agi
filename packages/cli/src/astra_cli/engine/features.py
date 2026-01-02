@@ -169,6 +169,8 @@ def validate_features_in_config(config: dict[str, Any]) -> list[str]:
     """
     errors = []
     features = config.get("features", {})
+    if features is None:
+        features = {}
 
     for feature_key, value in features.items():
         if feature_key == "core":

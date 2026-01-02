@@ -1,16 +1,76 @@
 """Pytest configuration and fixtures for Astra CLI tests."""
 
 import json
+import os
 from pathlib import Path
 
+from astra_cli.cli import app
 import pytest
 from typer.testing import CliRunner
 
 
+class BoundCliRunner(CliRunner):
+    """
+    Wraps CliRunner to automatically pass the 'app' to 'invoke'
+    and handle 'cwd' argument by changing directory.
+    """
+
+    def __init__(self, app, **kwargs):
+        super().__init__(**kwargs)
+        self.app = app
+
+    def invoke(
+        self,
+        app=None,
+        args=None,
+        input=None,
+        env=None,
+        catch_exceptions=True,
+        color=False,
+        **kwargs,
+    ):
+        """Invoke the bound app with args and cwd handling."""
+        # Fix for linter: Parent class expects first arg to be 'app' (or 'cli')
+        # But our tests call invoke(["cmd"]) so the first arg is actually the args list.
+        if isinstance(app, (list, tuple)):
+            args = app
+            app = self.app
+        elif app is None:
+            app = self.app
+
+        cwd = kwargs.pop("cwd", None)
+
+        if cwd:
+            original_cwd = os.getcwd()
+            os.chdir(cwd)
+            try:
+                return super().invoke(
+                    app,
+                    args=args,
+                    input=input,
+                    env=env,
+                    catch_exceptions=catch_exceptions,
+                    color=color,
+                    **kwargs,
+                )
+            finally:
+                os.chdir(original_cwd)
+        else:
+            return super().invoke(
+                app,
+                args=args,
+                input=input,
+                env=env,
+                catch_exceptions=catch_exceptions,
+                color=color,
+                **kwargs,
+            )
+
+
 @pytest.fixture
 def cli_runner():
-    """Typer CLI runner."""
-    return CliRunner()
+    """Typer CLI runner pre-bound to the Astra app."""
+    return BoundCliRunner(app)
 
 
 @pytest.fixture

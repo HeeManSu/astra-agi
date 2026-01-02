@@ -1,0 +1,31 @@
+"""Application settings."""
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """Application configuration."""
+    
+    app_name: str = "{{ project_name }}"
+    debug: bool = False
+    
+    # CORS
+    cors_origins: list[str] = ["*"]
+    
+    {% if auth_type == "api-key" %}
+    # API Key auth
+    api_key: str = "change-me-in-production"
+    {% endif %}
+    {% if auth_type == "jwt" %}
+    # JWT auth
+    jwt_secret: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_minutes: int = 60
+    {% endif %}
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+
+settings = Settings()

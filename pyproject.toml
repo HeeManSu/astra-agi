@@ -7,6 +7,7 @@ members = [
     "packages/framework",
     "packages/observability",
     "packages/runtime",
+    "packages/cli",
 ]
 
 [tool.uv.sources]

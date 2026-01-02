@@ -1,0 +1,29 @@
+"""Agents Registry - Register and retrieve agents."""
+
+from typing import Optional
+
+from astra import Agent
+
+# Agent registry
+_agents: dict[str, Agent] = {}
+
+
+def register_agent(agent: Agent) -> None:
+    """Register an agent."""
+    _agents[agent.name] = agent
+
+
+def get_agent(agent_id: str) -> Optional[Agent]:
+    """Get an agent by ID."""
+    return _agents.get(agent_id)
+
+
+def list_agents() -> list[Agent]:
+    """List all registered agents."""
+    return list(_agents.values())
+
+
+# Import and register agents
+from app.agents.welcome_agent import welcome_agent
+
+register_agent(welcome_agent)

@@ -1,0 +1,14 @@
+"""Welcome Agent - Example agent for {{ project_name }}."""
+
+from astra import Agent, HuggingFaceLocal
+
+# Example agent using HuggingFace local model
+# Replace with Gemini, Bedrock, or other models as needed
+welcome_agent = Agent(
+    name="welcome",
+    model=HuggingFaceLocal("Qwen/Qwen2.5-0.5B-Instruct"),
+    instructions="""You are a helpful assistant for {{ project_name }}.
+    
+Greet users warmly and help them with their questions.
+Be concise, friendly, and professional.""",
+)

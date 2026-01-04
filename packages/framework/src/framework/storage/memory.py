@@ -61,6 +61,7 @@ class AgentStorage:
     async def create_thread(
         self,
         thread_id: str | None = None,
+        agent_name: str | None = None,
         resource_id: str | None = None,
         title: str | None = None,
         metadata: dict[str, Any] | None = None,
@@ -73,6 +74,7 @@ class AgentStorage:
         thread_id = thread_id or f"thread-{uuid4().hex[:10]}"
         thread = Thread(
             id=thread_id,
+            agent_name=agent_name,
             resource_id=resource_id,
             title=title,
             metadata=metadata or {},
@@ -83,6 +85,34 @@ class AgentStorage:
     async def get_thread(self, thread_id: str) -> Thread | None:
         """Fetch thread by ID."""
         return await self.threads.get(thread_id)
+
+    async def list_threads(
+        self,
+        agent_name: str | None = None,
+        limit: int = 50,
+    ) -> list[Thread]:
+        """
+        List threads, optionally filtered by agent_name.
+
+        Args:
+            agent_name: Optional agent name to filter by
+            limit: Maximum number of threads to return
+
+        Returns:
+            List of Thread objects, ordered by updated_at desc
+        """
+        filter_dict: dict = {"deleted_at": None}
+        if agent_name:
+            filter_dict["agent_name"] = agent_name
+
+        query = self.storage.build_select_query(
+            collection="astra_threads",
+            filter_dict=filter_dict,
+            sort=[("updated_at", -1)],
+            limit=limit,
+        )
+        rows = await self.storage.fetch_all(query)
+        return [self.threads._row_to_model(row) for row in rows]
 
     async def add_message(
         self,

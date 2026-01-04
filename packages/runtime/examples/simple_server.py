@@ -7,19 +7,26 @@ Run with:
 
 from astra import Agent, HuggingFaceLocal
 from astra.server import create_app
+from framework.storage.databases.libsql import LibSQLStorage
 
 
-# Simple agents without storage for quick testing
+# Initialize storage (using local SQLite file)
+storage = LibSQLStorage("sqlite+aiosqlite:///playground.db")
+
+
+# Simple agents with storage
 assistant = Agent(
     name="assistant",
     model=HuggingFaceLocal("Qwen/Qwen2.5-0.5B-Instruct"),
     instructions="You are a helpful AI assistant. Be concise and friendly.",
+    storage=storage,
 )
 
 code_expert = Agent(
     name="code-expert",
     model=HuggingFaceLocal("Qwen/Qwen2.5-0.5B-Instruct"),
     instructions="You are an expert programmer. Help with code questions.",
+    storage=storage,
 )
 
 # Create the app

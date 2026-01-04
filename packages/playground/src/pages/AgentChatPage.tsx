@@ -6,7 +6,7 @@ import {
   getThreads,
   createThread,
   getMessages,
-  streamChat,
+  streamGenerate,
 } from "@/lib/api";
 import type { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,8 @@ export function AgentChatPage() {
     setStreamingContent("");
 
     try {
-      for await (const chunk of streamChat(agentId, threadId, userMessage)) {
+      // Use the new generate endpoint that handles message saving
+      for await (const chunk of streamGenerate(threadId, userMessage)) {
         setStreamingContent((prev) => prev + chunk);
       }
       // Refresh messages after streaming completes

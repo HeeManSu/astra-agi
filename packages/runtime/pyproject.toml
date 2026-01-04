@@ -39,6 +39,7 @@ markers = [
     "unit: Unit tests",
     "integration: Integration tests",
     "e2e: End-to-end tests",
+    "timeout: Test timeout marker",
 ]
 filterwarnings = [
     # Suppress transformers deprecation warning about model configuration

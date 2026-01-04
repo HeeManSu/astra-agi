@@ -205,6 +205,9 @@ class MongoDBStorage(StorageBackend):
         if not collection_name:
             raise ValueError("Query must specify 'collection'")
 
+        if not collection_name.startswith("astra_"):
+            collection_name = f"astra_{collection_name}"
+
         collection = self.db[collection_name]
         filter_doc = query.get("filter", {})
 

@@ -20,16 +20,16 @@ Usage:
 # PHASE 1: Embedded Runtime exports (NOW)
 # Re-export Embedded Runtime components for convenience
 from astra.embedded import (
+    DELEGATION_TOOL,
     Agent,
     AgentMemory,
     Bedrock,  # type: ignore[attr-defined]
     ChunkStage,
     ContentAction,
-    DELEGATION_TOOL,
     DelegationError,
     Document,
-    Embedder,
     EmbedStage,
+    Embedder,
     Gemini,
     HuggingFaceEmbedder,
     HuggingFaceLocal,
@@ -51,8 +51,8 @@ from astra.embedded import (
     OutputGuardrailError,
     OutputMiddleware,
     OutputPIIFilter,
-    PersistentFacts,
     PIIAction,
+    PersistentFacts,
     Pipeline,
     PromptInjectionFilter,
     Rag,
@@ -80,9 +80,14 @@ from astra.embedded import (
     tool,
 )
 
+# PHASE 2: Server exports
+from astra.server import (
+    AgentRegistry,
+    AstraServer,
+    ServerConfig,
+    create_app,
+)
 
-# PHASE 2: Server exports (FUTURE)
-# from astra.server import AstraServer, ServerConfig
 
 # PHASE 3: Client SDK exports (FUTURE)
 # from astra.client import AstraClient
@@ -164,4 +169,9 @@ __all__ = [
     "DelegationError",
     "MemberNotFoundError",
     "TeamTimeoutError",
+    # Server
+    "create_app",
+    "AstraServer",
+    "ServerConfig",
+    "AgentRegistry",
 ]

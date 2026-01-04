@@ -215,3 +215,7 @@ class AgentStorage:
     async def stop(self) -> None:
         """Stop the queue manager."""
         await self.queue.stop()
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate unknown attributes to storage backend."""
+        return getattr(self.storage, name)

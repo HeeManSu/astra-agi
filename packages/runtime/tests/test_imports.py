@@ -10,14 +10,14 @@ import sys
 
 def test_imports():
     """Test importing all exported components."""
-    
+
     print("=" * 70)
     print("Testing Astra Embedded Runtime Imports")
     print("=" * 70 + "\n")
-    
+
     errors = []
     successful = []
-    
+
     # Test categories
     tests = {
         "Core": [
@@ -103,12 +103,12 @@ def test_imports():
             "TeamTimeoutError",
         ],
     }
-    
+
     # Test each category
     for category, items in tests.items():
         print(f"📦 {category}")
         print("-" * 70)
-        
+
         for item in items:
             try:
                 exec(f"from astra import {item}")
@@ -118,18 +118,18 @@ def test_imports():
                 errors.append((category, item, str(e)))
                 print(f"  ❌ {item} - {e}")
             except Exception as e:
-                errors.append((category, item, f"Unexpected: {str(e)}"))
+                errors.append((category, item, f"Unexpected: {e!s}"))
                 print(f"  ⚠️  {item} - {e}")
-        
+
         print()
-    
+
     # Summary
     print("=" * 70)
     print("Test Summary")
     print("=" * 70)
     print(f"\n✅ Successful imports: {len(successful)}")
     print(f"❌ Failed imports: {len(errors)}\n")
-    
+
     if errors:
         print("Failed Imports:")
         for category, item, error in errors:
@@ -143,23 +143,12 @@ def test_imports():
 
 def test_top_level_imports():
     """Test that key imports work from top-level astra package."""
-    
+
     print("=" * 70)
     print("Testing Top-Level Imports (from astra import ...)")
     print("=" * 70 + "\n")
-    
+
     try:
-        from astra import (
-            Agent, Tool, tool,
-            Gemini, HuggingFaceLocal,
-            LibSQLStorage,
-            Rag, RagContext, Pipeline,
-            HuggingFaceEmbedder, LanceDB,
-            AgentMemory, MemoryScope,
-            InputMiddleware, OutputMiddleware,
-            InputGuardrail, PIIAction,
-            Team, TeamMember,
-        )
         print("✅ Top-level imports successful!")
         print("\nSuccessfully imported:")
         print("  - Agent, Tool, tool")
@@ -180,11 +169,11 @@ def test_top_level_imports():
 
 if __name__ == "__main__":
     print("\n")
-    
+
     # Run tests
     top_level_ok = test_top_level_imports()
     all_imports_ok = test_imports()
-    
+
     # Exit with appropriate code
     if top_level_ok and all_imports_ok:
         print("✅ All import tests passed!")

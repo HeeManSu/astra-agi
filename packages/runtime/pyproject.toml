@@ -6,7 +6,20 @@ requires-python = ">=3.10,<3.14"
 authors = [
     { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "sse-starlette>=2.0.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.5.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.26.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -14,3 +27,24 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/astra"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+]
+filterwarnings = [
+    # Suppress transformers deprecation warning about model configuration
+    "ignore:You have modified the pretrained model configuration:UserWarning",
+    # Suppress Google genai aiohttp deprecation
+    "ignore:Inheritance class AiohttpClientSession:DeprecationWarning",
+    # Suppress coroutine never awaited warning from FailingAgent test helper
+    "ignore:coroutine 'FailingAgent.stream' was never awaited:RuntimeWarning",
+]

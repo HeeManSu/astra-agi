@@ -44,6 +44,13 @@ class ServerConfig:
     request_id_header: str = "X-Request-ID"
     log_requests: bool = True
 
+    # Server settings
+    host: str = "0.0.0.0"
+    port: int = 8000
+
+    # Playground
+    playground_enabled: bool = True
+
     # Debug
     debug: bool = False
 

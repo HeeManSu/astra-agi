@@ -9,17 +9,26 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import logging
+import os
+from pathlib import Path
 import time
 from typing import Any
 import uuid
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from astra.server.config import ServerConfig
 from astra.server.lifecycle import create_lifespan
 from astra.server.registry import create_registry
-from astra.server.routes import create_agent_router, create_meta_router, create_thread_router
+from astra.server.routes import (
+    create_agent_router,
+    create_meta_router,
+    create_playground_router,
+    create_thread_router,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -238,14 +247,71 @@ class AstraServer:
         )
         app.include_router(create_agent_router(registry=self.registry))
         app.include_router(create_thread_router(registry=self.registry))
+        app.include_router(create_playground_router(registry=self.registry))
 
         # Add custom routes
         for path, handler, methods in self._custom_routes:
             app.add_api_route(path, handler, methods=methods)
 
+        # Serve Playground UI if available
+        if self.config.playground_enabled:
+            self._setup_playground(app)
+
         logger.info(f"Created FastAPI app: {self.config.name} v{self.config.version}")
 
         return app
+
+    def _setup_playground(self, app: FastAPI) -> None:
+        """Set up playground static file serving."""
+        # Look for playground dist in multiple locations
+        possible_paths = [
+            Path(__file__).parent / "playground-dist",  # In package
+            Path(__file__).parent.parent.parent.parent.parent / "playground" / "dist",  # Dev mode
+        ]
+
+        playground_dir = None
+        for path in possible_paths:
+            if path.exists() and (path / "index.html").exists():
+                playground_dir = path
+                break
+
+        if not playground_dir:
+            logger.warning(
+                "Playground UI not found. Run 'npm run build' in packages/playground to enable."
+            )
+            return
+
+        logger.info(f"Serving playground from: {playground_dir}")
+
+        # Serve static assets
+        assets_dir = playground_dir / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="playground-assets")
+
+        # Serve index.html for all non-API routes
+        @app.get("/", response_class=HTMLResponse, response_model=None)
+        @app.get("/{path:path}", response_class=HTMLResponse, response_model=None)
+        async def serve_playground(path: str = ""):
+            # Skip API routes and docs
+            if path.startswith(("api/", "docs", "redoc", "openapi.json")):
+                return None
+
+            index_path = playground_dir / "index.html"  # type: ignore[operator]
+            if not index_path.exists():
+                return None
+
+            content = index_path.read_text(encoding="utf-8")
+
+            # Inject server configuration
+            host = os.getenv("HOST", "localhost")
+            port = os.getenv("PORT", str(self.config.port))
+            protocol = "https" if os.getenv("HTTPS") else "http"
+
+            content = content.replace("%%ASTRA_SERVER_HOST%%", host)
+            content = content.replace("%%ASTRA_SERVER_PORT%%", port)
+            content = content.replace("%%ASTRA_SERVER_PROTOCOL%%", protocol)
+
+            return HTMLResponse(content=content)
 
 
 def create_app(

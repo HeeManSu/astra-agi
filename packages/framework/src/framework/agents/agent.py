@@ -395,8 +395,7 @@ class Agent:
         if message is not None:
             if not isinstance(message, str):
                 raise ValidationError(f"Message must be a string. Got {type(message)}.")
-            if not message.strip():
-                raise ValidationError("Message cannot be empty.")
+            # Empty messages are allowed (handled by model or treated as empty user turn)
             if len(message) > 100_000:
                 raise ValidationError("Message cannot be longer than 100000 characters.")
 

@@ -9,8 +9,10 @@ class Thread(BaseModel):
     """Represents a conversation thread."""
 
     id: str
+    agent_name: str | None = None
     resource_id: str | None = None
     title: str | None = None
+    message_count: int = 0
     metadata: dict[str, Any] = Field(default_factory=dict)
     is_archived: bool = False
     deleted_at: datetime | None = None

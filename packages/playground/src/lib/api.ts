@@ -39,77 +39,94 @@ async function fetchApi<T>(
   return response.json();
 }
 
+// ============================================================================
 // Server
+// ============================================================================
+
 export async function getServerInfo(): Promise<ServerInfo> {
   return fetchApi("/api/");
 }
 
+// ============================================================================
 // Agents
+// ============================================================================
+
 export async function getAgents(): Promise<Agent[]> {
   return fetchApi("/api/agents");
 }
 
-export async function getAgent(agentId: string): Promise<Agent> {
-  return fetchApi(`/api/agents/${agentId}`);
+export async function getAgent(agentName: string): Promise<Agent> {
+  return fetchApi(`/api/agents/${agentName}`);
 }
 
+// ============================================================================
 // Tools
+// ============================================================================
+
 export async function getTools(): Promise<Tool[]> {
-  // This would need to be implemented in the backend
-  // For now, return empty array
-  return [];
+  return fetchApi("/api/tools");
 }
 
+export async function getTool(toolName: string): Promise<Tool> {
+  return fetchApi(`/api/tools/${toolName}`);
+}
+
+// ============================================================================
 // Threads
-export async function getThreads(agentId: string): Promise<Thread[]> {
-  return fetchApi(`/api/threads?agent_id=${agentId}`);
+// ============================================================================
+
+export async function getThreads(agentName: string): Promise<Thread[]> {
+  return fetchApi(`/api/agents/${agentName}/threads`);
 }
 
 export async function getThread(threadId: string): Promise<Thread> {
   return fetchApi(`/api/threads/${threadId}`);
 }
 
-export async function createThread(agentId: string): Promise<Thread> {
-  return fetchApi("/api/threads", {
+export async function createThread(agentName: string): Promise<Thread> {
+  return fetchApi(`/api/agents/${agentName}/threads`, {
     method: "POST",
-    body: JSON.stringify({ agent_id: agentId }),
   });
 }
 
+export async function deleteThread(threadId: string): Promise<void> {
+  return fetchApi(`/api/threads/${threadId}`, {
+    method: "DELETE",
+  });
+}
+
+// ============================================================================
 // Messages
+// ============================================================================
+
 export async function getMessages(threadId: string): Promise<Message[]> {
   return fetchApi(`/api/threads/${threadId}/messages`);
 }
 
-export async function sendMessage(
-  agentId: string,
+export async function addMessage(
   threadId: string,
   content: string
 ): Promise<Message> {
-  return fetchApi(`/api/agents/${agentId}/chat`, {
+  return fetchApi(`/api/threads/${threadId}/messages`, {
     method: "POST",
-    body: JSON.stringify({
-      thread_id: threadId,
-      message: content,
-    }),
+    body: JSON.stringify({ content }),
   });
 }
 
-// Streaming chat
-export async function* streamChat(
-  agentId: string,
+// ============================================================================
+// Generate (streaming chat)
+// ============================================================================
+
+export async function* streamGenerate(
   threadId: string,
-  content: string
+  message: string
 ): AsyncGenerator<string, void, unknown> {
-  const response = await fetch(`${API_BASE}/api/agents/${agentId}/stream`, {
+  const response = await fetch(`${API_BASE}/api/threads/${threadId}/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      thread_id: threadId,
-      message: content,
-    }),
+    body: JSON.stringify({ message }),
   });
 
   if (!response.ok) {
@@ -141,9 +158,15 @@ export async function* streamChat(
           if (parsed.content) {
             yield parsed.content;
           }
-        } catch {
-          // Not JSON, yield as-is
-          yield data;
+          if (parsed.error) {
+            throw new Error(parsed.error);
+          }
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            // Not JSON, skip
+            continue;
+          }
+          throw e;
         }
       }
     }

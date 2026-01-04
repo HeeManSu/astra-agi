@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from astra.server.registry import AgentRegistry
 from astra.server.routes.playground.agents import create_agents_router
 from astra.server.routes.playground.threads import create_threads_router
+from astra.server.routes.playground.tools import create_tools_router
 
 
 def create_playground_router(registry: AgentRegistry) -> APIRouter:
@@ -29,8 +30,12 @@ def create_playground_router(registry: AgentRegistry) -> APIRouter:
     agents_router = create_agents_router(registry)
     router.include_router(agents_router)
 
-    # Include thread-related endpoints
+    # Include thread and message endpoints
     threads_router = create_threads_router(registry)
     router.include_router(threads_router)
+
+    # Include tools endpoints
+    tools_router = create_tools_router(registry)
+    router.include_router(tools_router)
 
     return router

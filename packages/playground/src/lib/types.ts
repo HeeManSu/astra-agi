@@ -12,10 +12,19 @@ export interface Agent {
   instructions?: string;
 }
 
+export interface ToolParameter {
+  name: string;
+  type: string;
+  description?: string;
+  required: boolean;
+  default?: unknown;
+}
+
 export interface Tool {
   name: string;
   description?: string;
-  agents: string[];
+  parameters: ToolParameter[];
+  agent_names: string[];
 }
 
 export interface Workflow {
@@ -33,10 +42,10 @@ export interface WorkflowStep {
 
 export interface Thread {
   id: string;
-  agent_id: string;
+  agent_name: string;
+  title?: string;
   created_at: string;
   updated_at: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface Message {

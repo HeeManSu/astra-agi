@@ -172,3 +172,95 @@ export async function* streamGenerate(
     }
   }
 }
+
+// ============================================================================
+// Auth
+// ============================================================================
+
+export interface SessionStatus {
+  authenticated: boolean;
+  email: string | null;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  email?: string;
+}
+
+// Get CSRF token from cookie
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/astra_csrf=([^;]+)/);
+  return match ? match[1] : null;
+}
+
+// Fetch with credentials and CSRF token
+async function fetchWithAuth<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+
+  // Add CSRF token for mutating requests
+  if (
+    options?.method &&
+    ["POST", "PUT", "DELETE", "PATCH"].includes(options.method)
+  ) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    credentials: "include",
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Unknown error" }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getSession(): Promise<SessionStatus> {
+  return fetchWithAuth("/auth/session");
+}
+
+export async function needsSignup(): Promise<{ needs_signup: boolean }> {
+  return fetchWithAuth("/auth/needs-signup");
+}
+
+export async function login(
+  email: string,
+  password: string
+): Promise<AuthResponse> {
+  return fetchWithAuth("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function signup(
+  email: string,
+  password: string
+): Promise<AuthResponse> {
+  return fetchWithAuth("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function logout(): Promise<AuthResponse> {
+  return fetchWithAuth("/auth/logout", {
+    method: "POST",
+  });
+}

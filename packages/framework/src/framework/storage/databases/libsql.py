@@ -105,6 +105,22 @@ astra_facts = Table(
     Index("idx_facts_deleted_at", "deleted_at"),
 )
 
+astra_team_auth = Table(
+    "astra_team_auth",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("email", String(255), nullable=False, unique=True),
+    Column("password_hash", String(255), nullable=False),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+    Column(
+        "updated_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    ),
+    Column("deleted_at", DateTime(timezone=True), nullable=True),
+)
+
 
 class LibSQLStorage(StorageBackend):
     """
@@ -280,6 +296,8 @@ class LibSQLStorage(StorageBackend):
             return astra_messages
         elif collection_name == "astra_facts":
             return astra_facts
+        elif collection_name == "astra_team_auth":
+            return astra_team_auth
         raise ValueError(f"Unknown collection: {collection_name}")
 
     def build_insert_query(self, collection: str, data: dict[str, Any]) -> Any:

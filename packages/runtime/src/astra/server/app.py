@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from astra.server.auth.routes import create_auth_router
 from astra.server.config import ServerConfig
 from astra.server.lifecycle import create_lifespan
 from astra.server.registry import create_registry
@@ -248,6 +249,10 @@ class AstraServer:
         app.include_router(create_agent_router(registry=self.registry))
         app.include_router(create_thread_router(registry=self.registry))
         app.include_router(create_playground_router(registry=self.registry))
+        app.include_router(create_auth_router(registry=self.registry, config=self.config))
+
+        # Store config in app state for middleware access
+        app.state.config = self.config
 
         # Add custom routes
         for path, handler, methods in self._custom_routes:

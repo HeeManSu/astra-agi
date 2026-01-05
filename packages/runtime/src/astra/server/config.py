@@ -5,6 +5,7 @@ Server configuration with sensible defaults for production use.
 """
 
 from dataclasses import dataclass, field
+import os
 
 
 @dataclass
@@ -24,6 +25,7 @@ class ServerConfig:
         request_id_header: Header name for request ID
         log_requests: Log all incoming requests
         debug: Enable debug mode (more verbose errors)
+        jwt_secret: Secret for signing JWTs (falls back to ASTRA_JWT_SECRET env var)
     """
 
     # Server identity
@@ -51,12 +53,28 @@ class ServerConfig:
     # Playground
     playground_enabled: bool = True
 
+    # Authentication
+    jwt_secret: str | None = None
+
     # Debug
     debug: bool = False
 
     def __post_init__(self) -> None:
-        """Validate configuration after initialization."""
+        """Validate configuration and set defaults."""
         if not self.name:
             raise ValueError("Server name cannot be empty")
         if not self.version:
             raise ValueError("Server version cannot be empty")
+
+        # Mastra-style: config first, then env var fallback
+        if not self.jwt_secret:
+            self.jwt_secret = os.getenv("ASTRA_JWT_SECRET")
+
+        if not self.jwt_secret:
+            raise ValueError(
+                "JWT secret is required for playground authentication.\n"
+                "Option 1 - Set in config:\n"
+                "  config = ServerConfig(jwt_secret='your-secret')\n\n"
+                "Option 2 - Set environment variable:\n"
+                '  export ASTRA_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")'
+            )

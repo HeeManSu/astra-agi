@@ -103,6 +103,12 @@ class MongoDBStorage(StorageBackend):
         await facts_collection.create_index("deleted_at")
         await facts_collection.create_index("expires_at")
 
+        # astra_team_auth indexes (for playground auth)
+        auth_collection = self._db["astra_team_auth"]
+        await auth_collection.create_index("id", unique=True)
+        await auth_collection.create_index("email", unique=True)
+        await auth_collection.create_index("deleted_at")
+
     async def execute(self, query: Mapping[str, Any], params: dict[str, Any] | None = None) -> None:
         """
         Execute a write operation.

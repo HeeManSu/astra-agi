@@ -89,3 +89,17 @@ class Fact(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime | None = None
     deleted_at: datetime | None = None
+
+
+class TeamAuth(BaseModel):
+    """Team authentication credentials for playground access.
+
+    Single row table - one email/password for the entire team.
+    """
+
+    id: str
+    email: str
+    password_hash: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    deleted_at: datetime | None = None

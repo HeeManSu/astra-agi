@@ -1,2 +1,9 @@
 [general]
 disableTypeErrors = false
+
+[source_paths]
+# Add framework package to pyrefly's search paths
+packages = [
+    "packages/framework/src",
+    "packages/runtime/src"
+]

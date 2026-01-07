@@ -21,7 +21,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from astra.server.auth.routes import create_auth_router
-from astra.server.config import ServerConfig
 from astra.server.lifecycle import create_lifespan
 from astra.server.registry import create_registry
 from astra.server.routes import (
@@ -30,6 +29,7 @@ from astra.server.routes import (
     create_playground_router,
     create_thread_router,
 )
+from astra.utils.normalize_list import normalize_agents
 
 
 logger = logging.getLogger(__name__)
@@ -47,8 +47,9 @@ class AstraServer:
 
     Example:
         server = AstraServer(
-            agents={"sales": sales_agent},
-            config=ServerConfig(name="My Server"),
+            agents=[sales_agent],
+            name="My Server",
+            cors={"origins": ["*"]},
         )
         server.add_middleware(auth_middleware)
         server.add_route("/custom", custom_handler)
@@ -57,27 +58,92 @@ class AstraServer:
 
     def __init__(
         self,
-        agents: dict[str, Any],
+        agents: list[Any],
         storage: Any | None = None,
-        config: ServerConfig | None = None,
+        name: str = "Astra Server",
+        version: str = "1.0.0",
+        description: str = "AI Agent Server powered by Astra",
+        docs_enabled: bool = True,
+        cors: dict[str, Any] | None = None,
+        host: str = "0.0.0.0",
+        port: int = 8000,
+        playground_enabled: bool = True,
+        secret: str | None = None,
+        debug_mode: bool = False,
+        request_id_header: str = "X-Request-ID",
+        log_requests: bool = True,
+        **fastapi_kwargs: Any,
     ) -> None:
         """
         Initialize AstraServer.
 
         Args:
-            agents: Dict of agent name -> Agent instance
+            agents: List of Agent instances
             storage: Optional global storage fallback
-            config: Optional ServerConfig (defaults will be used if not provided)
+            name: Server name for documentation
+            version: API version
+            description: Server description
+            docs_enabled: Enable OpenAPI documentation
+            cors: CORS configuration dict with keys:
+                - origins: List of allowed CORS origins (e.g., ["*"] or ["https://example.com"])
+                - allow_credentials: Allow credentials in CORS (default: True)
+                - allow_methods: Allowed HTTP methods (default: ["*"])
+                - allow_headers: Allowed headers (default: ["*"])
+            host: Server host
+            port: Server port
+            playground_enabled: Enable Playground UI
+            secret: Secret for signing JWTs (falls back to ASTRA_JWT_SECRET env var)
+            debug_mode: Enable debug mode
+            request_id_header: Header name for request ID
+            log_requests: Log all incoming requests
+            **fastapi_kwargs: Additional kwargs for FastAPI
 
         Raises:
             ValueError: If no agents provided or validation fails
         """
-        self.config = config or ServerConfig()
+
+        # Store configuration directly in instance
+        self.name = name
+        self.version = version
+        self.description = description
+        self.docs_enabled = docs_enabled
+        self.host = host
+        self.port = port
+        self.playground_enabled = playground_enabled
+        self.debug_mode = debug_mode
+        self.request_id_header = request_id_header
+        self.log_requests = log_requests
+
+        # Handle JWT secret
+        if secret:
+            self.jwt_secret = secret
+        else:
+            self.jwt_secret = os.getenv("ASTRA_JWT_SECRET")
+
+        if not self.jwt_secret:
+            raise ValueError(
+                "JWT secret is required for playground authentication.\n"
+                "Option 1 - Set in AstraServer:\n"
+                "  server = AstraServer(agents=[...], secret='your-secret')\n\n"
+                "Option 2 - Set environment variable:\n"
+                '  export ASTRA_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")'
+            )
+
+        # CORS configuration
+        cors_config = cors or {}
+        self.cors_origins = cors_config.get("origins", [])
+        self.cors_allow_credentials = cors_config.get("allow_credentials", True)
+        self.cors_allow_methods = cors_config.get("allow_methods", ["*"])
+        self.cors_allow_headers = cors_config.get("allow_headers", ["*"])
+
         self.global_storage = storage
+
+        # Normalize agents list to dict format
+        agents_dict = normalize_agents(agents)
 
         # Create registry (validates and discovers)
         self.registry = create_registry(
-            agents=agents,
+            agents=agents_dict,
             global_storage=storage,
         )
 
@@ -184,41 +250,41 @@ class AstraServer:
 
         # Create FastAPI app
         app = FastAPI(
-            title=self.config.name,
-            version=self.config.version,
-            description=self.config.description,
-            docs_url="/docs" if self.config.docs_enabled else None,
-            redoc_url="/redoc" if self.config.docs_enabled else None,
-            openapi_url="/openapi.json" if self.config.docs_enabled else None,
+            title=self.name,
+            version=self.version,
+            description=self.description,
+            docs_url="/docs" if self.docs_enabled else None,
+            redoc_url="/redoc" if self.docs_enabled else None,
+            openapi_url="/openapi.json" if self.docs_enabled else None,
             lifespan=lifespan,
             **fastapi_kwargs,
         )
 
         # Add CORS middleware
-        if self.config.cors_origins:
+        if self.cors_origins:
             app.add_middleware(
                 CORSMiddleware,
-                allow_origins=self.config.cors_origins,
-                allow_credentials=self.config.cors_allow_credentials,
-                allow_methods=self.config.cors_allow_methods,
-                allow_headers=self.config.cors_allow_headers,
+                allow_origins=self.cors_origins,
+                allow_credentials=self.cors_allow_credentials,
+                allow_methods=self.cors_allow_methods,
+                allow_headers=self.cors_allow_headers,
             )
 
         # Add request ID middleware
         @app.middleware("http")
         async def request_id_middleware(request: Request, call_next: Callable) -> Response:
             request_id = request.headers.get(
-                self.config.request_id_header,
+                self.request_id_header,
                 str(uuid.uuid4())[:8],
             )
             request.state.request_id = request_id
 
             response = await call_next(request)
-            response.headers[self.config.request_id_header] = request_id
+            response.headers[self.request_id_header] = request_id
             return response
 
         # Add request logging middleware
-        if self.config.log_requests:
+        if self.log_requests:
 
             @app.middleware("http")
             async def logging_middleware(request: Request, call_next: Callable) -> Response:
@@ -242,27 +308,30 @@ class AstraServer:
         app.include_router(
             create_meta_router(
                 registry=self.registry,
-                config=self.config,
+                name=self.name,
+                version=self.version,
                 start_time=self._start_time,
             )
         )
         app.include_router(create_agent_router(registry=self.registry))
         app.include_router(create_thread_router(registry=self.registry))
         app.include_router(create_playground_router(registry=self.registry))
-        app.include_router(create_auth_router(registry=self.registry, config=self.config))
+        # jwt_secret is guaranteed to be non-None after __init__ validation
+        assert self.jwt_secret is not None, "JWT secret must be set"
+        app.include_router(create_auth_router(registry=self.registry, jwt_secret=self.jwt_secret))
 
-        # Store config in app state for middleware access
-        app.state.config = self.config
+        # Store server instance in app state for middleware access
+        app.state.server = self
 
         # Add custom routes
         for path, handler, methods in self._custom_routes:
             app.add_api_route(path, handler, methods=methods)
 
         # Serve Playground UI if available
-        if self.config.playground_enabled:
+        if self.playground_enabled:
             self._setup_playground(app)
 
-        logger.info(f"Created FastAPI app: {self.config.name} v{self.config.version}")
+        logger.info(f"Created FastAPI app: {self.name} v{self.version}")
 
         return app
 
@@ -309,7 +378,7 @@ class AstraServer:
 
             # Inject server configuration
             host = os.getenv("HOST", "localhost")
-            port = os.getenv("PORT", str(self.config.port))
+            port = os.getenv("PORT", str(self.port))
             protocol = "https" if os.getenv("HTTPS") else "http"
 
             content = content.replace("%%ASTRA_SERVER_HOST%%", host)
@@ -320,7 +389,7 @@ class AstraServer:
 
 
 def create_app(
-    agents: dict[str, Any],
+    agents: list[Any],
     *,
     storage: Any | None = None,
     name: str = "Astra Server",
@@ -338,13 +407,13 @@ def create_app(
     use the AstraServer class.
 
     Args:
-        agents: Dict of agent name -> Agent instance
+        agents: List of Agent instances
         storage: Optional global storage fallback
         name: Server name for documentation
         version: API version
         description: Server description
         docs_enabled: Enable OpenAPI documentation
-        cors_origins: List of allowed CORS origins
+        cors_origins: List of allowed CORS origins (converted to cors dict)
         debug: Enable debug mode
         **fastapi_kwargs: Additional kwargs for FastAPI
 
@@ -365,25 +434,26 @@ def create_app(
         )
 
         app = create_app(
-            agents={"assistant": agent},
+            agents=[agent],
             cors_origins=["*"],
         )
 
         # Run with: uvicorn main:app
     """
-    config = ServerConfig(
-        name=name,
-        version=version,
-        description=description,
-        docs_enabled=docs_enabled,
-        cors_origins=cors_origins or [],
-        debug=debug,
-    )
+    # Convert cors_origins to cors dict for backward compatibility
+    cors = None
+    if cors_origins:
+        cors = {"origins": cors_origins}
 
     server = AstraServer(
         agents=agents,
         storage=storage,
-        config=config,
+        name=name,
+        version=version,
+        description=description,
+        docs_enabled=docs_enabled,
+        cors=cors,
+        debug_mode=debug,
     )
 
     return server.create_app(**fastapi_kwargs)

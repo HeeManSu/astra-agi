@@ -4,11 +4,8 @@ export interface Agent {
   id: string;
   name: string;
   description?: string;
-  model?: {
-    provider: string;
-    model_id: string;
-  };
-  tools: string[];
+  model: string; // Model ID (e.g., "gemini-2.0-flash-exp", "apac.amazon.nova-pro-v1:0")
+  tools: number; // Number of tools (count)
   instructions?: string;
 }
 

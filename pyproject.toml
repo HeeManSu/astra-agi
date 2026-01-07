@@ -13,6 +13,10 @@ members = [
 framework = { workspace = true }
 observability = { workspace = true }
 runtime = { workspace = true }
+# PyPI package name mappings (for when packages depend on each other by PyPI name)
+astra-observability = { workspace = true }
+astra-framework = { workspace = true }
+astra-runtime = { workspace = true }
 
 [tool.ruff]
 target-version = "py310"

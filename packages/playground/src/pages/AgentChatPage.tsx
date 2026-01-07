@@ -1,104 +1,373 @@
-import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import {
-  getAgent,
-  getThreads,
-  createThread,
-  getMessages,
-  streamGenerate,
+  generateAgentResponse,
+  streamAgentResponse,
+  type GenerateRequest,
 } from "@/lib/api";
-import type { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   Bot,
-  Plus,
   Send,
-  Mic,
-  Paperclip,
+  Zap,
+  Sparkles,
+  ChevronLeft,
   ChevronRight,
-  Wrench,
-  GitBranch,
-  Copy,
-  MemoryStick,
+  Menu,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-export function AgentChatPage() {
-  const { agentId } = useParams<{ agentId: string }>();
-  const queryClient = useQueryClient();
-  const [selectedThread, setSelectedThread] = useState<string | null>(null);
-  const [input, setInput] = useState("");
+// Import custom hooks
+import { useAgent } from "@/hooks/use-agents";
+import { useThreads, useCreateThread } from "@/hooks/use-threads";
+import { useMessages, useInvalidateMessages } from "@/hooks/use-messages";
+
+// Import context providers
+import {
+  ThreadInputProvider,
+  useThreadInput,
+} from "@/contexts/ThreadInputContext";
+import {
+  AgentSettingsProvider,
+  useAgentSettings,
+} from "@/contexts/AgentSettingsContext";
+
+// Import components
+import { ThreadSidebar } from "@/components/agents/ThreadSidebar";
+import { AgentInformation } from "@/components/agents/AgentInformation";
+import { ResizeHandle } from "@/components/agents/ResizeHandle";
+
+/**
+ * Message bubble component
+ */
+function MessageBubble({
+  message,
+  isThinking = false,
+}: {
+  message: { id: string; role: string; content: string };
+  isThinking?: boolean;
+}) {
+  const isUser = message.role === "user";
+
+  return (
+    <div className={cn("flex gap-3", isUser && "justify-end")}>
+      {!isUser && (
+        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+          <Bot className="h-4 w-4" />
+        </div>
+      )}
+      <div
+        className={cn(
+          "max-w-[70%] rounded-lg px-4 py-2",
+          isUser ? "bg-primary text-primary-foreground" : "bg-secondary",
+          isThinking && "opacity-70"
+        )}
+      >
+        {isUser ? (
+          <p className="text-sm">{message.content}</p>
+        ) : isThinking ? (
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
+            <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse delay-75" />
+            <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse delay-150" />
+            <span className="text-sm text-muted-foreground ml-2">
+              Thinking...
+            </span>
+          </div>
+        ) : (
+          <div className="prose prose-invert prose-sm max-w-none">
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+        )}
+      </div>
+      {isUser && (
+        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <span className="text-xs">You</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Chat content component (uses ThreadInput context)
+ */
+function ChatContent({
+  agentId,
+  threadId,
+  onThreadCreated,
+}: {
+  agentId: string;
+  threadId: string | null;
+  onThreadCreated?: (threadId: string) => void;
+}) {
+  const { input, setInput, clearInput } = useThreadInput();
+  const { settings } = useAgentSettings();
+  const invalidateMessages = useInvalidateMessages();
+  const createThreadMutation = useCreateThread(agentId);
+
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [optimisticUserMessage, setOptimisticUserMessage] = useState<
+    string | null
+  >(null);
+  const [streamingCompleted, setStreamingCompleted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<"chat" | "traces" | "evals">(
-    "chat"
-  );
 
-  // Fetch agent details
-  const { data: agent, isLoading: agentLoading } = useQuery({
-    queryKey: ["agent", agentId],
-    queryFn: () => getAgent(agentId!),
-    enabled: !!agentId,
-  });
+  const { data: messages } = useMessages(threadId || undefined);
 
-  // Fetch threads
-  const { data: threads } = useQuery({
-    queryKey: ["threads", agentId],
-    queryFn: () => getThreads(agentId!),
-    enabled: !!agentId,
-  });
+  // Check if the last message is an assistant message (means it was saved to server)
+  const lastMessage =
+    messages && messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessageIsAssistant = lastMessage?.role === "assistant";
 
-  // Fetch messages for selected thread
-  const { data: messages } = useQuery({
-    queryKey: ["messages", selectedThread],
-    queryFn: () => getMessages(selectedThread!),
-    enabled: !!selectedThread,
-  });
+  // If streaming completed and we have an assistant message, hide streaming content
+  const shouldHideStreamingContent =
+    streamingCompleted && lastMessageIsAssistant;
 
-  // Create new thread
-  const createThreadMutation = useMutation({
-    mutationFn: () => createThread(agentId!),
-    onSuccess: (thread) => {
-      queryClient.invalidateQueries({ queryKey: ["threads", agentId] });
-      setSelectedThread(thread.id);
-    },
-  });
+  // Clear streaming content when assistant response is saved
+  useEffect(() => {
+    if (shouldHideStreamingContent && streamingContent) {
+      // Clear streaming content immediately when we detect the message is saved
+      setStreamingContent("");
+      setIsStreaming(false);
+      setIsThinking(false);
+      setStreamingCompleted(false); // Reset for next message
+    }
+  }, [shouldHideStreamingContent, streamingContent]);
+
+  // Clear optimistic user message when it appears in fetched messages
+  useEffect(() => {
+    if (optimisticUserMessage && messages) {
+      const userMessageExists = messages.some(
+        (msg) => msg.role === "user" && msg.content === optimisticUserMessage
+      );
+      if (userMessageExists) {
+        setOptimisticUserMessage(null);
+      }
+    }
+  }, [messages, optimisticUserMessage]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, isThinking, optimisticUserMessage]);
 
-  // Handle send message with streaming
   const handleSend = async () => {
     if (!input.trim() || !agentId || isStreaming) return;
 
-    let threadId = selectedThread;
-    if (!threadId) {
-      const thread = await createThreadMutation.mutateAsync();
-      threadId = thread.id;
+    const userMessage = input;
+    let currentThreadId = threadId;
+
+    // Show optimistic user message immediately
+    setOptimisticUserMessage(userMessage);
+    clearInput();
+
+    // Create thread if it doesn't exist
+    if (!currentThreadId) {
+      const newThread = await createThreadMutation.mutateAsync({
+        title: undefined,
+        message: userMessage, // Pass message for auto-title generation
+      });
+      currentThreadId = newThread.id;
+      onThreadCreated?.(currentThreadId);
     }
 
-    const userMessage = input;
-    setInput("");
     setIsStreaming(true);
     setStreamingContent("");
+    setIsThinking(false);
+    setStreamingCompleted(false); // Reset streaming completed state
+
+    // Invalidate messages to fetch latest (including the user message we just sent)
+    invalidateMessages(currentThreadId);
 
     try {
-      // Use the new generate endpoint that handles message saving
-      for await (const chunk of streamGenerate(threadId, userMessage)) {
-        setStreamingContent((prev) => prev + chunk);
+      const request: GenerateRequest = {
+        message: userMessage,
+        thread_id: currentThreadId,
+        temperature: settings.temperature,
+        max_tokens: settings.maxTokens,
+      };
+
+      const streamEnabled = settings.stream ?? true;
+
+      if (streamEnabled) {
+        // Streaming mode
+        setIsThinking(true);
+        let fullContent = "";
+
+        for await (const event of streamAgentResponse(agentId, request)) {
+          if (event.type === "thinking") {
+            setIsThinking(true);
+          } else if (event.type === "token") {
+            setIsThinking(false);
+            const content = (event.data as { content?: string }).content || "";
+            fullContent += content;
+            setStreamingContent(fullContent);
+          } else if (event.type === "done") {
+            setIsThinking(false);
+            setStreamingCompleted(true); // Mark streaming as completed
+            break;
+          } else if (event.type === "error") {
+            const error =
+              (event.data as { error?: string }).error || "Unknown error";
+            throw new Error(error);
+          }
+        }
+      } else {
+        // Generate mode (non-streaming)
+        setIsThinking(true);
+        const response = await generateAgentResponse(agentId, request);
+        setStreamingContent(response.content);
+        setIsThinking(false);
+        setStreamingCompleted(true); // Mark as completed for non-streaming too
       }
-      // Refresh messages after streaming completes
-      await queryClient.invalidateQueries({ queryKey: ["messages", threadId] });
+
+      // Refresh messages after response completes to get the saved assistant message
+      // This will trigger the useEffect that clears streamingContent
+      invalidateMessages(currentThreadId);
     } catch (error) {
-      console.error("Streaming error:", error);
-    } finally {
+      console.error("Error:", error);
       setIsStreaming(false);
-      setStreamingContent("");
+      setIsThinking(false);
+      setStreamingContent(
+        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+      // Clear error message after a delay
+      setTimeout(() => {
+        setStreamingContent("");
+      }, 3000);
     }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Messages - Only this area scrolls */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 min-h-0">
+        {/* Show fetched messages */}
+        {messages?.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))}
+
+        {/* Show optimistic user message if not yet in fetched messages */}
+        {optimisticUserMessage && (
+          <MessageBubble
+            message={{
+              id: "optimistic-user",
+              role: "user",
+              content: optimisticUserMessage,
+            }}
+          />
+        )}
+
+        {/* Show thinking indicator only if we're thinking and don't have streaming content yet */}
+        {isThinking && !streamingContent && !shouldHideStreamingContent && (
+          <MessageBubble
+            message={{
+              id: "thinking",
+              role: "assistant",
+              content: "Thinking...",
+            }}
+            isThinking={true}
+          />
+        )}
+
+        {/* Show streaming content only if we don't have the assistant response saved yet */}
+        {streamingContent && !shouldHideStreamingContent && (
+          <MessageBubble
+            message={{
+              id: "streaming",
+              role: "assistant",
+              content: streamingContent,
+            }}
+          />
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="border-t border-border p-4">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-input p-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Enter your message..."
+            disabled={isStreaming}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isStreaming}
+            className="rounded-md bg-secondary p-1.5 text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Main AgentChatPage component
+ * Uses providers for state management (following Mastra pattern)
+ */
+function AgentChatPageContent() {
+  const { agentId, threadId: threadIdFromParams } = useParams<{
+    agentId: string;
+    threadId?: string;
+  }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const threadIdFromQuery = searchParams.get("threadId");
+
+  // Prefer URL param, then query param, then null
+  const threadIdFromUrl = threadIdFromParams || threadIdFromQuery || null;
+
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(
+    threadIdFromUrl
+  );
+  const [activeTab, setActiveTab] = useState<"chat" | "traces" | "evals">(
+    "chat"
+  );
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
+  const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
+
+  // Fetch agent
+  const { data: agent, isLoading: agentLoading } = useAgent(agentId);
+
+  // Fetch threads
+  const { data: threads } = useThreads(agentId);
+
+  // Sync selectedThreadId with URL
+  useEffect(() => {
+    if (threadIdFromUrl && threadIdFromUrl !== selectedThreadId) {
+      setSelectedThreadId(threadIdFromUrl);
+    }
+  }, [threadIdFromUrl, selectedThreadId]);
+
+  // Auto-select first thread if none selected and threads exist
+  useEffect(() => {
+    if (threads && threads.length > 0 && !selectedThreadId) {
+      const firstThread = threads[0];
+      setSelectedThreadId(firstThread.id);
+      setSearchParams({ threadId: firstThread.id });
+    }
+  }, [threads, selectedThreadId, setSearchParams]);
+
+  // Handle thread selection
+  const handleThreadSelect = (threadId: string) => {
+    setSelectedThreadId(threadId);
+    setSearchParams({ threadId });
   };
 
   if (agentLoading) {
@@ -119,268 +388,225 @@ export function AgentChatPage() {
   }
 
   return (
-    <div className="flex h-full">
-      {/* Sessions Sidebar */}
-      <aside className="w-[220px] flex flex-col border-r border-border">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1 border-b border-border px-4 py-3 text-sm">
-          <Link
-            to="/agents"
-            className="text-muted-foreground hover:text-foreground"
+    <AgentSettingsProvider
+      agentId={agentId!}
+      defaultSettings={{ stream: true }}
+    >
+      <ThreadInputProvider>
+        <div className="flex h-full relative">
+          {/* Mobile Threads Sidebar Overlay */}
+          {mobileThreadsOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setMobileThreadsOpen(false)}
+            />
+          )}
+
+          {/* Thread Sidebar - Desktop: collapsible, Mobile: overlay */}
+          <div
+            className={cn(
+              "md:relative fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:transform-none",
+              mobileThreadsOpen
+                ? "translate-x-0"
+                : "-translate-x-full md:translate-x-0",
+              leftSidebarCollapsed && "md:hidden"
+            )}
           >
-            <Bot className="h-4 w-4" />
-          </Link>
-          <ChevronRight className="h-3 w-3 text-muted-foreground" />
-          <span className="text-foreground truncate">{agent.name}</span>
-        </div>
-
-        {/* New Chat Button */}
-        <div className="border-b border-border p-2">
-          <button
-            onClick={() => createThreadMutation.mutate()}
-            className="flex w-full items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            New Chat
-          </button>
-        </div>
-
-        {/* Session List */}
-        <div className="flex-1 overflow-auto p-2 space-y-1">
-          {threads?.map((thread) => (
-            <button
-              key={thread.id}
-              onClick={() => setSelectedThread(thread.id)}
-              className={cn(
-                "w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
-                selectedThread === thread.id
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              )}
-            >
-              <p className="truncate font-medium">Chat Session</p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(thread.created_at).toLocaleDateString()}
-              </p>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header with Tabs */}
-        <header className="flex items-center justify-between border-b border-border px-4 py-2">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              <span className="font-medium">{agent.name}</span>
-            </div>
-            <nav className="flex gap-4">
-              {(["chat", "traces", "evals"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "text-sm capitalize transition-colors",
-                    activeTab === tab
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {tab}
-                </button>
-              ))}
-            </nav>
+            <ThreadSidebar
+              agentId={agentId!}
+              agentName={agent.name}
+              selectedThreadId={selectedThreadId}
+              onThreadSelect={(threadId) => {
+                handleThreadSelect(threadId);
+                setMobileThreadsOpen(false); // Close mobile menu after selection
+              }}
+              isCollapsed={false} // Always show when visible
+              onToggle={() => {
+                setLeftSidebarCollapsed(true);
+                setMobileThreadsOpen(false);
+              }}
+            />
           </div>
-        </header>
 
-        {/* Chat Content */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Messages */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-auto p-4 space-y-4">
-              {messages?.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
-              {streamingContent && (
-                <MessageBubble
-                  message={{
-                    id: "streaming",
-                    thread_id: "",
-                    role: "assistant",
-                    content: streamingContent,
-                    created_at: new Date().toISOString(),
+          {/* Left Resize Handle - Desktop only */}
+          {!leftSidebarCollapsed && (
+            <div className="hidden md:block">
+              <ResizeHandle
+                side="left"
+                isCollapsed={leftSidebarCollapsed}
+                onToggle={() => setLeftSidebarCollapsed(true)}
+                className="w-1"
+              />
+            </div>
+          )}
+
+          {/* Main Chat Area */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            {/* Header with Tabs */}
+            <header className="flex items-center justify-between border-b border-border px-2 md:px-4 py-2">
+              <div className="flex items-center gap-2 md:gap-4">
+                {/* Mobile: Threads Menu Button */}
+                <button
+                  onClick={() => setMobileThreadsOpen(true)}
+                  className="md:hidden p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Show threads"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+
+                {/* Desktop: Toggle Left Sidebar Button */}
+                {leftSidebarCollapsed && (
+                  <button
+                    onClick={() => setLeftSidebarCollapsed(false)}
+                    className="hidden md:flex p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Show threads"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Bot className="h-4 w-4" />
+                  <span className="font-medium text-sm md:text-base truncate">
+                    {agent.name}
+                  </span>
+                </div>
+
+                {/* Tabs - Hide on very small screens */}
+                <nav className="hidden sm:flex gap-2 md:gap-4">
+                  {(["chat", "traces", "evals"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={cn(
+                        "text-xs md:text-sm capitalize transition-colors px-2 py-1 rounded",
+                        activeTab === tab
+                          ? "text-foreground bg-secondary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+              <div className="flex items-center gap-1 md:gap-2">
+                {/* Mobile: Info Menu Button */}
+                <button
+                  onClick={() => setMobileInfoOpen(true)}
+                  className="lg:hidden p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Show agent info"
+                >
+                  <Menu className="h-4 w-4 rotate-90" />
+                </button>
+
+                {/* Desktop: Toggle Right Sidebar Button */}
+                {rightSidebarCollapsed && (
+                  <button
+                    onClick={() => setRightSidebarCollapsed(false)}
+                    className="hidden lg:flex p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Show agent info"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                )}
+                {/* Stream/Generate Toggle */}
+                <StreamModeToggle />
+              </div>
+            </header>
+
+            {/* Chat Content */}
+            <div className="flex flex-1 overflow-hidden relative min-h-0">
+              <ChatContent
+                agentId={agentId!}
+                threadId={selectedThreadId}
+                onThreadCreated={handleThreadSelect}
+              />
+
+              {/* Mobile Info Sidebar Overlay */}
+              {mobileInfoOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                  onClick={() => setMobileInfoOpen(false)}
+                />
+              )}
+
+              {/* Right Resize Handle - Desktop only */}
+              {!rightSidebarCollapsed && (
+                <div className="hidden lg:block">
+                  <ResizeHandle
+                    side="right"
+                    isCollapsed={rightSidebarCollapsed}
+                    onToggle={() => setRightSidebarCollapsed(true)}
+                    className="w-1"
+                  />
+                </div>
+              )}
+
+              {/* Agent Information - Desktop: collapsible, Mobile: overlay */}
+              <div
+                className={cn(
+                  "lg:relative fixed inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out lg:transform-none",
+                  mobileInfoOpen
+                    ? "translate-x-0"
+                    : "translate-x-full lg:translate-x-0",
+                  rightSidebarCollapsed && "lg:hidden"
+                )}
+              >
+                <AgentInformation
+                  agent={agent}
+                  agentId={agentId!}
+                  isCollapsed={false} // Always show when visible
+                  onToggle={() => {
+                    setRightSidebarCollapsed(true);
+                    setMobileInfoOpen(false);
                   }}
                 />
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="border-t border-border p-4">
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-input p-2">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && !e.shiftKey && handleSend()
-                  }
-                  placeholder="Enter your message..."
-                  disabled={isStreaming}
-                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-                />
-                <button className="p-1.5 text-muted-foreground hover:text-foreground">
-                  <Mic className="h-4 w-4" />
-                </button>
-                <button className="p-1.5 text-muted-foreground hover:text-foreground">
-                  <Paperclip className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isStreaming}
-                  className="rounded-md bg-secondary p-1.5 text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-50"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </div>
-
-          {/* Agent Details Sidebar */}
-          <aside className="w-[300px] border-l border-border overflow-auto">
-            <div className="p-4 space-y-6">
-              {/* Agent Info */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Bot className="h-5 w-5 text-primary" />
-                  <h2 className="font-semibold">{agent.name}</h2>
-                </div>
-                <p className="text-xs text-muted-foreground font-mono">
-                  {agentId}
-                </p>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex gap-4 border-b border-border pb-2">
-                <button className="text-sm text-foreground">Overview</button>
-                <button className="text-sm text-muted-foreground hover:text-foreground">
-                  Model Settings
-                </button>
-                <button className="text-sm text-muted-foreground hover:text-foreground">
-                  Memory
-                </button>
-              </div>
-
-              {/* Model */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  Model
-                </h3>
-                <div className="flex items-center gap-2 rounded-md bg-secondary px-3 py-2">
-                  <div className="h-6 w-6 rounded bg-amber-500/20 flex items-center justify-center">
-                    <span className="text-xs">🤖</span>
-                  </div>
-                  <span className="text-sm">
-                    {agent.model?.provider || "unknown"}
-                  </span>
-                  <span className="ml-auto text-xs text-muted-foreground truncate max-w-[120px]">
-                    {agent.model?.model_id}
-                  </span>
-                </div>
-              </div>
-
-              {/* Memory */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <MemoryStick className="h-4 w-4" />
-                  Memory
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-primary" />
-                  <span className="text-sm">On</span>
-                </div>
-              </div>
-
-              {/* Tools */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  Tools
-                </h3>
-                {agent.tools.length > 0 ? (
-                  <div className="space-y-1">
-                    {agent.tools.map((tool) => (
-                      <div key={tool} className="text-sm text-muted-foreground">
-                        {tool}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No tools</p>
-                )}
-              </div>
-
-              {/* Workflows */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <GitBranch className="h-4 w-4" />
-                  Workflows
-                </h3>
-                <p className="text-sm text-muted-foreground">No workflows</p>
-              </div>
-
-              {/* System Prompt */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">System Prompt</h3>
-                  <button className="p-1 text-muted-foreground hover:text-foreground">
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="rounded-md bg-secondary p-3 text-xs text-muted-foreground max-h-[200px] overflow-auto font-mono">
-                  {agent.instructions || "No system prompt defined"}
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
-      </div>
+      </ThreadInputProvider>
+    </AgentSettingsProvider>
+  );
+}
+
+/**
+ * Stream/Generate mode toggle component
+ */
+function StreamModeToggle() {
+  const { settings, updateSettings } = useAgentSettings();
+  const streamMode = settings.stream ?? true;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">Mode:</span>
+      <button
+        onClick={() => updateSettings({ stream: !streamMode })}
+        className={cn(
+          "flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+          streamMode
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+        )}
+      >
+        {streamMode ? (
+          <>
+            <Zap className="h-3 w-3" /> Stream
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-3 w-3" /> Generate
+          </>
+        )}
+      </button>
     </div>
   );
 }
 
-// Message bubble component
-function MessageBubble({ message }: { message: Message }) {
-  const isUser = message.role === "user";
-
-  return (
-    <div className={cn("flex gap-3", isUser && "justify-end")}>
-      {!isUser && (
-        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-          <Bot className="h-4 w-4" />
-        </div>
-      )}
-      <div
-        className={cn(
-          "max-w-[70%] rounded-lg px-4 py-2",
-          isUser ? "bg-primary text-primary-foreground" : "bg-secondary"
-        )}
-      >
-        {isUser ? (
-          <p className="text-sm">{message.content}</p>
-        ) : (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
-        )}
-      </div>
-      {isUser && (
-        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <span className="text-xs">You</span>
-        </div>
-      )}
-    </div>
-  );
+/**
+ * Exported component with providers
+ */
+export function AgentChatPage() {
+  return <AgentChatPageContent />;
 }

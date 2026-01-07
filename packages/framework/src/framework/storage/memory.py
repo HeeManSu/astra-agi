@@ -142,6 +142,19 @@ class AgentStorage:
         if thread is None:
             await self.create_thread(thread_id=thread_id)
 
+        # Auto-update thread title from first user message if title is default
+        # Check if this is the first user message and thread title needs updating
+        if role == "user" and thread:
+            # Check if thread has default title (starts with "New Thread")
+            if thread.title and thread.title.startswith("New Thread"):
+                # Get existing messages to check if this is truly the first user message
+                existing_messages = await self.messages.get_by_thread(thread_id, limit=1)
+                # Only update if no messages exist yet (this is the first one)
+                if not existing_messages:
+                    # Generate title from first user message (truncate to 50 chars)
+                    title = content[:50] + ("..." if len(content) > 50 else "")
+                    await self.update_thread_title(thread_id, title)
+
         sequence = await self.messages.get_next_sequence(thread_id)
 
         # Build metadata with tool_calls and tool_call_id
@@ -186,6 +199,19 @@ class AgentStorage:
 
         effective_limit = limit or self.max_messages
         return await self.messages.get_recent(thread_id, limit=effective_limit)
+
+    async def update_thread_title(self, thread_id: str, title: str) -> Thread | None:
+        """
+        Update thread title.
+
+        Args:
+            thread_id: Thread identifier
+            title: New title
+
+        Returns:
+            Updated Thread object or None if not found
+        """
+        return await self.threads.update(thread_id, title=title)
 
     async def soft_delete_thread(self, thread_id: str) -> None:
         """

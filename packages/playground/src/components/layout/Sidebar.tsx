@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Settings,
   Activity,
+  X,
 } from "lucide-react";
 
 const navigation = [
@@ -34,15 +35,30 @@ const bottomLinks = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps = {}) {
   return (
-    <aside className="flex w-[200px] flex-col border-r border-border bg-card">
+    <aside className="flex w-[200px] flex-col border-r border-border bg-card h-full">
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
           <Bot className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="font-semibold text-foreground">Astra Studio</span>
+        <span className="font-semibold text-foreground flex-1">
+          Astra Studio
+        </span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1 text-muted-foreground hover:text-foreground"
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Main Navigation */}

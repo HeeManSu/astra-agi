@@ -23,6 +23,7 @@ from astra.embedded import (
     DELEGATION_TOOL,
     Agent,
     AgentMemory,
+    AgentStorage,
     Bedrock,  # type: ignore[attr-defined]
     ChunkStage,
     ContentAction,
@@ -84,7 +85,6 @@ from astra.embedded import (
 from astra.server import (
     AgentRegistry,
     AstraServer,
-    ServerConfig,
     create_app,
 )
 
@@ -133,6 +133,7 @@ __all__ = [
     "RetrieveStage",
     # Memory
     "AgentMemory",
+    "AgentStorage",
     "MemoryScope",
     "PersistentFacts",
     # Middlewares
@@ -172,6 +173,5 @@ __all__ = [
     # Server
     "create_app",
     "AstraServer",
-    "ServerConfig",
     "AgentRegistry",
 ]

@@ -611,6 +611,12 @@ class Bedrock(Model):
             usage["output_tokens"] = response_usage.get("outputTokens", 0)
             usage["total_tokens"] = response_usage.get("totalTokens", 0)
 
+        # Log usage to console as requested
+        if usage:
+            print(
+                f"💰 Token Usage: Input: {usage.get('input_tokens', 0)}, Output: {usage.get('output_tokens', 0)}, Total: {usage.get('total_tokens', 0)}"
+            )
+
         # Extract finish reason
         stop_reason = response.get("stopReason", "stop")
 
@@ -761,6 +767,7 @@ class Bedrock(Model):
                 headers=signed_headers,
                 content=body_json,
             )
+            print(response.json())
             response.raise_for_status()
             response_data = response.json()
         except httpx.HTTPStatusError as e:

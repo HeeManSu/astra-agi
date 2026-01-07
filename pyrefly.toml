@@ -6,4 +6,5 @@ disableTypeErrors = false
 packages = [
     "packages/framework/src",
     "packages/runtime/src"
+    "market-research"
 ]

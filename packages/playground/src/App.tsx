@@ -15,6 +15,7 @@ function App() {
           <Route path="/" element={<Navigate to="/agents" replace />} />
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/agents/:agentId" element={<AgentChatPage />} />
+          <Route path="/agents/:agentId/chat/:threadId" element={<AgentChatPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/workflows" element={<WorkflowsPage />} />
           <Route path="/settings" element={<SettingsPage />} />

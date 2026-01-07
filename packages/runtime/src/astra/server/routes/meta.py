@@ -9,7 +9,6 @@ import time
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from astra.server.config import ServerConfig
 from astra.server.registry import AgentRegistry
 
 
@@ -101,7 +100,8 @@ class ProvidersResponse(BaseModel):
 
 def create_meta_router(
     registry: AgentRegistry,
-    config: ServerConfig,
+    name: str,
+    version: str,
     start_time: float,
 ) -> APIRouter:
     """
@@ -109,7 +109,8 @@ def create_meta_router(
 
     Args:
         registry: AgentRegistry with all resources
-        config: Server configuration
+        name: Server name
+        version: Server version
         start_time: Server start timestamp
 
     Returns:
@@ -154,10 +155,10 @@ def create_meta_router(
             )
 
         return MetaResponse(
-            version=config.version,
+            version=version,
             server=ServerInfo(
-                name=config.name,
-                version=config.version,
+                name=name,
+                version=version,
                 uptime=uptime,
             ),
             agents=agents_info,

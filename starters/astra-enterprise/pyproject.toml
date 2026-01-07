@@ -1,0 +1,20 @@
+[project]
+name = "astra-enterprise-app"
+version = "0.1.0"
+description = "Astra Enterprise Agent Server"
+requires-python = ">=3.10"
+dependencies = [
+    "astra-runtime",
+    "astra-framework",
+    "transform",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "sqlalchemy",
+    "asyncpg",
+    "alembic",
+    "pytest",
+    "httpx",
+]
+
+[tool.uv]
+package = false

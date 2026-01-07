@@ -24,13 +24,13 @@ def get_jwt_secret_from_request(request: Request) -> str:
     Get JWT secret using Mastra-style priority.
 
     Priority:
-    1. app.state.config.jwt_secret (from ServerConfig)
+    1. app.state.server.jwt_secret (from AstraServer)
     2. ASTRA_JWT_SECRET environment variable
     """
-    # Try config from app state
-    config = getattr(request.app.state, "config", None)
-    if config:
-        secret = getattr(config, "jwt_secret", None)
+    # Try server from app state
+    server = getattr(request.app.state, "server", None)
+    if server:
+        secret = getattr(server, "jwt_secret", None)
         if secret:
             return secret
 

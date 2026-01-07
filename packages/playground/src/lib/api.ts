@@ -52,11 +52,11 @@ export async function getServerInfo(): Promise<ServerInfo> {
 // ============================================================================
 
 export async function getAgents(): Promise<Agent[]> {
-  return fetchApi("/api/agents");
+  return fetchApi("/api/v1/agents");
 }
 
 export async function getAgent(agentName: string): Promise<Agent> {
-  return fetchApi(`/api/agents/${agentName}`);
+  return fetchApi(`/api/v1/agents/${agentName}`);
 }
 
 // ============================================================================
@@ -64,33 +64,41 @@ export async function getAgent(agentName: string): Promise<Agent> {
 // ============================================================================
 
 export async function getTools(): Promise<Tool[]> {
-  return fetchApi("/api/tools");
+  return fetchApi("/api/v1/tools");
 }
 
 export async function getTool(toolName: string): Promise<Tool> {
-  return fetchApi(`/api/tools/${toolName}`);
+  return fetchApi(`/api/v1/tools/${toolName}`);
 }
 
 // ============================================================================
 // Threads
 // ============================================================================
 
-export async function getThreads(agentName: string): Promise<Thread[]> {
-  return fetchApi(`/api/agents/${agentName}/threads`);
+export async function getThreads(agentId: string): Promise<Thread[]> {
+  return fetchApi(`/api/v1/agents/${agentId}/threads`);
 }
 
 export async function getThread(threadId: string): Promise<Thread> {
-  return fetchApi(`/api/threads/${threadId}`);
+  return fetchApi(`/api/v1/threads/${threadId}`);
 }
 
-export async function createThread(agentName: string): Promise<Thread> {
-  return fetchApi(`/api/agents/${agentName}/threads`, {
+export async function createThread(
+  agentId: string,
+  title?: string,
+  message?: string
+): Promise<Thread> {
+  const body: { title?: string; message?: string } = {};
+  if (title) body.title = title;
+  if (message) body.message = message;
+  return fetchApi(`/api/v1/agents/${agentId}/threads`, {
     method: "POST",
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
   });
 }
 
 export async function deleteThread(threadId: string): Promise<void> {
-  return fetchApi(`/api/threads/${threadId}`, {
+  return fetchApi(`/api/v1/threads/${threadId}`, {
     method: "DELETE",
   });
 }
@@ -100,33 +108,63 @@ export async function deleteThread(threadId: string): Promise<void> {
 // ============================================================================
 
 export async function getMessages(threadId: string): Promise<Message[]> {
-  return fetchApi(`/api/threads/${threadId}/messages`);
+  return fetchApi(`/api/v1/threads/${threadId}/messages`);
 }
 
 export async function addMessage(
   threadId: string,
   content: string
 ): Promise<Message> {
-  return fetchApi(`/api/threads/${threadId}/messages`, {
+  return fetchApi(`/api/v1/threads/${threadId}/messages`, {
     method: "POST",
     body: JSON.stringify({ content }),
   });
 }
 
 // ============================================================================
-// Generate (streaming chat)
+// Generate (non-streaming)
 // ============================================================================
 
-export async function* streamGenerate(
-  threadId: string,
-  message: string
-): AsyncGenerator<string, void, unknown> {
-  const response = await fetch(`${API_BASE}/api/threads/${threadId}/generate`, {
+export interface GenerateRequest {
+  message: string;
+  thread_id?: string;
+  temperature?: number;
+  max_tokens?: number;
+}
+
+export interface GenerateResponse {
+  content: string;
+  thread_id?: string;
+}
+
+export async function generateAgentResponse(
+  agentId: string,
+  request: GenerateRequest
+): Promise<GenerateResponse> {
+  return fetchApi(`/api/v1/agents/${agentId}/generate`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+// ============================================================================
+// Stream (streaming chat)
+// ============================================================================
+
+export async function* streamAgentResponse(
+  agentId: string,
+  request: GenerateRequest
+): AsyncGenerator<
+  { type: "thinking" | "token" | "done" | "error"; data: unknown },
+  void,
+  unknown
+> {
+  const response = await fetch(`${API_BASE}/api/v1/agents/${agentId}/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(request),
   });
 
   if (!response.ok) {
@@ -139,35 +177,40 @@ export async function* streamGenerate(
   }
 
   const decoder = new TextDecoder();
+  let buffer = "";
+  let currentEvent: string | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n");
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || ""; // Keep incomplete line in buffer
 
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") {
-          return;
-        }
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith("event: ")) {
+        currentEvent = line.slice(7).trim();
+      } else if (line.startsWith("data: ") && currentEvent) {
+        const dataStr = line.slice(6);
         try {
-          const parsed = JSON.parse(data);
-          if (parsed.content) {
-            yield parsed.content;
-          }
-          if (parsed.error) {
-            throw new Error(parsed.error);
-          }
+          const data = JSON.parse(dataStr);
+          yield {
+            type: currentEvent as "thinking" | "token" | "done" | "error",
+            data,
+          };
+          currentEvent = null;
         } catch (e) {
           if (e instanceof SyntaxError) {
-            // Not JSON, skip
             continue;
           }
           throw e;
         }
+      } else if (line.trim() === "") {
+        // Empty line resets event
+        currentEvent = null;
       }
     }
   }
@@ -236,7 +279,8 @@ export async function getSession(): Promise<SessionStatus> {
 }
 
 export async function needsSignup(): Promise<{ needs_signup: boolean }> {
-  return fetchWithAuth("/auth/needs-signup");
+  // This is a public endpoint, doesn't need auth
+  return fetchApi("/auth/needs-signup");
 }
 
 export async function login(

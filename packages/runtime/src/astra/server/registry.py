@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 import logging
 from typing import Any
 
+from framework.storage.memory import AgentStorage
+
 
 logger = logging.getLogger(__name__)
 
@@ -40,25 +42,20 @@ class AgentRegistry:
     mcp_tools: list[Any] = field(default_factory=list)
     rag_pipelines: list[Any] = field(default_factory=list)
 
-    def get_agent(self, name: str) -> Any | None:
-        """Get agent by name."""
-        return self.agents.get(name)
+    def get_agent(self, agent_id: str) -> Any | None:
+        """Get agent by ID."""
+        return self.agents.get(agent_id)
 
     def list_agent_names(self) -> list[str]:
-        """List all agent names."""
+        """List all agent IDs (registry keys)."""
         return list(self.agents.keys())
 
-    def get_storage_for_agent(self, agent_name: str) -> Any | None:
+    def get_storage_for_agent(self, agent_id: str) -> Any | None:
         """Get storage backend used by an agent."""
         for storage_info in self.storage.values():
-            if agent_name in storage_info.used_by:
+            if agent_id in storage_info.used_by:
                 return storage_info.instance
         return None
-
-
-# ============================================================================
-# Validation Functions (Fail Loud)
-# ============================================================================
 
 
 def validate_agents(agents: dict[str, Any]) -> None:
@@ -74,26 +71,21 @@ def validate_agents(agents: dict[str, Any]) -> None:
         )
 
     # Check for None values
-    for name, agent in agents.items():
+    for agent_id, agent in agents.items():
         if agent is None:
             raise ValueError(
-                f"Agent '{name}' is None. Make sure to pass an Agent instance, not None."
+                f"Agent '{agent_id}' is None. Make sure to pass an Agent instance, not None."
             )
 
     # Check agent has required attributes
-    for name, agent in agents.items():
+    for agent_id, agent in agents.items():
         if not hasattr(agent, "invoke"):
             raise ValueError(
-                f"Agent '{name}' is not a valid Agent instance. "
+                f"Agent '{agent_id}' is not a valid Agent instance. "
                 f"Expected object with 'invoke' method, got {type(agent).__name__}."
             )
 
     logger.info(f"Validated {len(agents)} agents: {list(agents.keys())}")
-
-
-# ============================================================================
-# Discovery Functions
-# ============================================================================
 
 
 def discover_all(
@@ -104,7 +96,7 @@ def discover_all(
     Discover all resources from agents.
 
     Args:
-        agents: Dict of agent name -> Agent instance
+        agents: Dict of agent ID -> Agent instance
         global_storage: Optional global storage to apply as fallback
 
     Returns:
@@ -133,7 +125,7 @@ def discover_storage(
     - Global storage fallback for agents without storage
 
     Args:
-        agents: Dict of agent name -> Agent instance
+        agents: Dict of agent ID -> Agent instance
         global_storage: Optional global storage to apply as fallback
 
     Returns:
@@ -144,13 +136,26 @@ def discover_storage(
 
     # Apply global storage fallback
     if global_storage:
-        for name, agent in agents.items():
+        for agent_id, agent in agents.items():
             if not hasattr(agent, "storage") or agent.storage is None:
-                agent.storage = global_storage
-                logger.debug(f"Applied global storage to agent: {name}")
+                # Wrap raw storage backend in AgentStorage (API layer)
+                # Match Agent.__init__ behavior: use memory.num_history_responses (default: 10)
+                # Note: max_messages is just a retrieval hint; actual limit is controlled by
+                # MemoryManager using window_size or token_limit. Messages are always stored
+                # if storage exists, but only loaded into context if memory.add_history_to_messages=True
+                max_messages = (
+                    agent.memory.num_history_responses
+                    if hasattr(agent, "memory") and hasattr(agent.memory, "num_history_responses")
+                    else 10  # Match AgentMemory default
+                )
+                agent.storage = AgentStorage(
+                    storage=global_storage,
+                    max_messages=max_messages,
+                )
+                logger.debug(f"Applied global storage to agent: {agent_id}")
 
     # Discover unique instances
-    for agent_name, agent in agents.items():
+    for agent_id, agent in agents.items():
         if hasattr(agent, "storage") and agent.storage is not None:
             instance_id = id(agent.storage)
 
@@ -161,17 +166,15 @@ def discover_storage(
                     id=storage_id,
                     instance=agent.storage,
                     type_name=type(agent.storage).__name__,
-                    used_by=[agent_name],
+                    used_by=[agent_id],
                 )
                 logger.info(
                     f"Discovered storage: {storage_id} "
-                    f"({type(agent.storage).__name__}) for agent: {agent_name}"
+                    f"({type(agent.storage).__name__}) for agent: {agent_id}"
                 )
             else:
-                discovered[instance_id].used_by.append(agent_name)
-                logger.debug(
-                    f"Storage {discovered[instance_id].id} shared with agent: {agent_name}"
-                )
+                discovered[instance_id].used_by.append(agent_id)
+                logger.debug(f"Storage {discovered[instance_id].id} shared with agent: {agent_id}")
 
     if discovered:
         logger.info(f"Total unique storage backends: {len(discovered)}")
@@ -186,7 +189,7 @@ def discover_mcp_tools(agents: dict[str, Any]) -> list[Any]:
     Discover MCP tools from agents.
 
     Args:
-        agents: Dict of agent name -> Agent instance
+        agents: Dict of agent ID -> Agent instance
 
     Returns:
         List of unique MCP server instances
@@ -194,7 +197,7 @@ def discover_mcp_tools(agents: dict[str, Any]) -> list[Any]:
     tools: list[Any] = []
     seen: set[int] = set()
 
-    for agent_name, agent in agents.items():
+    for agent_id, agent in agents.items():
         if hasattr(agent, "tools") and agent.tools:
             for tool in agent.tools:
                 if _is_mcp_server(tool):
@@ -203,7 +206,7 @@ def discover_mcp_tools(agents: dict[str, Any]) -> list[Any]:
                         seen.add(tool_id)
                         tools.append(tool)
                         tool_name = getattr(tool, "name", "unnamed")
-                        logger.info(f"Discovered MCP tool '{tool_name}' in agent: {agent_name}")
+                        logger.info(f"Discovered MCP tool '{tool_name}' in agent: {agent_id}")
 
     if tools:
         logger.info(f"Total MCP tools: {len(tools)}")
@@ -216,7 +219,7 @@ def discover_rag_pipelines(agents: dict[str, Any]) -> list[Any]:
     Discover RAG pipelines from agents.
 
     Args:
-        agents: Dict of agent name -> Agent instance
+        agents: Dict of agent ID -> Agent instance
 
     Returns:
         List of unique RAG pipeline instances
@@ -224,13 +227,13 @@ def discover_rag_pipelines(agents: dict[str, Any]) -> list[Any]:
     pipelines: list[Any] = []
     seen: set[int] = set()
 
-    for agent_name, agent in agents.items():
+    for agent_id, agent in agents.items():
         if hasattr(agent, "rag_pipeline") and agent.rag_pipeline is not None:
             pipeline_id = id(agent.rag_pipeline)
             if pipeline_id not in seen:
                 seen.add(pipeline_id)
                 pipelines.append(agent.rag_pipeline)
-                logger.info(f"Discovered RAG pipeline in agent: {agent_name}")
+                logger.info(f"Discovered RAG pipeline in agent: {agent_id}")
 
     if pipelines:
         logger.info(f"Total RAG pipelines: {len(pipelines)}")
@@ -269,7 +272,7 @@ def create_registry(
     Validates inputs and discovers all resources.
 
     Args:
-        agents: Dict of agent name -> Agent instance
+        agents: Dict of agent ID -> Agent instance
         global_storage: Optional global storage fallback
 
     Returns:

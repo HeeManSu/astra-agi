@@ -13,11 +13,16 @@ BEDROCK_SUPPORTED_MODELS: set[str] = {
     "amazon.titan-tg1-large",
     "amazon.titan-text-express-v1",
     "amazon.titan-text-lite-v1",
-    # Amazon Nova models
+    # Amazon Nova models (US regions)
     "us.amazon.nova-premier-v1:0",
     "us.amazon.nova-pro-v1:0",
     "us.amazon.nova-micro-v1:0",
     "us.amazon.nova-lite-v1:0",
+    # Amazon Nova models (APAC regions)
+    "apac.amazon.nova-premier-v1:0",
+    "apac.amazon.nova-pro-v1:0",
+    "apac.amazon.nova-micro-v1:0",
+    "apac.amazon.nova-lite-v1:0",
     # Anthropic Claude models
     "anthropic.claude-v2",
     "anthropic.claude-v2:1",

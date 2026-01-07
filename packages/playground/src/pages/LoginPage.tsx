@@ -16,7 +16,11 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
   useEffect(() => {
     needsSignup()
       .then((res) => setIsSignupMode(res.needs_signup))
-      .catch(() => setIsSignupMode(false));
+      .catch(() => {
+        // If check fails (e.g., no storage, connection error), default to signup mode
+        // This allows users to create the first account when database doesn't exist yet
+        setIsSignupMode(true);
+      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

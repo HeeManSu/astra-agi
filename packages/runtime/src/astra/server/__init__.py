@@ -21,11 +21,13 @@ Example (Simple):
     # Run with: uvicorn main:app
 
 Example (Advanced):
-    from astra.server import AstraServer, ServerConfig
+    from astra.server import AstraServer
 
     server = AstraServer(
-        agents={"assistant": agent},
-        config=ServerConfig(name="My API", docs_enabled=True),
+        agents=[agent],
+        name="My API",
+        docs_enabled=True,
+        cors={"origins": ["*"]},
     )
     server.add_middleware(auth_middleware)
     server.on_startup(my_startup_hook)
@@ -33,7 +35,6 @@ Example (Advanced):
 """
 
 from astra.server.app import AstraServer, create_app
-from astra.server.config import ServerConfig
 from astra.server.lifecycle import LifecycleError, MCPConnectionError, StorageConnectionError
 from astra.server.registry import AgentRegistry, StorageInfo, create_registry
 
@@ -43,7 +44,6 @@ __all__ = [
     "AstraServer",
     "LifecycleError",
     "MCPConnectionError",
-    "ServerConfig",
     "StorageConnectionError",
     "StorageInfo",
     "create_app",

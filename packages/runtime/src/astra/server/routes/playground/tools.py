@@ -1,7 +1,7 @@
 """
 Playground Tools Routes.
 
-Provides /api/tools/* endpoints for listing and inspecting tools.
+Provides /api/v1/tools/* endpoints for listing and inspecting tools.
 """
 
 import inspect
@@ -54,15 +54,15 @@ class ToolDetailResponse(ToolResponse):
 
 def create_tools_router(registry: AgentRegistry) -> APIRouter:
     """
-    Create router for tool endpoints.
+    Create router for tool endpoints (playground routes).
 
     Args:
         registry: AgentRegistry with all agents
 
     Returns:
-        FastAPI APIRouter for tool endpoints
+        FastAPI APIRouter for /api/v1/tools endpoints (playground routes)
     """
-    router = APIRouter(tags=["Playground - Tools"])
+    router = APIRouter(tags=["Tools"])
 
     def _extract_tool_info(tool: Any) -> dict[str, Any]:
         """Extract info from a tool object."""

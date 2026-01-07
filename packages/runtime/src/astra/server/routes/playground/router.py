@@ -1,7 +1,7 @@
 """
 Playground Router Factory.
 
-Creates the main playground router by combining all sub-routers.
+Creates the main API router by combining all playground sub-routers.
 """
 
 from fastapi import APIRouter
@@ -14,17 +14,17 @@ from astra.server.routes.playground.tools import create_tools_router
 
 def create_playground_router(registry: AgentRegistry) -> APIRouter:
     """
-    Create the main playground router.
+    Create the main API router for playground endpoints.
 
-    Combines all playground sub-routers into a single /api prefix router.
+    Combines all playground sub-routers into a single /api/v1 prefix router.
 
     Args:
         registry: AgentRegistry with all agents
 
     Returns:
-        FastAPI APIRouter with /api prefix
+        FastAPI APIRouter with /api/v1 prefix
     """
-    router = APIRouter(prefix="/api", tags=["Playground"])
+    router = APIRouter(prefix="/api/v1", tags=["API"])
 
     # Include agent-related endpoints
     agents_router = create_agents_router(registry)

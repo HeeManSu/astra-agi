@@ -1,8 +1,7 @@
 """
 Playground Routes Package.
 
-Provides /api/* endpoints for playground UI compatibility.
-Organized into feature-based modules for maintainability.
+Provides /api/v1/* endpoints for SDK and playground UI.
 """
 
 from astra.server.routes.playground.agents import create_agents_router

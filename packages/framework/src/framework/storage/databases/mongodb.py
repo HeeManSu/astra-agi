@@ -230,10 +230,15 @@ class MongoDBStorage(StorageBackend):
         Returns:
             MongoDB query dict with collection, action, and document
         """
+
+        doc = dict(data)
+        if "id" in doc and "_id" not in doc:
+            doc["_id"] = doc["id"]
+
         return {
             "collection": collection,
             "action": "insert_one",
-            "document": data,
+            "document": doc,
         }
 
     def build_insert_many_query(self, collection: str, data: list[dict[str, Any]]) -> Any:
@@ -247,10 +252,18 @@ class MongoDBStorage(StorageBackend):
         Returns:
             MongoDB query dict with collection, action, and documents
         """
+
+        docs = []
+        for d in data:
+            doc = dict(d)
+            if "id" in doc and "_id" not in doc:
+                doc["_id"] = doc["id"]
+            docs.append(doc)
+
         return {
             "collection": collection,
             "action": "insert_many",
-            "documents": data,
+            "documents": docs,
         }
 
     def build_select_query(

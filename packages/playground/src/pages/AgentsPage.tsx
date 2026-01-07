@@ -1,20 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { getAgents } from "@/lib/api";
-import { Bot, Search, ArrowRight, Wrench, GitBranch } from "lucide-react";
+import { Bot, Search, ArrowRight, Wrench } from "lucide-react";
 import { useState } from "react";
+import { useAgents } from "@/hooks/use-agents";
 
 export function AgentsPage() {
   const [search, setSearch] = useState("");
-
-  const {
-    data: agents,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["agents"],
-    queryFn: getAgents,
-  });
+  const { data: agents, isLoading, error } = useAgents();
 
   const filteredAgents = agents?.filter(
     (agent) =>
@@ -61,7 +52,7 @@ export function AgentsPage() {
       <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-4 border-b border-border px-6 py-3 text-xs font-medium uppercase text-muted-foreground">
         <span>Name</span>
         <span>Model</span>
-        <span>Attached Entities</span>
+        <span>Tools</span>
       </div>
 
       {/* Agent List */}
@@ -91,7 +82,7 @@ export function AgentsPage() {
         {filteredAgents?.map((agent) => (
           <Link
             key={agent.id}
-            to={`/agents/${agent.name}`}
+            to={`/agents/${agent.id}`}
             className="group grid grid-cols-[1fr_1.5fr_1fr] gap-4 border-b border-border px-6 py-4 transition-colors hover:bg-secondary"
           >
             {/* Name */}
@@ -104,27 +95,18 @@ export function AgentsPage() {
 
             {/* Model */}
             <div className="flex items-center">
-              <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
-                {agent.model?.provider || "unknown"}:
-                {agent.model?.model_id || "default"}
+              <span className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground font-mono">
+                {agent.model || "unknown"}
               </span>
             </div>
 
             {/* Attached Entities */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-sm">
-                <Bot className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">0 agent</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm">
                 <Wrench className="h-4 w-4 text-amber-500" />
                 <span className="text-muted-foreground">
-                  {agent.tools.length} tools
+                  {agent.tools} {agent.tools === 1 ? "tool" : "tools"}
                 </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm">
-                <GitBranch className="h-4 w-4 text-blue-500" />
-                <span className="text-muted-foreground">0 workflows</span>
               </div>
               <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
             </div>

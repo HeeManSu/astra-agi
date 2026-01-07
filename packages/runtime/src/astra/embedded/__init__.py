@@ -93,6 +93,7 @@ from framework.rag.stages import (
 from framework.storage.base import StorageBackend
 from framework.storage.databases.libsql import LibSQLStorage
 from framework.storage.databases.mongodb import MongoDBStorage
+from framework.storage.memory import AgentStorage
 
 # Teams - re-export from framework
 from framework.team import (
@@ -108,6 +109,7 @@ from framework.team import (
 
 # Agent - from embedded submodule
 from astra.embedded.agent import Agent
+
 
 __all__ = [
     # Agent
@@ -126,6 +128,7 @@ __all__ = [
     "StorageBackend",
     "LibSQLStorage",
     "MongoDBStorage",
+    "AgentStorage",
     # RAG Core
     "Rag",
     "RagContext",

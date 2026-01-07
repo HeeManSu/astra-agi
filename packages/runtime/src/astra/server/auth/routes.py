@@ -53,46 +53,18 @@ class SessionResponse(BaseModel):
     email: str | None = None
 
 
-def get_jwt_secret(config: Any) -> str:
-    """
-    Get JWT secret using Mastra-style priority.
-
-    Priority:
-    1. config.jwt_secret (passed in ServerConfig)
-    2. ASTRA_JWT_SECRET environment variable
-    3. Raise error if neither
-    """
-    # Try config first
-    if config:
-        secret = getattr(config, "jwt_secret", None)
-        if secret:
-            return secret
-
-    # Fallback to env var
-    secret = os.getenv("ASTRA_JWT_SECRET")
-    if secret:
-        return secret
-
-    raise ValueError(
-        "JWT secret is required. Set jwt_secret in ServerConfig or ASTRA_JWT_SECRET env var."
-    )
-
-
-def create_auth_router(registry: Any, config: Any) -> APIRouter:
+def create_auth_router(registry: Any, jwt_secret: str) -> APIRouter:
     """
     Create authentication router.
 
     Args:
         registry: Agent registry with storage access
-        config: ServerConfig with jwt_secret
+        jwt_secret: JWT secret for signing tokens
 
     Returns:
         FastAPI router with auth endpoints
     """
     router = APIRouter(prefix="/auth", tags=["auth"])
-
-    # Get JWT secret (Mastra-style: config first, env fallback)
-    jwt_secret = get_jwt_secret(config)
 
     def get_storage():
         """Get first storage instance from registry."""

@@ -1,201 +1,138 @@
 # Astra Runtime
 
-**Build AI agents in Python with the Astra Embedded Runtime.**
+🚀 **Build AI agents, teams, and RAG pipelines in pure Python.**
 
-The Astra Runtime provides a comprehensive embedded API for building intelligent agents with tools, RAG, memory, guardrails, and multi-agent teams.
+Astra Runtime provides everything you need to build intelligent AI applications:
 
-## 🚀 Quick Start
+- **Embedded Mode**: Use agents directly in your Python code
+- **Server Mode**: Deploy as REST APIs with FastAPI
 
-### Installation
+[![PyPI version](https://badge.fury.io/py/astra-runtime.svg)](https://badge.fury.io/py/astra-runtime)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Installation
 
 ```bash
 pip install astra-runtime
 ```
 
-### Basic Agent
+### Optional Dependencies
+
+```bash
+# With MongoDB support
+pip install astra-runtime[mongodb]
+
+# With AWS Bedrock support
+pip install astra-runtime[aws]
+
+# Everything
+pip install astra-runtime[all]
+```
+
+## Quick Start
+
+### Embedded Mode
 
 ```python
 import asyncio
-from astra import Agent, HuggingFaceLocal
+from astra import Agent, Gemini
+
+agent = Agent(
+    model=Gemini(model="gemini-2.0-flash"),
+    instructions="You are a helpful assistant"
+)
 
 async def main():
-    agent = Agent(
-        model=HuggingFaceLocal("Qwen/Qwen2.5-0.5B-Instruct"),
-        instructions="You are a helpful assistant"
-    )
-
-    response = await agent.invoke("What is Python?")
-    print(response)
+    response = await agent.invoke("Hello!")
+    print(response.content)
 
 asyncio.run(main())
 ```
 
-## ✨ Features
-
-- 🤖 **Agents**: Intelligent agents with tools, memory, and reasoning
-- 📚 **RAG**: Retrieval-Augmented Generation with custom pipelines
-- 🗄️ **Storage**: LibSQL (SQLite) and MongoDB backends
-- 🧠 **Memory**: Conversation history and persistent facts
-- 🛡️ **Guardrails**: PII filtering, content moderation, security
-- 🔧 **Tools**: Easy function calling and external integrations
-- 👥 **Teams**: Multi-agent collaboration and delegation
-- ⚙️ **Middlewares**: Request/response processing pipelines
-
-## 📦 What's Included
-
-### 58 Exported Components
-
-- **Core**: `Agent`, `Tool`, `tool`
-- **Models**: `Gemini`, `Bedrock`, `HuggingFaceLocal`, `get_model`
-- **Storage**: `LibSQLStorage`, `MongoDBStorage`
-- **RAG**: Complete pipeline system with stages, embedders, vector DBs
-- **Memory**: `AgentMemory`, `MemoryScope`, `PersistentFacts`
-- **Middlewares**: `InputMiddleware`, `OutputMiddleware`
-- **Guardrails**: 15+ filters and validators
-- **Teams**: `Team`, `TeamMember`, delegation tools
-
-## 📚 Examples
-
-We provide **16 comprehensive examples** covering all features:
-
-### Basic (1-8)
-
-- 01: Basic agent usage
-- 02: Background job pattern
-- 03: Streaming responses
-- 04: Agent with tools
-- 05: Agent properties
-- 06-07: RAG ingestion
-- 08: Advanced configuration
-
-### Advanced (9-16)
-
-- 09: Memory & persistent facts
-- 10: Guardrails & safety
-- 11: Middlewares
-- 12: Team delegation
-- 13: Advanced RAG
-- 14: **Full-featured production agent**
-- 15: Model provider comparison
-- 16: Storage backends
-
-See [`examples/`](examples/) directory for all examples.
-
-## 🎯 Use Cases
-
-### Chatbots & Assistants
+### Server Mode
 
 ```python
-from astra import Agent, LibSQLStorage, HuggingFaceLocal
-
-storage = LibSQLStorage(url="sqlite+aiosqlite:///./chatbot.db")
-await storage.connect()
+from astra import Agent, Gemini
+from astra.server import create_app
 
 agent = Agent(
-    model=HuggingFaceLocal("Qwen/Qwen2.5-0.5B-Instruct"),
-    instructions="You are a friendly customer support assistant",
-    storage=storage
+    name="assistant",
+    model=Gemini(model="gemini-2.0-flash"),
+    instructions="You are a helpful assistant"
 )
 
-# Conversations automatically persist
-response = await agent.invoke("Hello!", thread_id="user-123")
+app = create_app(agents={"assistant": agent})
+
+# Run with: uvicorn main:app --reload
 ```
 
-### RAG-Powered Q&A
+### With Tools
 
 ```python
-from astra import Agent, Rag, HuggingFaceEmbedder, LanceDB
+from astra import Agent, Tool, tool, Gemini
 
-embedder = HuggingFaceEmbedder()
-vector_db = LanceDB(uri="./knowledge", embedder=embedder)
-rag = Rag(context=RagContext(embedder=embedder, vector_db=vector_db))
+@tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a city."""
+    return f"The weather in {city} is sunny, 72°F"
+
+agent = Agent(
+    model=Gemini(model="gemini-2.0-flash"),
+    instructions="You are a weather assistant",
+    tools=[get_weather]
+)
+```
+
+### RAG (Retrieval-Augmented Generation)
+
+```python
+from astra import Agent, Rag, LanceDB, HuggingFaceEmbedder, Gemini
+
+# Create RAG pipeline
+rag = Rag(
+    vector_db=LanceDB(path="./my_db"),
+    embedder=HuggingFaceEmbedder()
+)
 
 # Ingest documents
-await rag.ingest("Your documentation here...")
+await rag.ingest("path/to/documents/")
 
-# Query with RAG
-agent = Agent(model=model, rag_pipeline=rag)
-response = await agent.invoke("What does the documentation say about X?")
-```
-
-### Safe Enterprise Agents
-
-```python
-from astra import Agent, InputPIIFilter, PIIAction
-
+# Create agent with RAG
 agent = Agent(
-    model=model,
-    input_guardrails=[
-        InputPIIFilter(action=PIIAction.REDACT, types=["email", "phone"])
-    ]
+    model=Gemini(model="gemini-2.0-flash"),
+    instructions="Answer questions using the provided context",
+    rag=rag
 )
-
-# PII is automatically redacted before reaching the model
-response = await agent.invoke("My email is [email protected]")
 ```
 
-## 🏗️ Architecture
+## Features
 
-Astra provides **three entry points** (embedded runtime is available now):
+| Feature           | Description                                                   |
+| ----------------- | ------------------------------------------------------------- |
+| 🤖 **Agents**     | Build intelligent agents with tools, memory, and context      |
+| 📚 **RAG**        | Retrieval-Augmented Generation with custom pipelines          |
+| 🗄️ **Storage**    | LibSQL, MongoDB, and LanceDB backends                         |
+| 🛡️ **Guardrails** | PII filtering, content moderation, prompt injection detection |
+| 🔧 **Tools**      | Easy function calling with `@tool` decorator                  |
+| 👥 **Teams**      | Multi-agent collaboration and delegation                      |
+| 🌐 **Server**     | FastAPI-based REST API with streaming support                 |
+| 💾 **Memory**     | Short-term and long-term agent memory                         |
+| 🔌 **Middleware** | Input/output processing pipelines                             |
 
-1. ✅ **Embedded Runtime** (`astra.embedded`) - Direct Python API
-2. 🔜 **Client SDK** - Connect to Astra Server
-3. 🔜 **REST/GraphQL API** - HTTP integration
+## Model Support
 
-This package provides the **Embedded Runtime** for direct Python usage.
+- **Google Gemini**: `Gemini(model="gemini-2.0-flash")`
+- **OpenAI**: `OpenAI(model="gpt-4")`
+- **AWS Bedrock**: `Bedrock(model="anthropic.claude-3")`
+- **HuggingFace Local**: `HuggingFaceLocal("Qwen/Qwen2.5-0.5B-Instruct")`
 
-## 📖 Documentation
+## Documentation
 
-- **Getting Started**: See [examples/](examples/)
-- **API Reference**: See [src/astra/embedded/README.md](src/astra/embedded/README.md)
-- **Publishing Guide**: See [PUBLISHING.md](PUBLISHING.md)
+- 📖 [Examples](https://github.com/HeeManSu/astra-agi/tree/main/packages/runtime/examples)
+- 🐛 [Issues](https://github.com/HeeManSu/astra-agi/issues)
+- 💬 [Discussions](https://github.com/HeeManSu/astra-agi/discussions)
 
-## 🧪 Testing
+## License
 
-```bash
-# Run import tests
-uv run python tests/test_imports.py
-
-# Run examples
-uv run python examples/01_basic_agent.py
-uv run python examples/14_full_featured_agent.py
-```
-
-## 🔧 Development
-
-### Setup
-
-```bash
-cd packages/runtime
-uv sync
-```
-
-### Project Structure
-
-```
-packages/runtime/
-├── src/astra/          # Source code
-│   ├── __init__.py     # Top-level exports
-│   └── embedded/       # Embedded runtime
-├── examples/           # 16 usage examples
-├── tests/              # Test files
-└── pyproject.toml      # Package configuration
-```
-
-## 📄 License
-
-[Your License Here]
-
-## 🤝 Contributing
-
-Contributions welcome! Please see our contributing guidelines.
-
-## 🔗 Links
-
-- **Homepage**: [https://github.com/yourusername/astra](https://github.com/yourusername/astra)
-- **Issues**: [https://github.com/yourusername/astra/issues](https://github.com/yourusername/astra/issues)
-- **Documentation**: [https://astra-docs.example.com](https://astra-docs.example.com)
-
----
-
-**Ready to build AI agents?** Start with our [examples](examples/)!
+MIT License - see [LICENSE](LICENSE) for details.

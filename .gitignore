@@ -28,3 +28,6 @@ jsons/
 # Node.js / JavaScript
 node_modules/
 dist/
+
+
+projects/

@@ -45,6 +45,8 @@ class HuggingFaceLocal(Model):
         device: str | None = None,
         torch_dtype: Any | None = None,
         max_new_tokens: int = 1024,
+        load_in_8bit: bool = False,
+        load_in_4bit: bool = False,
         **kwargs: Any,
     ):
         """
@@ -55,13 +57,34 @@ class HuggingFaceLocal(Model):
             device: Device to run on ("cuda", "mps", "cpu", or "auto"). Defaults to auto-detect.
             torch_dtype: Torch data type (e.g. torch.bfloat16). Defaults to auto.
             max_new_tokens: Default max tokens to generate.
+            load_in_8bit: Load model with 8-bit quantization (requires bitsandbytes). Defaults to False.
+            load_in_4bit: Load model with 4-bit quantization (requires bitsandbytes). Defaults to False.
             **kwargs: Additional arguments passed to AutoModelForCausalLM.from_pretrained
         """
         super().__init__(model_id=model_id, api_key="local", **kwargs)
         self.device = device or self._detect_device()
         self.torch_dtype = torch_dtype or "auto"
         self.max_new_tokens = max_new_tokens
-        self.model_kwargs = kwargs
+        self.load_in_8bit = load_in_8bit
+        self.load_in_4bit = load_in_4bit
+
+        # Prepare model kwargs
+        self.model_kwargs = kwargs.copy()
+        if load_in_8bit or load_in_4bit:
+            if load_in_8bit and load_in_4bit:
+                raise ValueError("Cannot use both 8-bit and 4-bit quantization simultaneously")
+            if self.device != "cuda":
+                raise ValueError(f"Quantization requires CUDA device, got {self.device}")
+            try:
+                import bitsandbytes  # type: ignore[import-untyped] # noqa: F401
+            except ImportError as err:
+                raise ImportError(
+                    "bitsandbytes is required for quantization. Install with: pip install bitsandbytes"
+                ) from err
+            if load_in_8bit:
+                self.model_kwargs["load_in_8bit"] = True
+            if load_in_4bit:
+                self.model_kwargs["load_in_4bit"] = True
 
         self._tokenizer: PreTrainedTokenizer | None = None
         self._model: PreTrainedModel | None = None
@@ -92,13 +115,25 @@ class HuggingFaceLocal(Model):
                 )
                 self._model.to(torch.device("cpu"))  # type: ignore
             else:
+                # For quantization, device_map="auto" is required
+                device_map = (
+                    "auto"
+                    if (self.load_in_8bit or self.load_in_4bit or self.device != "mps")
+                    else None
+                )
                 self._model = AutoModelForCausalLM.from_pretrained(
                     self.model_id,
-                    dtype=self.torch_dtype,
-                    device_map="auto" if self.device != "mps" else None,
+                    dtype=self.torch_dtype
+                    if not (self.load_in_8bit or self.load_in_4bit)
+                    else None,
+                    device_map=device_map,
                     **self.model_kwargs,
                 )
-                if self.device == "mps" and not getattr(self._model, "is_loaded_in_8bit", False):
+                if (
+                    self.device == "mps"
+                    and not getattr(self._model, "is_loaded_in_8bit", False)
+                    and not getattr(self._model, "is_loaded_in_4bit", False)
+                ):
                     self._model.to(torch.device("mps"))  # type: ignore
 
             logger.info(f"Model loaded in {time.perf_counter() - start:.2f}s")
@@ -267,13 +302,18 @@ class HuggingFaceLocal(Model):
 
         input_len = inputs.input_ids.shape[1]
 
+        # Filter out kwargs that transformers.generate() doesn't accept
+        # These are Agent-specific parameters (stream, thread_id, etc.)
+        unsupported_kwargs = {"stream", "thread_id", "response_format"}
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k not in unsupported_kwargs}
+
         # Generate
         outputs = self._model.generate(  # type: ignore
             **inputs,
             max_new_tokens=max_tokens or self.max_new_tokens,
             temperature=temperature,
             do_sample=temperature > 0,
-            **kwargs,
+            **filtered_kwargs,
         )
 
         # Decode only the new tokens
@@ -353,13 +393,18 @@ class HuggingFaceLocal(Model):
 
         streamer = TextIteratorStreamer(self._tokenizer, skip_prompt=True, skip_special_tokens=True)  # type: ignore
 
+        # Filter out kwargs that transformers.generate() doesn't accept
+        # These are Agent-specific parameters (stream, thread_id, etc.)
+        unsupported_kwargs = {"stream", "thread_id", "response_format"}
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k not in unsupported_kwargs}
+
         generation_kwargs = dict(
             **inputs,
             streamer=streamer,
             max_new_tokens=max_tokens or self.max_new_tokens,
             temperature=temperature,
             do_sample=temperature > 0,
-            **kwargs,
+            **filtered_kwargs,
         )
 
         # Run generation in a separate thread to allow streaming

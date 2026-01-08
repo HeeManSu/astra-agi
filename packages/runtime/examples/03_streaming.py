@@ -2,8 +2,7 @@
 
 import asyncio
 
-from astra import Agent
-from astra import HuggingFaceLocal
+from astra import Agent, HuggingFaceLocal
 
 
 async def main():

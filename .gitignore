@@ -20,8 +20,10 @@ packages/framework/markdowns
 .cursorrules
 benchmarks.txt
 random.txt
-# *.md
+*.md
 *.db
+jsons/
+*.txt
 
 # Node.js / JavaScript
 node_modules/

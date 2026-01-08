@@ -2,62 +2,64 @@
 Test Server for Playground API Testing
 
 This server creates multiple test agents for testing and debugging
-the Astra Playground API endpoints, especially `/api/playground/agents`.
+the Astra Playground API endpoints, especially `/api/v1/agents`.
+
+Uses local Hugging Face models (Qwen2.5-1.5B-Instruct) for cost-free testing.
+Models will be downloaded on first run (~1.5GB each).
 
 Run with:
-    python examples/test_server/main.py
+    cd packages/runtime
+    uv run --package astra-runtime python examples/test_server/main.py
 
 Or use VS Code debugger with "Python: Test Server - Playground API" configuration.
 
+Requirements:
+    - transformers
+    - torch
+    - accelerate (optional, for better GPU support)
+
 Access:
     - API Docs: http://127.0.0.1:8000/docs
-    - Playground Agents: http://127.0.0.1:8000/api/playground/agents
+    - Playground Agents: http://127.0.0.1:8000/api/v1/agents
     - Playground UI: http://127.0.0.1:8000/
 """
 
 import os
 from pathlib import Path
-import sys
+
+from dotenv import load_dotenv
 
 
-# Load environment variables from .env file (if present)
-# Looks for .env in current directory and parent directories
-try:
-    from dotenv import load_dotenv
+load_dotenv()
 
-    load_dotenv()
-except ImportError:
-    # python-dotenv not installed, skip .env loading
-    pass
+# PYTHONPATH Setup for Uvicorn Reload
+#
+# WHY THIS IS NEEDED:
+# When using `uv run --package astra-runtime`, uv automatically resolves
+# workspace dependencies for the main process. However, uvicorn's reload feature
+# spawns a subprocess that needs to import "examples.test_server.main:app" as a module.
+# The subprocess needs runtime_dir in PYTHONPATH to find the "examples" package.
+#
+# This is REQUIRED for uvicorn reload to work correctly, regardless of how
+# we run the script (uv run or python directly).
 
-# Add framework and runtime src to path to use inbuilt packages
 current_dir = Path(__file__).parent
 runtime_dir = current_dir.parent.parent
-framework_dir = runtime_dir.parent / "framework"
-workspace_root = runtime_dir.parent.parent
-
-# Add paths in order of priority (local packages first)
-sys.path.insert(0, str(framework_dir / "src"))
-sys.path.insert(0, str(runtime_dir / "src"))
-sys.path.insert(0, str(workspace_root))
-sys.path.insert(0, str(runtime_dir / "examples"))
 
 # Set PYTHONPATH environment variable for uvicorn reload subprocess
-# This must be done at module level, before any imports that uvicorn reload will use
-# For "examples.test_server.main:app" to work, we need runtime_dir in PYTHONPATH
-# (not just examples_dir), so Python can import "examples" as a package
 runtime_path = str(runtime_dir)
 pythonpath = os.environ.get("PYTHONPATH", "")
 if runtime_path not in pythonpath:
     os.environ["PYTHONPATH"] = f"{runtime_path}:{pythonpath}" if pythonpath else runtime_path
 
-from astra.server import AstraServer
-from framework.agents.agent import Agent
-from framework.agents.tool import tool
-from framework.models.aws.bedrock import Bedrock
-from framework.models.google.gemini import Gemini
-from framework.storage.databases.mongodb import MongoDBStorage
-import uvicorn
+# Imports - uv run automatically resolves workspace dependencies
+# These must come after PYTHONPATH setup for uvicorn reload to work
+from astra.server import AstraServer  # noqa: E402
+from framework.agents.agent import Agent  # noqa: E402
+from framework.agents.tool import tool  # noqa: E402
+from framework.models.huggingface.local import HuggingFaceLocal  # noqa: E402
+from framework.storage.databases.mongodb import MongoDBStorage  # noqa: E402
+import uvicorn  # noqa: E402
 
 
 @tool
@@ -89,7 +91,7 @@ print("Creating agent 1...")
 agent1 = Agent(
     name="Agent 1",
     id="agent-1",
-    model=Gemini("gemini-2.5-flash"),
+    model=HuggingFaceLocal("Qwen/Qwen2.5-1.5B-Instruct"),
     instructions="You are a helpful assistant that provides clear and concise answers.",
     description="A simple assistant agent with no tools or storage",
 )
@@ -97,7 +99,7 @@ agent1 = Agent(
 agent2 = Agent(
     name="Agent 2",
     id="agent-2",
-    model=Gemini("gemini-2.5-flash"),
+    model=HuggingFaceLocal("Qwen/Qwen2.5-1.5B-Instruct"),
     instructions="You are a helpful assistant that can perform calculations and get weather information.",
     description="An agent with multiple tools for testing",
     tools=[calculator, get_weather],
@@ -112,7 +114,7 @@ print("Creating agent 3...")
 agent3 = Agent(
     name="Agent 3",
     id="agent-3",
-    model=Gemini("gemini-2.5-flash"),
+    model=HuggingFaceLocal("Qwen/Qwen2.5-1.5B-Instruct"),
     instructions="You are a helpful assistant that can perform calculations and get weather information.",
     description="An agent with multiple tools for testing",
     tools=[calculator, get_weather],
@@ -123,10 +125,7 @@ print("Creating agent 4...")
 agent4 = Agent(
     name="Agent 4",
     id="agent-4",
-    model=Bedrock(
-        model_id="apac.amazon.nova-pro-v1:0",
-        aws_region="ap-south-1",
-    ),
+    model=HuggingFaceLocal("Qwen/Qwen2.5-1.5B-Instruct"),
     instructions="You are a financial advisor that can provide financial advice and investment recommendations.",
     description="An agent that can provide financial advice and investment recommendations.",
 )
@@ -185,3 +184,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Create one more detailed test server.
+# Create all the agents related cases to test with the new server

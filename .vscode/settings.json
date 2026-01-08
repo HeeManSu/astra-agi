@@ -1,9 +1,27 @@
 {
   "cSpell.words": [
     "asyncio",
+    "awsrequest",
+    "BAAI",
+    "checkpw",
+    "chunker",
+    "distilgpt",
+    "dotenv",
+    "Embedder",
+    "embedders",
     "executemany",
+    "fastapi",
     "jsons",
-    "MASTRA"
+    "lancedb",
+    "mpnet",
+    "multimodal",
+    "onupdate",
+    "Qwen",
+    "redoc",
+    "Reranker",
+    "Smol",
+    "vectordb",
+    "مرحبا"
   ],
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.terminal.activateEnvironment": true,

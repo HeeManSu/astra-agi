@@ -23,8 +23,8 @@ export function AgentInformation({
   }
 
   return (
-    <aside className="hidden lg:flex w-[300px] border-l border-border overflow-auto transition-all duration-300">
-      <div className="p-4 space-y-6">
+    <aside className="hidden lg:flex w-[300px] h-full flex-col border-l border-border transition-all duration-300">
+      <div className="flex-1 overflow-auto p-4 space-y-6">
         {/* Agent Info */}
         <div>
           <div className="flex items-center gap-2 mb-2">

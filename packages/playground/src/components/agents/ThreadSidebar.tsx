@@ -46,7 +46,7 @@ export function ThreadSidebar({
   }
 
   return (
-    <aside className="hidden md:flex w-[220px] flex-col border-r border-border transition-all duration-300">
+    <aside className="hidden md:flex w-[220px] h-full flex-col border-r border-border transition-all duration-300">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1 border-b border-border px-4 py-3 text-sm">
         <Link

@@ -67,8 +67,18 @@ aws = [
     "boto3>=1.35.0",
     "aioboto3>=12.0.0",
 ]
+content-research = [
+    # Web scraping and search
+    "duckduckgo-search>=6.0.0",
+    "beautifulsoup4>=4.12.0",
+    "httpx>=0.26.0",
+    # News API (optional - requires NEWS_API_KEY env var)
+    "newsapi-python>=0.2.7",
+    # Readability analysis (optional)
+    "readability-lxml>=0.8.1",
+]
 all = [
-    "astra-runtime[mongodb,aws]",
+    "astra-runtime[mongodb,aws,content-research]",
 ]
 
 [build-system]

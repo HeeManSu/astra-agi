@@ -125,10 +125,6 @@ def get_model() -> HuggingFaceLocal:
         print(f"Quantization: 8-bit={LOAD_IN_8BIT}, 4-bit={LOAD_IN_4BIT}")
 
         model_kwargs: dict[str, Any] = {}
-        if LOAD_IN_8BIT:
-            model_kwargs["load_in_8bit"] = True
-        if LOAD_IN_4BIT:
-            model_kwargs["load_in_4bit"] = True
 
         _model = HuggingFaceLocal(
             model_id=MODEL_ID,

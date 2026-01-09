@@ -17,6 +17,7 @@ members = [
 [manifest.dependency-groups]
 dev = [
     { name = "debugpy", specifier = ">=1.8.17" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "ruff", specifier = ">=0.14.6" },
 ]
 

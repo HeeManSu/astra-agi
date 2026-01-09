@@ -1,3 +1,11 @@
+"""
+Benchmark tests for Finance Benchmarks.
+
+Test Cases:
+1. test_complex_agent_initialization_benchmark - Benchmark complex agent initialization with 4 tools.
+2. test_complex_agent_with_10_tools_benchmark - Benchmark agent initialization with 10 tools.
+"""
+
 from framework import Agent, tool
 from framework.models.google.gemini import Gemini
 import pytest

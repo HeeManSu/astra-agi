@@ -23,7 +23,7 @@ class PIIBase:
 
     # Regex patterns for common PII
     PATTERNS: ClassVar[dict[str, str]] = {
-        "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+        "email": r".+@.+\..+",
         "phone": r"\b(\+?1?[-.]?)?\(?[2-9]\d{2}\)?[-.]?\d{3}[-.]?\d{4}\b",
         "credit_card": r"\b(?:\d[ -]*?){13,16}\b",
         "ssn": r"\b\d{3}-\d{2}-\d{4}\b",

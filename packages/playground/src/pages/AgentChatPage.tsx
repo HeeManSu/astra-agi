@@ -13,7 +13,11 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
+  Check,
+  Copy,
+  AlertCircle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -38,16 +42,263 @@ import { AgentInformation } from "@/components/agents/AgentInformation";
 import { ResizeHandle } from "@/components/agents/ResizeHandle";
 
 /**
- * Message bubble component
+ * Tool call interface for streaming
+ */
+interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  result?: unknown;
+  status: "pending" | "running" | "completed" | "error";
+}
+
+/**
+ * Parse thinking content from message
+ */
+function parseThinking(content: string): {
+  thinking: string | null;
+  mainContent: string;
+} {
+  const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/);
+  const thinking = thinkingMatch ? thinkingMatch[1].trim() : null;
+  const mainContent = content
+    .replace(/<thinking>[\s\S]*?<\/thinking>/g, "")
+    .trim();
+  return { thinking, mainContent };
+}
+
+/**
+ * Highlight tool names in text
+ */
+function highlightToolNames(text: string): string {
+  return text.replace(
+    /`?([a-zA-Z_][a-zA-Z0-9_]*(?:Tool|Scraper|Search|API))`?/g,
+    '<span class="inline-block px-1.5 py-0.5 mx-0.5 rounded bg-[#252525] font-mono text-xs border border-[#444] text-white">$1</span>'
+  );
+}
+
+/**
+ * ToolCallDropdown - Collapsible tool call display
+ */
+function ToolCallDropdown({ toolCall }: { toolCall: ToolCall }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copiedArgs, setCopiedArgs] = useState(false);
+  const [copiedResult, setCopiedResult] = useState(false);
+
+  const handleCopy = async (text: string, type: "args" | "result") => {
+    await navigator.clipboard.writeText(text);
+    if (type === "args") {
+      setCopiedArgs(true);
+      setTimeout(() => setCopiedArgs(false), 2000);
+    } else {
+      setCopiedResult(true);
+      setTimeout(() => setCopiedResult(false), 2000);
+    }
+  };
+
+  const argsJson = JSON.stringify(toolCall.arguments, null, 2);
+  const resultJson = toolCall.result
+    ? JSON.stringify(toolCall.result, null, 2)
+    : null;
+
+  return (
+    <div className="my-2">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
+          "bg-[#1a1a1a] hover:bg-[#252525] border border-[#333]",
+          toolCall.status === "running" && "animate-pulse",
+          toolCall.status === "error" && "border-red-900 bg-red-950/20"
+        )}
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        )}
+        {toolCall.status === "error" ? (
+          <AlertCircle className="h-3 w-3 text-red-500" />
+        ) : (
+          <Sparkles className="h-3 w-3 text-amber-500" />
+        )}
+        <span
+          className={cn(
+            "font-mono text-xs",
+            toolCall.status === "error" ? "text-red-400" : "text-foreground"
+          )}
+        >
+          {toolCall.name}
+        </span>
+        {toolCall.status === "running" && (
+          <span className="text-xs text-muted-foreground ml-2">running...</span>
+        )}
+        {toolCall.status === "error" && (
+          <span className="text-xs text-red-500 ml-2">failed</span>
+        )}
+      </button>
+
+      {isExpanded && (
+        <div className="mt-2 ml-4 space-y-3 border-l-2 border-[#333] pl-4">
+          {/* Tool Arguments */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                Tool arguments
+              </span>
+              <button
+                onClick={() => handleCopy(argsJson, "args")}
+                className="p-1 hover:bg-[#252525] rounded transition-colors"
+              >
+                {copiedArgs ? (
+                  <Check className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Copy className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+            <pre className="bg-[#0a0a0a] rounded-md p-3 text-xs font-mono overflow-x-auto border border-[#222]">
+              <code className="text-[#e6db74]">{argsJson}</code>
+            </pre>
+          </div>
+
+          {/* Tool Result */}
+          {resultJson && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Tool result
+                </span>
+                <button
+                  onClick={() => handleCopy(resultJson, "result")}
+                  className="p-1 hover:bg-[#252525] rounded transition-colors"
+                >
+                  {copiedResult ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+              <pre
+                className={cn(
+                  "bg-[#0a0a0a] rounded-md p-3 text-xs font-mono overflow-x-auto max-h-64 border",
+                  toolCall.status === "error"
+                    ? "border-red-900 bg-red-950/10"
+                    : "border-[#222]"
+                )}
+              >
+                <code
+                  className={cn(
+                    toolCall.status === "error"
+                      ? "text-red-400"
+                      : "text-[#e6db74]"
+                  )}
+                >
+                  {resultJson}
+                </code>
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Collapsible thinking section - shows "Thought for Xs" when collapsed
+ */
+function ThinkingSection({
+  thinking,
+  toolCalls,
+  isComplete,
+  thinkingDuration,
+}: {
+  thinking: string | null;
+  toolCalls: ToolCall[];
+  isComplete: boolean;
+  thinkingDuration: number;
+}) {
+  const [isExpanded, setIsExpanded] = useState(!isComplete);
+
+  // Auto-collapse when thinking becomes complete
+  useEffect(() => {
+    if (isComplete) {
+      setIsExpanded(false);
+    }
+  }, [isComplete]);
+
+  const hasThinkingContent = thinking || toolCalls.length > 0;
+  if (!hasThinkingContent) return null;
+
+  const durationText =
+    thinkingDuration > 0
+      ? `Thought for ${Math.ceil(thinkingDuration / 1000)}s`
+      : "Thinking...";
+
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={cn(
+          "flex items-center gap-2 text-sm transition-colors",
+          "text-muted-foreground hover:text-foreground"
+        )}
+      >
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+        <span>{isComplete ? durationText : "Thinking..."}</span>
+      </button>
+
+      {isExpanded && (
+        <div className="mt-3 pl-6 border-l-2 border-[#333] space-y-3">
+          {/* Thinking text */}
+          {thinking && (
+            <div className="text-foreground/70 text-sm">
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: highlightToolNames(thinking),
+                }}
+              />
+            </div>
+          )}
+
+          {/* Tool Calls */}
+          {toolCalls.length > 0 && (
+            <div className="space-y-2">
+              {toolCalls.map((tc) => (
+                <ToolCallDropdown key={tc.id} toolCall={tc} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Message bubble component with collapsible thinking section
  */
 function MessageBubble({
   message,
   isThinking = false,
+  toolCalls = [],
+  isComplete = true,
+  thinkingDuration = 0,
 }: {
   message: { id: string; role: string; content: string };
   isThinking?: boolean;
+  toolCalls?: ToolCall[];
+  isComplete?: boolean;
+  thinkingDuration?: number;
 }) {
   const isUser = message.role === "user";
+  const { thinking, mainContent } = parseThinking(message.content);
 
   return (
     <div className={cn("flex gap-3", isUser && "justify-end")}>
@@ -58,14 +309,13 @@ function MessageBubble({
       )}
       <div
         className={cn(
-          "max-w-[70%] rounded-lg px-4 py-2",
-          isUser ? "bg-primary text-primary-foreground" : "bg-secondary",
-          isThinking && "opacity-70"
+          "max-w-[80%] rounded-lg px-4 py-3",
+          isUser ? "bg-primary text-primary-foreground" : "bg-transparent"
         )}
       >
         {isUser ? (
           <p className="text-sm">{message.content}</p>
-        ) : isThinking ? (
+        ) : isThinking && !message.content && toolCalls.length === 0 ? (
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
             <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse delay-75" />
@@ -75,8 +325,23 @@ function MessageBubble({
             </span>
           </div>
         ) : (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+          <div>
+            {/* Collapsible Thinking Section */}
+            {(thinking || toolCalls.length > 0) && (
+              <ThinkingSection
+                thinking={thinking}
+                toolCalls={toolCalls}
+                isComplete={isComplete}
+                thinkingDuration={thinkingDuration}
+              />
+            )}
+
+            {/* Main Content */}
+            {mainContent && (
+              <div className="prose prose-invert prose-sm max-w-none">
+                <ReactMarkdown>{mainContent}</ReactMarkdown>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -113,6 +378,11 @@ function ChatContent({
     string | null
   >(null);
   const [streamingCompleted, setStreamingCompleted] = useState(false);
+  const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCall[]>([]);
+  const [thinkingStartTime, setThinkingStartTime] = useState<number | null>(
+    null
+  );
+  const [thinkingDuration, setThinkingDuration] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages } = useMessages(threadId || undefined);
@@ -134,8 +404,19 @@ function ChatContent({
       setIsStreaming(false);
       setIsThinking(false);
       setStreamingCompleted(false); // Reset for next message
+      setStreamingToolCalls([]); // Clear tool calls too
     }
   }, [shouldHideStreamingContent, streamingContent]);
+
+  // Reset state on thread change
+  useEffect(() => {
+    setStreamingContent("");
+    setIsStreaming(false);
+    setIsThinking(false);
+    setStreamingCompleted(false);
+    setStreamingToolCalls([]);
+    setOptimisticUserMessage(null);
+  }, [threadId]);
 
   // Clear optimistic user message when it appears in fetched messages
   useEffect(() => {
@@ -195,6 +476,9 @@ function ChatContent({
       if (streamEnabled) {
         // Streaming mode
         setIsThinking(true);
+        setStreamingToolCalls([]);
+        setThinkingStartTime(Date.now());
+        setThinkingDuration(0);
         let fullContent = "";
 
         for await (const event of streamAgentResponse(agentId, request)) {
@@ -205,9 +489,48 @@ function ChatContent({
             const content = (event.data as { content?: string }).content || "";
             fullContent += content;
             setStreamingContent(fullContent);
+          } else if (event.type === "tool_start") {
+            // Add new tool call with running status
+            const data = event.data as {
+              tool_name: string;
+              tool_id: string;
+              arguments: Record<string, unknown>;
+            };
+            setStreamingToolCalls((prev) => [
+              ...prev,
+              {
+                id: data.tool_id,
+                name: data.tool_name,
+                arguments: data.arguments,
+                status: "running",
+              },
+            ]);
+          } else if (event.type === "tool_result") {
+            // Update tool call with result
+            const data = event.data as {
+              tool_name: string;
+              tool_id: string;
+              result: unknown;
+              success: boolean;
+            };
+            setStreamingToolCalls((prev) =>
+              prev.map((tc) =>
+                tc.id === data.tool_id
+                  ? {
+                      ...tc,
+                      result: data.result,
+                      status: data.success ? "completed" : "error",
+                    }
+                  : tc
+              )
+            );
           } else if (event.type === "done") {
             setIsThinking(false);
             setStreamingCompleted(true); // Mark streaming as completed
+            // Calculate thinking duration
+            if (thinkingStartTime) {
+              setThinkingDuration(Date.now() - thinkingStartTime);
+            }
             break;
           } else if (event.type === "error") {
             const error =
@@ -262,27 +585,35 @@ function ChatContent({
         )}
 
         {/* Show thinking indicator only if we're thinking and don't have streaming content yet */}
-        {isThinking && !streamingContent && !shouldHideStreamingContent && (
-          <MessageBubble
-            message={{
-              id: "thinking",
-              role: "assistant",
-              content: "Thinking...",
-            }}
-            isThinking={true}
-          />
-        )}
+        {isThinking &&
+          !streamingContent &&
+          !shouldHideStreamingContent &&
+          streamingToolCalls.length === 0 && (
+            <MessageBubble
+              message={{
+                id: "thinking",
+                role: "assistant",
+                content: "",
+              }}
+              isThinking={true}
+            />
+          )}
 
-        {/* Show streaming content only if we don't have the assistant response saved yet */}
-        {streamingContent && !shouldHideStreamingContent && (
-          <MessageBubble
-            message={{
-              id: "streaming",
-              role: "assistant",
-              content: streamingContent,
-            }}
-          />
-        )}
+        {/* Show streaming content or tool calls if we don't have the assistant response saved yet */}
+        {(streamingContent || streamingToolCalls.length > 0) &&
+          !shouldHideStreamingContent && (
+            <MessageBubble
+              message={{
+                id: "streaming",
+                role: "assistant",
+                content: streamingContent,
+              }}
+              toolCalls={streamingToolCalls}
+              isThinking={isThinking && !streamingContent}
+              isComplete={streamingCompleted}
+              thinkingDuration={thinkingDuration}
+            />
+          )}
         <div ref={messagesEndRef} />
       </div>
 

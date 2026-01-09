@@ -93,5 +93,6 @@ show_error_codes = true
 [dependency-groups]
 dev = [
     "ruff>=0.14.6",
-    "debugpy>=1.8.17",  # For IDE debugging support
+    "debugpy>=1.8.17", # For IDE debugging support
+    "pytest-cov>=7.0.0",
 ]

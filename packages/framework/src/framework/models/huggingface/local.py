@@ -61,15 +61,18 @@ class HuggingFaceLocal(Model):
             load_in_4bit: Load model with 4-bit quantization (requires bitsandbytes). Defaults to False.
             **kwargs: Additional arguments passed to AutoModelForCausalLM.from_pretrained
         """
-        super().__init__(model_id=model_id, api_key="local", **kwargs)
+        super().__init__(model_id=model_id, api_key="local")
         self.device = device or self._detect_device()
         self.torch_dtype = torch_dtype or "auto"
         self.max_new_tokens = max_new_tokens
         self.load_in_8bit = load_in_8bit
         self.load_in_4bit = load_in_4bit
 
-        # Prepare model kwargs
-        self.model_kwargs = kwargs.copy()
+        # Prepare model kwargs - exclude quantization args to avoid duplicates
+        self.model_kwargs = {
+            k: v for k, v in kwargs.items() if k not in ("load_in_8bit", "load_in_4bit")
+        }
+
         if load_in_8bit or load_in_4bit:
             if load_in_8bit and load_in_4bit:
                 raise ValueError("Cannot use both 8-bit and 4-bit quantization simultaneously")

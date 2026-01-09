@@ -148,7 +148,7 @@ def create_agents_router(registry: AgentRegistry) -> APIRouter:
             raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
 
         async def event_generator() -> AsyncIterator[str]:
-            """Generate SSE events."""
+            """Generate SSE events with tool call support."""
             try:
                 # Extract message (required)
                 message = request.get("message")
@@ -172,11 +172,34 @@ def create_agents_router(registry: AgentRegistry) -> APIRouter:
                 if hasattr(agent, "stream"):
                     # Use native stream method
                     async for chunk in agent.stream(message, **invoke_kwargs):
-                        data = {"content": str(chunk)}
-                        yield f"event: token\ndata: {json.dumps(data)}\n\n"
+                        chunk_str = str(chunk)
+
+                        # Check if this is a StreamEvent (tool-related)
+                        if hasattr(chunk, "event_type"):
+                            event_type = chunk.event_type
+                            if event_type == "tool_start":
+                                data = {
+                                    "tool_name": chunk.tool_name,
+                                    "tool_id": chunk.tool_id,
+                                    "arguments": chunk.arguments,
+                                }
+                                yield f"event: tool_start\ndata: {json.dumps(data)}\n\n"
+                            elif event_type == "tool_result":
+                                data = {
+                                    "tool_name": chunk.tool_name,
+                                    "tool_id": chunk.tool_id,
+                                    "result": chunk.result,
+                                    "success": chunk.success,
+                                }
+                                yield f"event: tool_result\ndata: {json.dumps(data)}\n\n"
+                            continue
+
+                        # Regular content token
+                        if chunk_str:
+                            data = {"content": chunk_str}
+                            yield f"event: token\ndata: {json.dumps(data)}\n\n"
 
                     # Ensure messages are flushed to storage after streaming completes
-                    # AgentStorage uses SaveQueueManager with debouncing, so we need to flush
                     if thread_id and hasattr(agent, "storage") and agent.storage:
                         if hasattr(agent.storage, "queue"):
                             await agent.storage.queue.flush()

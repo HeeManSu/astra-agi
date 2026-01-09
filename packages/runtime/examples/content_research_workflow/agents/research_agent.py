@@ -2,7 +2,6 @@
 Research Agent - Web research and information gathering.
 """
 
-from examples.content_research_workflow.ai_models.huggingface_model import get_model
 from examples.content_research_workflow.db import db
 from examples.content_research_workflow.middlewares import InputContentSanitizer, OutputFormatter
 from examples.content_research_workflow.tools.research_agent import (
@@ -13,13 +12,15 @@ from examples.content_research_workflow.tools.research_agent import (
 )
 from framework.agents.agent import Agent
 from framework.memory import AgentMemory
+from framework.models.google.gemini import Gemini
 
 
 research_agent = Agent(
     id="research-agent",
     name="Research Agent",
     description="Specialized agent for gathering comprehensive information from web sources",
-    model=get_model(),
+    # model=get_model(),
+    model=Gemini("gemini-2.5-flash"),
     instructions="""
 You are a research specialist focused on gathering accurate, comprehensive information.
 

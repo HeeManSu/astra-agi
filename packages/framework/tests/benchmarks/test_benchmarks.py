@@ -1,17 +1,27 @@
 """
-Benchmark tests for Astra Framework.
+Benchmark tests for Benchmarks.
 
-Performance targets:
-- Agent instantiation: <5μs (target: 3-4μs)
-- Memory footprint: <10KB per agent
-- Batch 1000 agents: <5ms total
-- Agent with 10 tools: <10μs
-
-Run with:
-    pytest tests/benchmarks/ -v --benchmark-only
-    pytest tests/benchmarks/ --benchmark-only --benchmark-verbose
+Test Cases:
+1. test_agent_instantiation_time - Benchmark: Agent instantiation time.
+    Target: <5μs (ideally 3-4μs)
+2. test_agent_instantiation_with_all_params - Benchmark: Agent with all parameters.
+    Target: <10μs
+3. test_agent_memory_footprint - Benchmark: Agent memory footprint.
+    Target: <10KB per agent
+4. test_agent_repr - Benchmark: Agent __repr__ performance.
+    Should be very fast with minimal representation.
+5. test_agent_with_tools_instantiation - Benchmark: Agent with 10 tools.
+    Target: <10μs
+6. test_batch_agent_creation_1000 - Benchmark: Create 1000 agents.
+    Target: <5ms total (5μs per agent)
+7. test_lazy_context_access - Benchmark: Accessing context property (lazy initialization).
+8. test_lazy_tools_schema_access - Benchmark: Accessing tools_schema property (lazy computation).
+    This should be fast on first access and cached thereafter.
+9. test_model_instantiation - Benchmark: Gemini model instantiation.
+    Target: <5μs
+10. test_tool_creation_benchmark - Benchmark: Tool creation time.
+    Target: <1μs per tool
 """
-
 import sys
 
 from framework.agents.agent import Agent

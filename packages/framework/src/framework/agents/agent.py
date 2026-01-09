@@ -19,7 +19,12 @@ from typing import Any
 import uuid
 
 from framework.agents.exceptions import ModelError, RetryExhaustedError, ToolError, ValidationError
-from framework.agents.execution import ExecutionContext, execute_tool_parallel
+from framework.agents.execution import (
+    ExecutionContext,
+    ToolResultEvent,
+    ToolStartEvent,
+    execute_tool_parallel,
+)
 from framework.agents.retry import RetryConfig, retry_with_backoff
 from framework.agents.tool import Tool, tool
 from framework.astra import AstraContext
@@ -1123,7 +1128,7 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         max_tokens: int | None = None,
         tools: list[Any] | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | ToolStartEvent | ToolResultEvent]:
         self._validate_invoke_params(
             message=message, temperature=temperature, max_tokens=max_tokens
         )
@@ -1229,8 +1234,30 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                     tool_calls=accumulated_tool_calls,
                 )
 
+            # Emit tool start events for each tool call
+            for tc in accumulated_tool_calls:
+                func = tc.get("function", {})
+                tool_name = func.get("name", "unknown")
+                tool_id = tc.get("id", f"call_{uuid.uuid4().hex[:8]}")
+                try:
+                    arguments = json.loads(func.get("arguments", "{}"))
+                except json.JSONDecodeError:
+                    arguments = {}
+                yield ToolStartEvent(tool_name=tool_name, tool_id=tool_id, arguments=arguments)
+
             # Execute tools and continue loop
             tool_results = await self._execute_tools(accumulated_tool_calls, context)
+
+            # Emit tool result events for each result
+            for idx, tr in enumerate(tool_results):
+                tool_name = tr.get("tool", "unknown")
+                tc = accumulated_tool_calls[idx] if idx < len(accumulated_tool_calls) else {}
+                tool_id = tc.get("id", f"call_{idx}")
+                result = tr.get("result") or tr.get("error", "")
+                success = tr.get("success", True)
+                yield ToolResultEvent(
+                    tool_name=tool_name, tool_id=tool_id, result=result, success=success
+                )
 
             # Add assistant message with tool calls
             messages.append(

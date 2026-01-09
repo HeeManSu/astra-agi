@@ -155,7 +155,16 @@ export async function* streamAgentResponse(
   agentId: string,
   request: GenerateRequest
 ): AsyncGenerator<
-  { type: "thinking" | "token" | "done" | "error"; data: unknown },
+  {
+    type:
+      | "thinking"
+      | "token"
+      | "done"
+      | "error"
+      | "tool_start"
+      | "tool_result";
+    data: unknown;
+  },
   void,
   unknown
 > {
@@ -198,7 +207,13 @@ export async function* streamAgentResponse(
         try {
           const data = JSON.parse(dataStr);
           yield {
-            type: currentEvent as "thinking" | "token" | "done" | "error",
+            type: currentEvent as
+              | "thinking"
+              | "token"
+              | "done"
+              | "error"
+              | "tool_start"
+              | "tool_result",
             data,
           };
           currentEvent = null;

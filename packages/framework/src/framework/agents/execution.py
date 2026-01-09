@@ -34,6 +34,54 @@ class ExecutionContext:
             self.tool_results = []
 
 
+@dataclass
+class StreamEvent:
+    """Base class for stream events (tool calls, etc)."""
+
+    event_type: str
+
+    def __str__(self) -> str:
+        return f"[{self.event_type}]"
+
+
+@dataclass
+class ToolStartEvent(StreamEvent):
+    """Event emitted when a tool starts executing."""
+
+    tool_name: str
+    tool_id: str
+    arguments: dict[str, Any]
+
+    def __init__(self, tool_name: str, tool_id: str, arguments: dict[str, Any]):
+        super().__init__(event_type="tool_start")
+        self.tool_name = tool_name
+        self.tool_id = tool_id
+        self.arguments = arguments
+
+    def __str__(self) -> str:
+        return ""
+
+
+@dataclass
+class ToolResultEvent(StreamEvent):
+    """Event emitted when a tool completes execution."""
+
+    tool_name: str
+    tool_id: str
+    result: Any
+    success: bool
+
+    def __init__(self, tool_name: str, tool_id: str, result: Any, success: bool = True):
+        super().__init__(event_type="tool_result")
+        self.tool_name = tool_name
+        self.tool_id = tool_id
+        self.result = result
+        self.success = success
+
+    def __str__(self) -> str:
+        return ""
+
+
 def validate_tool_arguments(tool: Any, arguments: dict[str, Any]) -> None:
     """
     Validate tool arguments against schema.

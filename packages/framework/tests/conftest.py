@@ -16,6 +16,8 @@ import uuid
 
 from framework.agents import Agent, tool
 from framework.models.huggingface import HuggingFaceLocal, HuggingFaceRemote
+from framework.storage.databases.libsql import LibSQLStorage
+from framework.storage.memory import AgentStorage
 import pytest
 
 
@@ -116,6 +118,38 @@ def temp_db_path():
 def unique_session_id():
     """Generates a unique session ID for each test."""
     return f"test_session_{uuid.uuid4().hex[:8]}"
+
+
+@pytest.fixture
+async def storage_backend(temp_db_path):
+    """
+    Creates a temporary LibSQL storage backend for testing.
+
+    Usage:
+        async def test_something(storage_backend):
+            await storage_backend.connect()
+            # ... use storage ...
+            await storage_backend.disconnect()
+    """
+    storage = LibSQLStorage(url=f"sqlite+aiosqlite:///{temp_db_path}")
+    await storage.connect()
+    yield storage
+    await storage.disconnect()
+
+
+@pytest.fixture
+async def agent_storage(storage_backend):
+    """
+    Creates an AgentStorage instance for testing.
+
+    Usage:
+        async def test_something(agent_storage):
+            thread = await agent_storage.create_thread(thread_id="test_thread")
+            await agent_storage.add_message("test_thread", "user", "Hello")
+    """
+    storage = AgentStorage(storage=storage_backend, max_messages=100)
+    yield storage
+    await storage.stop()
 
 
 # Agent Fixtures

@@ -94,14 +94,15 @@ class MongoDBStorage(StorageBackend):
         await message_collection.create_index("created_at")
         await message_collection.create_index("deleted_at")
 
-        # astra_facts indexes (for LTM/PersistentFacts)
-        facts_collection = self._db["astra_facts"]
-        await facts_collection.create_index("id", unique=True)
-        await facts_collection.create_index([("key", 1), ("scope", 1), ("scope_id", 1)])
-        await facts_collection.create_index([("scope", 1), ("scope_id", 1)])
-        await facts_collection.create_index("created_at")
-        await facts_collection.create_index("deleted_at")
-        await facts_collection.create_index("expires_at")
+        # @TODO: Himanshu. PersistentFacts disabled for V1 release. Will be enabled later.
+        # # astra_facts indexes (for LTM/PersistentFacts)
+        # facts_collection = self._db["astra_facts"]
+        # await facts_collection.create_index("id", unique=True)
+        # await facts_collection.create_index([("key", 1), ("scope", 1), ("scope_id", 1)])
+        # await facts_collection.create_index([("scope", 1), ("scope_id", 1)])
+        # await facts_collection.create_index("created_at")
+        # await facts_collection.create_index("deleted_at")
+        # await facts_collection.create_index("expires_at")
 
         # astra_team_auth indexes (for playground auth)
         auth_collection = self._db["astra_team_auth"]

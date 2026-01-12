@@ -26,13 +26,15 @@ from framework.agents.execution import (
     execute_tool_parallel,
 )
 from framework.agents.retry import RetryConfig, retry_with_backoff
-from framework.agents.tool import Tool, tool
+from framework.agents.tool import Tool
 from framework.astra import AstraContext
 from framework.code_mode.api_generator import VirtualAPIGenerator
 from framework.code_mode.sandbox import SandboxExecutor, synthesize_response
 from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
-from framework.mcp.manager import MCPManager
-from framework.mcp.server import MCPServer
+
+# @TODO: Himanshu. MCP Support disabled for V1 release. Will be enabled later.
+# from framework.mcp.manager import MCPManager
+# from framework.mcp.server import MCPServer
 from framework.memory import AgentMemory
 from framework.memory.manager import MemoryManager
 from framework.middlewares import InputMiddleware, MiddlewareContext, OutputMiddleware
@@ -68,8 +70,9 @@ class Agent:
         tools: list[Any] | None = None,
         code_mode: bool = True,
         storage: Any | None = None,
-        rag_pipeline: Any | None = None,
-        rag_pipelines: dict[str, Any] | None = None,
+        # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
+        # rag_pipeline: Any | None = None,
+        # rag_pipelines: dict[str, Any] | None = None,
         memory: AgentMemory | None = None,
         max_retries: int = 3,
         temperature: float = 0.7,
@@ -79,8 +82,9 @@ class Agent:
         input_middlewares: list[Any] | Callable | None = None,
         output_middlewares: list[Any] | Callable | None = None,
         guardrails: dict[str, Any] | None = None,
-        enable_persistent_facts: bool = False,
-        persistent_facts: Any | None = None,
+        # @TODO: Himanshu. PersistentFacts disabled for V1 release. Will be enabled later.
+        # enable_persistent_facts: bool = False,
+        # persistent_facts: Any | None = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -147,22 +151,24 @@ class Agent:
                 storage=storage, max_messages=self.memory.num_history_responses
             )
 
+        # @TODO: Himanshu. PersistentFacts disabled for V1 release. Will be enabled later.
         # Persistent Facts (Long-Term Memory)
         self.persistent_facts: Any | None = None
-        if persistent_facts:
-            self.persistent_facts = persistent_facts
-        elif enable_persistent_facts and storage:
-            # Auto-initialize with defaults using existing storage
-            from framework.memory.persistent_facts import MemoryScope, PersistentFacts
+        # if persistent_facts:
+        #     self.persistent_facts = persistent_facts
+        # elif enable_persistent_facts and storage:
+        #     # Auto-initialize with defaults using existing storage
+        #     from framework.memory.persistent_facts import MemoryScope, PersistentFacts
+        #
+        #     self.persistent_facts = PersistentFacts(
+        #         storage=storage,  # Use existing storage backend
+        #         scope=MemoryScope.USER,  # Default: USER scope
+        #         auto_extract=True,
+        #     )
 
-            self.persistent_facts = PersistentFacts(
-                storage=storage,  # Use existing storage backend
-                scope=MemoryScope.USER,  # Default: USER scope
-                auto_extract=True,
-            )
-
-        self.rag_pipeline = rag_pipeline
-        self.rag_pipelines = rag_pipelines or {}
+        # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
+        # self.rag_pipeline = rag_pipeline
+        # self.rag_pipelines = rag_pipelines or {}
 
         # Execution config
         self.max_retries = max_retries
@@ -307,62 +313,64 @@ class Agent:
                     f"Failed to register tool '{tool.name}': {e}"
                 )
 
-    async def _register_mcp_server(self, server: MCPServer) -> None:
-        """Register all tools from an MCP server.
+    # @TODO: Himanshu. MCP Support disabled for V1 release. Will be enabled later.
+    # async def _register_mcp_server(self, server: MCPServer) -> None:
+    #     """Register all tools from an MCP server.
+    #
+    #     Args:
+    #         server: MCPServer instance
+    #     """
+    #     try:
+    #         # Get tools from server (this calls server.start() if needed)
+    #         mcp_tools = await server.get_tools()
+    #
+    #         # Use server name as module namespace
+    #         module_name = server.name
+    #
+    #         # Register each tool
+    #         for mcp_tool in mcp_tools:
+    #             spec = ToolSpec.from_tool(
+    #                 mcp_tool, module=module_name, is_mcp=True, mcp_server_name=server.name
+    #             )
+    #
+    #             try:
+    #                 self._tool_registry.register(spec)
+    #                 if self._context and self._context.observability:
+    #                     self._context.observability.logger.info(
+    #                         f"Registered MCP tool: {mcp_tool.name} (server: {server.name}, module: {module_name})"
+    #                     )
+    #             except ValueError as e:
+    #                 # Tool name collision
+    #                 if self._context and self._context.observability:
+    #                     self._context.observability.logger.info(
+    #                         f"Failed to register MCP tool '{mcp_tool.name}' from server '{server.name}': {e}"
+    #                     )
+    #
+    #     except Exception as e:
+    #         if self._context and self._context.observability:
+    #             self._context.observability.logger.error(
+    #                 f"Failed to get tools from MCP server '{server.name}': {e}"
+    #             )
+    #         raise
 
-        Args:
-            server: MCPServer instance
-        """
-        try:
-            # Get tools from server (this calls server.start() if needed)
-            mcp_tools = await server.get_tools()
-
-            # Use server name as module namespace
-            module_name = server.name
-
-            # Register each tool
-            for mcp_tool in mcp_tools:
-                spec = ToolSpec.from_tool(
-                    mcp_tool, module=module_name, is_mcp=True, mcp_server_name=server.name
-                )
-
-                try:
-                    self._tool_registry.register(spec)
-                    if self._context and self._context.observability:
-                        self._context.observability.logger.info(
-                            f"Registered MCP tool: {mcp_tool.name} (server: {server.name}, module: {module_name})"
-                        )
-                except ValueError as e:
-                    # Tool name collision
-                    if self._context and self._context.observability:
-                        self._context.observability.logger.info(
-                            f"Failed to register MCP tool '{mcp_tool.name}' from server '{server.name}': {e}"
-                        )
-
-        except Exception as e:
-            if self._context and self._context.observability:
-                self._context.observability.logger.error(
-                    f"Failed to get tools from MCP server '{server.name}': {e}"
-                )
-            raise
-
-    async def _register_mcp_manager(self, manager: MCPManager) -> None:
-        """
-        Register all tools from an MCP manager by iterating servers directly.
-
-        Args:
-            manager: MCPManager instance
-        """
-        try:
-            # Iterate servers directly to preserve server identity
-            for server in manager.servers:
-                await self._register_mcp_server(server)
-        except Exception as e:
-            if self._context and self._context.observability:
-                self._context.observability.logger.error(
-                    f"Failed to register tools from MCP manager: {e}"
-                )
-            raise
+    # @TODO: Himanshu. MCP Support disabled for V1 release. Will be enabled later.
+    # async def _register_mcp_manager(self, manager: MCPManager) -> None:
+    #     """
+    #     Register all tools from an MCP manager by iterating servers directly.
+    #
+    #     Args:
+    #         manager: MCPManager instance
+    #     """
+    #     try:
+    #         # Iterate servers directly to preserve server identity
+    #         for server in manager.servers:
+    #             await self._register_mcp_server(server)
+    #     except Exception as e:
+    #         if self._context and self._context.observability:
+    #             self._context.observability.logger.error(
+    #                 f"Failed to register tools from MCP manager: {e}"
+    #             )
+    #         raise
 
     async def _populate_tool_registry(self) -> None:
         """Populate tool registry from this list.
@@ -376,17 +384,18 @@ class Agent:
         if not self._tools:
             return
 
-        for tool in self._tools:
-            if isinstance(tool, MCPServer):
-                await self._register_mcp_server(tool)
-            # Handle MCPManager
-            elif isinstance(tool, MCPManager):
-                await self._register_mcp_manager(tool)
+        for t in self._tools:
+            # @TODO: Himanshu. MCP Support disabled for V1 release. Will be enabled later.
+            # if isinstance(t, MCPServer):
+            #     await self._register_mcp_server(t)
+            # # Handle MCPManager
+            # elif isinstance(t, MCPManager):
+            #     await self._register_mcp_manager(t)
             # Handle regular @tool decorated functions
-            elif hasattr(tool, "name") and hasattr(tool, "description"):
-                await self._register_python_tool(tool)
+            if hasattr(t, "name") and hasattr(t, "description"):
+                await self._register_python_tool(t)
             else:
-                raise ValueError(f"Unknown tool type: {type(tool)}")
+                raise ValueError(f"Unknown tool type: {type(t)}")
 
     def _validate_invoke_params(
         self,
@@ -451,179 +460,181 @@ class Agent:
 
         return messages
 
-    def _create_retrieve_evidence_tool(self, name_suffix: str = "") -> Any | None:
-        """Create retrieve_evidence tool for RAG.
+    # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
+    # def _create_retrieve_evidence_tool(self, name_suffix: str = "") -> Any | None:
+    #     """Create retrieve_evidence tool for RAG.
+    #
+    #     Args:
+    #         name_suffix: Optional suffix for tool name (used for multi-RAG)
+    #     """
+    #     rag_pipeline = self.rag_pipeline
+    #     if not rag_pipeline:
+    #         return None
+    #
+    #     max_results = getattr(rag_pipeline, "max_results", 10)
+    #     tool_name = f"retrieve_evidence{f'_{name_suffix}' if name_suffix else ''}"
+    #
+    #     @tool(
+    #         name=tool_name,
+    #         description=f"Retrieve evidence from {'the ' + name_suffix + ' ' if name_suffix else ''}knowledge base to support your reasoning.",
+    #     )
+    #     async def retrieve_evidence(
+    #         query: str,
+    #         limit: int = 10,
+    #     ) -> str:
+    #         """
+    #         Retrieve evidence to support reasoning.
+    #
+    #         Args:
+    #             query: What evidence do you need?
+    #             limit: Maximum number of results to return (default: 10)
+    #
+    #         Returns:
+    #             JSON string of evidence with content, source, and metadata
+    #         """
+    #         try:
+    #             effective_limit = min(limit, max_results)
+    #
+    #             # Use query() for Rag
+    #             results = await rag_pipeline.query(
+    #                 query=query,
+    #                 top_k=effective_limit,
+    #             )
+    #
+    #             if not results:
+    #                 return "No relevant evidence found."
+    #
+    #             # Format as evidence
+    #             evidence = [
+    #                 {
+    #                     "content": getattr(doc, "content", str(doc)),
+    #                     "source": getattr(doc, "source", None) or getattr(doc, "name", "unknown"),
+    #                     "metadata": getattr(doc, "metadata", {}),
+    #                 }
+    #                 for doc in results
+    #             ]
+    #
+    #             return json.dumps(evidence, indent=2)
+    #         except Exception as e:
+    #             return f"Error retrieving evidence: {e!s}"
+    #
+    #     return retrieve_evidence
+    #
+    # def _create_multi_rag_tools(self) -> list[Any]:
+    #     """Create retrieve_evidence tools for multiple RAG pipelines."""
+    #     tools = []
+    #     for name, pipeline in self.rag_pipelines.items():
+    #         # Temporarily set rag_pipeline for tool creation
+    #         original = self.rag_pipeline
+    #         self.rag_pipeline = pipeline
+    #         tool_fn = self._create_retrieve_evidence_tool(name_suffix=name)
+    #         self.rag_pipeline = original
+    #         if tool_fn:
+    #             tools.append(tool_fn)
+    #     return tools
 
-        Args:
-            name_suffix: Optional suffix for tool name (used for multi-RAG)
-        """
-        rag_pipeline = self.rag_pipeline
-        if not rag_pipeline:
-            return None
-
-        max_results = getattr(rag_pipeline, "max_results", 10)
-        tool_name = f"retrieve_evidence{f'_{name_suffix}' if name_suffix else ''}"
-
-        @tool(
-            name=tool_name,
-            description=f"Retrieve evidence from {'the ' + name_suffix + ' ' if name_suffix else ''}knowledge base to support your reasoning.",
-        )
-        async def retrieve_evidence(
-            query: str,
-            limit: int = 10,
-        ) -> str:
-            """
-            Retrieve evidence to support reasoning.
-
-            Args:
-                query: What evidence do you need?
-                limit: Maximum number of results to return (default: 10)
-
-            Returns:
-                JSON string of evidence with content, source, and metadata
-            """
-            try:
-                effective_limit = min(limit, max_results)
-
-                # Use query() for Rag
-                results = await rag_pipeline.query(
-                    query=query,
-                    top_k=effective_limit,
-                )
-
-                if not results:
-                    return "No relevant evidence found."
-
-                # Format as evidence
-                evidence = [
-                    {
-                        "content": getattr(doc, "content", str(doc)),
-                        "source": getattr(doc, "source", None) or getattr(doc, "name", "unknown"),
-                        "metadata": getattr(doc, "metadata", {}),
-                    }
-                    for doc in results
-                ]
-
-                return json.dumps(evidence, indent=2)
-            except Exception as e:
-                return f"Error retrieving evidence: {e!s}"
-
-        return retrieve_evidence
-
-    def _create_multi_rag_tools(self) -> list[Any]:
-        """Create retrieve_evidence tools for multiple RAG pipelines."""
-        tools = []
-        for name, pipeline in self.rag_pipelines.items():
-            # Temporarily set rag_pipeline for tool creation
-            original = self.rag_pipeline
-            self.rag_pipeline = pipeline
-            tool_fn = self._create_retrieve_evidence_tool(name_suffix=name)
-            self.rag_pipeline = original
-            if tool_fn:
-                tools.append(tool_fn)
-        return tools
-
-    async def ingest(
-        self,
-        path: str | None = None,
-        url: str | None = None,
-        text: str | None = None,
-        name: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> str:
-        """Ingest content into the agent's RAG knowledge base.
-
-        This is a convenience passthrough to rag_pipeline.ingest().
-        Allows ingestion without needing a separate reference to the pipeline.
-
-        Args:
-            path: File path to ingest
-            url: URL to fetch and ingest
-            text: Raw text to ingest
-            name: Name for the content
-            metadata: Additional metadata
-
-        Returns:
-            Content ID
-
-        Raises:
-            ValueError: If no rag_pipeline is configured
-
-        Example:
-            agent = Agent(..., rag_pipeline=rag)
-            await agent.ingest(text="Python is...", name="Python Guide")
-            response = await agent.invoke("What is Python?")
-        """
-        if not self.rag_pipeline:
-            raise ValueError("No rag_pipeline configured. Cannot ingest.")
-
-        return await self.rag_pipeline.ingest(
-            path=path,
-            url=url,
-            text=text,
-            name=name,
-            metadata=metadata,
-        )
-
-    async def ingest_batch(self, items: list[dict[str, Any]]) -> list[str]:
-        """Ingest multiple documents in batch.
-
-        This is a convenience passthrough to rag_pipeline.ingest_batch().
-
-        Args:
-            items: List of dicts with keys: path, url, text, name, metadata
-
-        Returns:
-            List of content IDs
-
-        Raises:
-            ValueError: If no rag_pipeline is configured
-
-        Example:
-            agent = Agent(..., rag_pipeline=rag)
-            ids = await agent.ingest_batch([
-                {"text": "Python is...", "name": "Python Guide"},
-                {"path": "./doc.txt", "name": "Documentation"},
-            ])
-        """
-        if not self.rag_pipeline:
-            raise ValueError("No rag_pipeline configured. Cannot ingest.")
-
-        return await self.rag_pipeline.ingest_batch(items)
-
-    async def ingest_directory(
-        self,
-        directory: str,
-        pattern: str = "*.txt",
-        recursive: bool = False,
-    ) -> list[str]:
-        """Ingest all files from a directory.
-
-        This is a convenience passthrough to rag_pipeline.ingest_directory().
-
-        Args:
-            directory: Directory path
-            pattern: Glob pattern for file matching
-            recursive: Whether to search recursively
-
-        Returns:
-            List of content IDs
-
-        Raises:
-            ValueError: If no rag_pipeline is configured
-
-        Example:
-            agent = Agent(..., rag_pipeline=rag)
-            ids = await agent.ingest_directory("./docs", pattern="*.md", recursive=True)
-        """
-        if not self.rag_pipeline:
-            raise ValueError("No rag_pipeline configured. Cannot ingest.")
-
-        return await self.rag_pipeline.ingest_directory(
-            directory=directory,
-            pattern=pattern,
-            recursive=recursive,
-        )
+    # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
+    # async def ingest(
+    #     self,
+    #     path: str | None = None,
+    #     url: str | None = None,
+    #     text: str | None = None,
+    #     name: str | None = None,
+    #     metadata: dict[str, Any] | None = None,
+    # ) -> str:
+    #     """Ingest content into the agent's RAG knowledge base.
+    #
+    #     This is a convenience passthrough to rag_pipeline.ingest().
+    #     Allows ingestion without needing a separate reference to the pipeline.
+    #
+    #     Args:
+    #         path: File path to ingest
+    #         url: URL to fetch and ingest
+    #         text: Raw text to ingest
+    #         name: Name for the content
+    #         metadata: Additional metadata
+    #
+    #     Returns:
+    #         Content ID
+    #
+    #     Raises:
+    #         ValueError: If no rag_pipeline is configured
+    #
+    #     Example:
+    #         agent = Agent(..., rag_pipeline=rag)
+    #         await agent.ingest(text="Python is...", name="Python Guide")
+    #         response = await agent.invoke("What is Python?")
+    #     """
+    #     if not self.rag_pipeline:
+    #         raise ValueError("No rag_pipeline configured. Cannot ingest.")
+    #
+    #     return await self.rag_pipeline.ingest(
+    #         path=path,
+    #         url=url,
+    #         text=text,
+    #         name=name,
+    #         metadata=metadata,
+    #     )
+    #
+    # async def ingest_batch(self, items: list[dict[str, Any]]) -> list[str]:
+    #     """Ingest multiple documents in batch.
+    #
+    #     This is a convenience passthrough to rag_pipeline.ingest_batch().
+    #
+    #     Args:
+    #         items: List of dicts with keys: path, url, text, name, metadata
+    #
+    #     Returns:
+    #         List of content IDs
+    #
+    #     Raises:
+    #         ValueError: If no rag_pipeline is configured
+    #
+    #     Example:
+    #         agent = Agent(..., rag_pipeline=rag)
+    #         ids = await agent.ingest_batch([
+    #             {"text": "Python is...", "name": "Python Guide"},
+    #             {"path": "./doc.txt", "name": "Documentation"},
+    #         ])
+    #     """
+    #     if not self.rag_pipeline:
+    #         raise ValueError("No rag_pipeline configured. Cannot ingest.")
+    #
+    #     return await self.rag_pipeline.ingest_batch(items)
+    #
+    # async def ingest_directory(
+    #     self,
+    #     directory: str,
+    #     pattern: str = "*.txt",
+    #     recursive: bool = False,
+    # ) -> list[str]:
+    #     """Ingest all files from a directory.
+    #
+    #     This is a convenience passthrough to rag_pipeline.ingest_directory().
+    #
+    #     Args:
+    #         directory: Directory path
+    #         pattern: Glob pattern for file matching
+    #         recursive: Whether to search recursively
+    #
+    #     Returns:
+    #         List of content IDs
+    #
+    #     Raises:
+    #         ValueError: If no rag_pipeline is configured
+    #
+    #     Example:
+    #         agent = Agent(..., rag_pipeline=rag)
+    #         ids = await agent.ingest_directory("./docs", pattern="*.md", recursive=True)
+    #     """
+    #     if not self.rag_pipeline:
+    #         raise ValueError("No rag_pipeline configured. Cannot ingest.")
+    #
+    #     return await self.rag_pipeline.ingest_directory(
+    #         directory=directory,
+    #         pattern=pattern,
+    #         recursive=recursive,
+    #     )
 
     async def _invoke_with_retry(
         self,
@@ -822,12 +833,14 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             # Log registry stats after population
             if self._context and self._context.observability:
                 tool_count = len(self._tool_registry)
-                mcp_count = len(self._tool_registry.get_mcp_tools())
-                python_count = len(self._tool_registry.get_python_tools())
+                tool_count = len(self._tool_registry)
+                # @TODO: Himanshu. MCP Support disabled for V1 release.
+                # mcp_count = len(self._tool_registry.get_mcp_tools())
+                # python_count = len(self._tool_registry.get_python_tools())
 
                 self._context.observability.logger.info(
                     f"Tool Registry initialized: {tool_count} total tools "
-                    f"({python_count} Python, {mcp_count} MCP)"
+                    # f"({python_count} Python, {mcp_count} MCP)"
                 )
 
         # 1.6. Code Mode: Execute code generation and sandbox execution
@@ -911,15 +924,17 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
 
         # 2. Add retrieve_evidence tool if rag_pipeline available
         final_tools = list(tools) if tools else list(self.tools) if self.tools else []
-        if self.rag_pipeline:
-            evidence_tool = self._create_retrieve_evidence_tool()
-            if evidence_tool:
-                final_tools.append(evidence_tool)
-
-        # Add multi-RAG tools if rag_pipelines provided
-        if self.rag_pipelines:
-            multi_rag_tools = self._create_multi_rag_tools()
-            final_tools.extend(multi_rag_tools)
+        # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
+        # if self.rag_pipeline and not self.rag_pipelines:
+        #     evidence_tool = self._create_retrieve_evidence_tool()
+        #     if evidence_tool:
+        #         await self._register_python_tool(evidence_tool)
+        #
+        # # 3. Register Multi-RAG tools
+        # if self.rag_pipelines:
+        #     multi_rag_tools = self._create_multi_rag_tools()
+        #     for t in multi_rag_tools:
+        #         await self._register_python_tool(t)
 
         # 3. Prepare execution context
         context = ExecutionContext(
@@ -936,17 +951,21 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         # Load history if enabled
         history = None
         if self.storage and thread_id and self.memory.add_history_to_messages:
+            # @TODO: Himanshu. Disabled for now and will be enabled later with proper testing.
+            # token_limit based context calculation is disabled for V1.
             # Calculate max tokens for context (use token_limit if set, else default to 8000 with safety margin)
             # Reserve 20% for response generation
-            max_context_tokens = None
-            if self.memory.token_limit:
-                max_context_tokens = int(self.memory.token_limit * 0.8)  # Reserve 20% for response
-            else:
-                # Default: assume 10k context window, reserve 2k for response
-                max_context_tokens = 8000
+            # max_context_tokens = None
+            # if self.memory.token_limit:
+            #     max_context_tokens = int(self.memory.token_limit * 0.8)  # Reserve 20% for response
+            # else:
+            #     # Default: assume 10k context window, reserve 2k for response
+            #     max_context_tokens = 8000
+            # @TODO: Himanshu. Disabled for now.
+            # max_context_tokens = 8000  # V1: Simple default
 
             history = await self.memory_manager.get_context(
-                thread_id, self.storage, max_tokens=max_context_tokens
+                thread_id, self.storage
             )
 
         messages = self._prepare_messages(message, context, history=history)
@@ -957,51 +976,52 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
             thread_id=thread_id,
         )
 
+        # @TODO: Himanshu. PersistentFacts disabled for V1 release. Will be enabled later.
         # Extract facts if persistent facts enabled
-        user_id = kwargs.get("user_id")
-        if self.persistent_facts and self.persistent_facts.auto_extract and user_id:
-            extracted_facts = await self.persistent_facts.extract_from_messages(
-                messages=[{"role": "user", "content": message}],
-                scope_id=user_id,
-                model=self.model,
-            )
-            # Store extracted facts
-            for fact in extracted_facts:
-                fact.scope_id = user_id
-                try:
-                    existing = await self.persistent_facts.get(key=fact.key, scope_id=user_id)
-                    if existing:
-                        await self.persistent_facts.update(
-                            key=fact.key, value=fact.value, scope_id=user_id
-                        )
-                    else:
-                        await self.persistent_facts.add(
-                            key=fact.key,
-                            value=fact.value,
-                            scope_id=user_id,
-                            tags=fact.tags,
-                        )
-                except Exception:
-                    # Ignore extraction errors
-                    pass
-
-        # Retrieve relevant facts for context
-        if self.persistent_facts and user_id:
-            relevant_facts = await self.persistent_facts.get_all(scope_id=user_id)
-            if relevant_facts:
-                # Add facts to context as system message
-                facts_text = "\n".join(
-                    [f"- {fact.key}: {fact.value}" for fact in relevant_facts[:10]]
-                )
-                facts_message = {
-                    "role": "system",
-                    "content": f"User context:\n{facts_text}",
-                }
-                # Insert after system instructions but before history
-                if messages and messages[0].get("role") == "system":
-                    messages.insert(1, facts_message)
-                else:
-                    messages.insert(0, facts_message)
+        # user_id = kwargs.get("user_id")
+        # if self.persistent_facts and self.persistent_facts.auto_extract and user_id:
+        #     extracted_facts = await self.persistent_facts.extract_from_messages(
+        #         messages=[{"role": "user", "content": message}],
+        #         scope_id=user_id,
+        #         model=self.model,
+        #     )
+        #     # Store extracted facts
+        #     for fact in extracted_facts:
+        #         fact.scope_id = user_id
+        #         try:
+        #             existing = await self.persistent_facts.get(key=fact.key, scope_id=user_id)
+        #             if existing:
+        #                 await self.persistent_facts.update(
+        #                     key=fact.key, value=fact.value, scope_id=user_id
+        #                 )
+        #             else:
+        #                 await self.persistent_facts.add(
+        #                     key=fact.key,
+        #                     value=fact.value,
+        #                     scope_id=user_id,
+        #                     tags=fact.tags,
+        #                 )
+        #         except Exception:
+        #             # Ignore extraction errors
+        #             pass
+        #
+        # # Retrieve relevant facts for context
+        # if self.persistent_facts and user_id:
+        #     relevant_facts = await self.persistent_facts.get_all(scope_id=user_id)
+        #     if relevant_facts:
+        #         # Add facts to context as system message
+        #         facts_text = "\n".join(
+        #             [f"- {fact.key}: {fact.value}" for fact in relevant_facts[:10]]
+        #         )
+        #         facts_message = {
+        #             "role": "system",
+        #             "content": f"User context:\n{facts_text}",
+        #         }
+        #         # Insert after system instructions but before history
+        #         if messages and messages[0].get("role") == "system":
+        #             messages.insert(1, facts_message)
+        #         else:
+        #             messages.insert(0, facts_message)
 
         # Input Middleware
         if self.input_middlewares and isinstance(self.input_middlewares, list):
@@ -1134,15 +1154,16 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         )
 
         final_tools = list(tools) if tools else list(self.tools) if self.tools else []
-        if self.rag_pipeline:
-            evidence_tool = self._create_retrieve_evidence_tool()
-            if evidence_tool:
-                final_tools.append(evidence_tool)
-
-        # Add multi-RAG tools if rag_pipelines provided
-        if self.rag_pipelines:
-            multi_rag_tools = self._create_multi_rag_tools()
-            final_tools.extend(multi_rag_tools)
+        # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
+        # if self.rag_pipeline:
+        #     evidence_tool = self._create_retrieve_evidence_tool()
+        #     if evidence_tool:
+        #         final_tools.append(evidence_tool)
+        #
+        # # Add multi-RAG tools if rag_pipelines provided
+        # if self.rag_pipelines:
+        #     multi_rag_tools = self._create_multi_rag_tools()
+        #     final_tools.extend(multi_rag_tools)
 
         context = ExecutionContext(
             agent_id=self.id,
@@ -1157,15 +1178,19 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
         # Load history if enabled
         history = None
         if self.storage and thread_id and self.memory.add_history_to_messages:
+            # @TODO: Himanshu. Disabled for now and will be enabled later with proper testing.
+            # token_limit based context calculation is disabled for V1.
             # Calculate max tokens for context
-            max_context_tokens = None
-            if self.memory.token_limit:
-                max_context_tokens = int(self.memory.token_limit * 0.8)
-            else:
-                max_context_tokens = 8000
+            # max_context_tokens = None
+            # if self.memory.token_limit:
+            #     max_context_tokens = int(self.memory.token_limit * 0.8)
+            # else:
+            #     max_context_tokens = 8000
+            # @TODO: Himanshu. Disabled for now.
+            # max_context_tokens = 8000  # V1: Simple default
 
             history = await self.memory_manager.get_context(
-                thread_id, self.storage, max_tokens=max_context_tokens
+                thread_id, self.storage
             )
 
         messages = self._prepare_messages(message, context, history=history)
@@ -1176,6 +1201,8 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
 
         max_tool_iterations = 10
         iteration = 0
+        # Track previous tool calls to detect loops
+        previous_tool_signatures: set[tuple[str, str]] = set()
 
         while iteration < max_tool_iterations:
             iteration += 1
@@ -1235,14 +1262,37 @@ Now generate code for the user's request. Return ONLY the Python code, no explan
                 )
 
             # Emit tool start events for each tool call
+            # Tool calls use simple format: {"name": str, "arguments": dict}
+            # Check for loop: same tools being called with same arguments
+            current_tool_signatures = set()
             for tc in accumulated_tool_calls:
-                func = tc.get("function", {})
-                tool_name = func.get("name", "unknown")
-                tool_id = tc.get("id", f"call_{uuid.uuid4().hex[:8]}")
-                try:
-                    arguments = json.loads(func.get("arguments", "{}"))
-                except json.JSONDecodeError:
-                    arguments = {}
+                sig = (tc.get("name", ""), json.dumps(tc.get("arguments", {}), sort_keys=True))
+                current_tool_signatures.add(sig)
+
+            if current_tool_signatures == previous_tool_signatures and previous_tool_signatures:
+                # Same exact tool calls - break to prevent infinite loop
+                self._log_error(
+                    "Detected repeated tool calls, breaking loop",
+                    Exception("Possible infinite loop"),
+                    context,
+                )
+                yield "\n\n[Warning: Loop detected. Breaking.]"
+                break
+
+            previous_tool_signatures = current_tool_signatures
+
+            # Emit tool start events for each tool call
+            for idx, tc in enumerate(accumulated_tool_calls):
+                tool_name = tc.get("name", "unknown")
+                # Use ID from model or generate consistent fallback using index
+                tool_id = tc.get("id", f"call_{idx}")
+                arguments = tc.get("arguments", {})
+                # Handle case where arguments might be a JSON string
+                if isinstance(arguments, str):
+                    try:
+                        arguments = json.loads(arguments)
+                    except json.JSONDecodeError:
+                        arguments = {}
                 yield ToolStartEvent(tool_name=tool_name, tool_id=tool_id, arguments=arguments)
 
             # Execute tools and continue loop

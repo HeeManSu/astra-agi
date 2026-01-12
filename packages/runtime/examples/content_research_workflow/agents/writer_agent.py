@@ -43,7 +43,6 @@ Focus on:
     storage=db,
     memory=AgentMemory(
         add_history_to_messages=True,
-        window_size=20,
         num_history_responses=10,
     ),
     stream_enabled=True,

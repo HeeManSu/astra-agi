@@ -23,12 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from astra.server.auth.routes import create_auth_router
 from astra.server.lifecycle import create_lifespan
 from astra.server.registry import create_registry
-from astra.server.routes import (
-    create_agent_router,
-    create_meta_router,
-    create_playground_router,
-    create_thread_router,
-)
+from astra.server.routes import create_playground_router
 from astra.utils.normalize_list import normalize_agents
 
 
@@ -305,16 +300,6 @@ class AstraServer:
             app.middleware("http")(middleware_fn)
 
         # Add built-in routes
-        app.include_router(
-            create_meta_router(
-                registry=self.registry,
-                name=self.name,
-                version=self.version,
-                start_time=self._start_time,
-            )
-        )
-        app.include_router(create_agent_router(registry=self.registry))
-        app.include_router(create_thread_router(registry=self.registry))
         app.include_router(create_playground_router(registry=self.registry))
         # jwt_secret is guaranteed to be non-None after __init__ validation
         assert self.jwt_secret is not None, "JWT secret must be set"

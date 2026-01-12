@@ -78,32 +78,33 @@ astra_messages = Table(
     Index("idx_messages_deleted_at", "deleted_at"),
 )
 
-astra_facts = Table(
-    "astra_facts",
-    metadata,
-    Column("id", String(64), primary_key=True),
-    Column("key", String(255), nullable=False),
-    Column("value", JSON, nullable=False),
-    Column("scope", String(32), nullable=False),  # "user", "session", "agent", "global"
-    Column("scope_id", String(64), nullable=True),  # user_id, session_id, agent_id, etc.
-    Column("schema_type", String(128), nullable=True),  # Optional schema name
-    Column("tags", JSON, nullable=True),  # Array of tags
-    Column("metadata", JSON, nullable=True),  # Additional metadata
-    Column("created_at", DateTime(timezone=True), server_default=func.now()),
-    Column(
-        "updated_at",
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    ),
-    Column("expires_at", DateTime(timezone=True), nullable=True),
-    Column("deleted_at", DateTime(timezone=True), nullable=True, index=True),
-    # Indexes for common query patterns
-    Index("idx_facts_key_scope", "key", "scope", "scope_id"),
-    Index("idx_facts_scope", "scope", "scope_id"),
-    Index("idx_facts_created_at", "created_at"),
-    Index("idx_facts_deleted_at", "deleted_at"),
-)
+# @TODO: Himanshu. PersistentFacts disabled for V1 release. Will be enabled later.
+# astra_facts = Table(
+#     "astra_facts",
+#     metadata,
+#     Column("id", String(64), primary_key=True),
+#     Column("key", String(255), nullable=False),
+#     Column("value", JSON, nullable=False),
+#     Column("scope", String(32), nullable=False),  # "user", "session", "agent", "global"
+#     Column("scope_id", String(64), nullable=True),  # user_id, session_id, agent_id, etc.
+#     Column("schema_type", String(128), nullable=True),  # Optional schema name
+#     Column("tags", JSON, nullable=True),  # Array of tags
+#     Column("metadata", JSON, nullable=True),  # Additional metadata
+#     Column("created_at", DateTime(timezone=True), server_default=func.now()),
+#     Column(
+#         "updated_at",
+#         DateTime(timezone=True),
+#         server_default=func.now(),
+#         onupdate=func.now(),
+#     ),
+#     Column("expires_at", DateTime(timezone=True), nullable=True),
+#     Column("deleted_at", DateTime(timezone=True), nullable=True, index=True),
+#     # Indexes for common query patterns
+#     Index("idx_facts_key_scope", "key", "scope", "scope_id"),
+#     Index("idx_facts_scope", "scope", "scope_id"),
+#     Index("idx_facts_created_at", "created_at"),
+#     Index("idx_facts_deleted_at", "deleted_at"),
+# )
 
 astra_team_auth = Table(
     "astra_team_auth",
@@ -294,8 +295,9 @@ class LibSQLStorage(StorageBackend):
             return astra_threads
         elif collection_name == "astra_messages":
             return astra_messages
-        elif collection_name == "astra_facts":
-            return astra_facts
+        # @TODO: Himanshu. PersistentFacts disabled for V1 release. Will be enabled later.
+        # elif collection_name == "astra_facts":
+        #     return astra_facts
         elif collection_name == "astra_team_auth":
             return astra_team_auth
         raise ValueError(f"Unknown collection: {collection_name}")

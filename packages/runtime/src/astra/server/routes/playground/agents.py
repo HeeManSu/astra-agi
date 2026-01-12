@@ -47,12 +47,18 @@ def create_agents_router(registry: AgentRegistry) -> APIRouter:
             tools = getattr(agent, "tools", None) or []
             tools_length = len(tools)
             actual_agent_id = getattr(agent, "id", None) or agent_id_key
+            # Safely get model_id - handle models without model_id attribute
+            model_id = (
+                getattr(model, "model_id", None)
+                or getattr(model, "model", None)
+                or str(type(model).__name__)
+            )
             agents.append(
                 {
                     "id": actual_agent_id,
                     "name": getattr(agent, "name", None) or agent_id_key,
                     "description": getattr(agent, "description", None),
-                    "model": model.model_id,
+                    "model": model_id,
                     "tools": tools_length,
                 }
             )
@@ -150,7 +156,7 @@ def create_agents_router(registry: AgentRegistry) -> APIRouter:
         async def event_generator() -> AsyncIterator[str]:
             """Generate SSE events with tool call support."""
             try:
-                # Extract message (required)
+                # Extract message
                 message = request.get("message")
                 if not message:
                     raise ValueError("Missing required field: message")

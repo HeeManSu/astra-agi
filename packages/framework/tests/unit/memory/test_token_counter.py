@@ -4,27 +4,37 @@ Unit tests for TokenCounter.
 Tests token counting logic without LLM calls.
 """
 
-from framework.memory.token_counter import TokenCounter
 import pytest
 
 
+# @TODO: Himanshu. Reason for skip: TokenCounter disabled for V1 release.
+V1_SKIP_REASON = "TokenCounter disabled for V1 release. Will be enabled later with proper testing."
+
+
+@pytest.mark.skip(reason=V1_SKIP_REASON)
 @pytest.mark.unit
 class TestTokenCounter:
     """Tests for TokenCounter."""
 
     def test_initialization(self):
         """Test TokenCounter initialization."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         assert counter.encoding == "cl100k_base"
         assert counter._cache == {}
 
     def test_initialization_custom_encoding(self):
         """Test TokenCounter with custom encoding."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter(encoding="p50k_base")
         assert counter.encoding == "p50k_base"
 
     def test_count_simple_text(self):
         """Test counting tokens in simple text."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         tokens = counter.count("Hello world")
         assert isinstance(tokens, int)
@@ -32,12 +42,16 @@ class TestTokenCounter:
 
     def test_count_empty_string(self):
         """Test counting tokens in empty string."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         tokens = counter.count("")
         assert tokens == 0
 
     def test_count_caching(self):
         """Test that token counting is cached."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         text = "This is a test message for caching"
         tokens1 = counter.count(text)
@@ -47,6 +61,8 @@ class TestTokenCounter:
 
     def test_count_message_simple(self):
         """Test counting tokens in a simple message."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         message = {"role": "user", "content": "Hello"}
         tokens = counter.count_message(message)
@@ -55,6 +71,8 @@ class TestTokenCounter:
 
     def test_count_message_with_overhead(self):
         """Test that message counting includes overhead."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         message = {"role": "user", "content": "Hello"}
         tokens = counter.count_message(message)
@@ -63,6 +81,8 @@ class TestTokenCounter:
 
     def test_count_message_different_roles(self):
         """Test counting tokens for different message roles."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         user_msg = {"role": "user", "content": "Hello"}
         assistant_msg = {"role": "assistant", "content": "Hello"}
@@ -79,12 +99,16 @@ class TestTokenCounter:
 
     def test_count_messages_empty_list(self):
         """Test counting tokens in empty message list."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         tokens = counter.count_messages([])
         assert tokens == 0
 
     def test_count_messages_single(self):
         """Test counting tokens in single message."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         messages = [{"role": "user", "content": "Hello"}]
         tokens = counter.count_messages(messages)
@@ -94,6 +118,8 @@ class TestTokenCounter:
 
     def test_count_messages_multiple(self):
         """Test counting tokens in multiple messages."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         messages = [
             {"role": "user", "content": "Hello"},
@@ -108,6 +134,8 @@ class TestTokenCounter:
 
     def test_count_input_messages_with_overhead(self):
         """Test count_input_messages with conversation overhead."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         messages = [
             {"role": "user", "content": "Hello"},
@@ -120,6 +148,8 @@ class TestTokenCounter:
 
     def test_count_input_messages_without_overhead(self):
         """Test count_input_messages without conversation overhead."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         messages = [
             {"role": "user", "content": "Hello"},
@@ -132,6 +162,8 @@ class TestTokenCounter:
 
     def test_count_message_missing_fields(self):
         """Test counting tokens in message with missing fields."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         # Missing role
         msg1 = {"content": "Hello"}
@@ -145,6 +177,8 @@ class TestTokenCounter:
 
     def test_count_long_text(self):
         """Test counting tokens in long text."""
+        from framework.memory.token_counter import TokenCounter
+
         counter = TokenCounter()
         long_text = "Hello " * 1000
         tokens = counter.count(long_text)

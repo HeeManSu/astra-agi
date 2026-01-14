@@ -15,7 +15,6 @@ wheels/
 .env.*.local
 
 # Data files
-# *.json
 packages/framework/markdowns
 .cursorrules
 benchmarks.txt
@@ -24,10 +23,13 @@ random.txt
 *.db
 jsons/
 *.txt
-
+*.json
+jsons/
 # Node.js / JavaScript
 node_modules/
 dist/
+astra_landing_page/
+
 
 
 projects/

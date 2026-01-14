@@ -4,5 +4,6 @@
  */
 
 export * from "./use-agents";
+export * from "./use-teams";
 export * from "./use-threads";
 export * from "./use-messages";

@@ -1,4 +1,4 @@
-import type { Agent, Tool, Thread, Message, ServerInfo } from "./types";
+import type { Agent, Team, Tool, Thread, Message, ServerInfo } from "./types";
 
 // Get API base URL from injected config or default to same origin
 function getApiBaseUrl(): string {
@@ -57,6 +57,104 @@ export async function getAgents(): Promise<Agent[]> {
 
 export async function getAgent(agentName: string): Promise<Agent> {
   return fetchApi(`/api/v1/agents/${agentName}`);
+}
+
+// ============================================================================
+// Teams
+// ============================================================================
+
+export async function getTeams(): Promise<Team[]> {
+  return fetchApi("/api/v1/teams");
+}
+
+export async function getTeam(teamId: string): Promise<Team> {
+  return fetchApi(`/api/v1/teams/${teamId}`);
+}
+
+export async function* streamTeamResponse(
+  teamId: string,
+  request: GenerateRequest
+): AsyncGenerator<
+  {
+    type:
+      | "thinking"
+      | "status"
+      | "code_generated"
+      | "token"
+      | "content"
+      | "tool_call"
+      | "tool_result"
+      | "done"
+      | "error";
+    data: unknown;
+  },
+  void,
+  unknown
+> {
+  const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let currentEvent: string | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith("event: ")) {
+        currentEvent = line.slice(7).trim();
+      } else if (line.startsWith("data: ") && currentEvent) {
+        const dataStr = line.slice(6);
+        try {
+          const data = JSON.parse(dataStr);
+          yield {
+            type: currentEvent as
+              | "thinking"
+              | "status"
+              | "code_generated"
+              | "token"
+              | "content"
+              | "tool_call"
+              | "tool_result"
+              | "done"
+              | "error",
+            data,
+          };
+          currentEvent = null;
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            continue;
+          }
+          throw e;
+        }
+      } else if (line.trim() === "") {
+        // Empty line resets event
+        currentEvent = null;
+      }
+    }
+  }
 }
 
 // ============================================================================

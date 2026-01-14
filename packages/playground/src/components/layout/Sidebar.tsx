@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   Bot,
+  Users,
   Wrench,
   GitBranch,
   FileText,
@@ -14,6 +15,7 @@ import {
 
 const navigation = [
   { name: "Agents", href: "/agents", icon: Bot },
+  { name: "Teams", href: "/teams", icon: Users },
   { name: "Workflows", href: "/workflows", icon: GitBranch },
   { name: "Tools", href: "/tools", icon: Wrench },
   { name: "Observability", href: "/observability", icon: Activity },

@@ -9,6 +9,31 @@ export interface Agent {
   instructions?: string;
 }
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  description?: string;
+  execution_mode: string;
+  member_count: number;
+  model: string;
+  members?: TeamMember[];
+  configuration?: {
+    max_delegations: number;
+    timeout: number;
+    member_timeout: number;
+    allow_parallel: boolean;
+    max_parallel: number;
+    max_recursion_depth: number;
+  };
+}
+
 export interface ToolParameter {
   name: string;
   type: string;
@@ -62,7 +87,17 @@ export interface ToolCall {
 }
 
 export interface StreamEvent {
-  type: "content" | "tool_call" | "tool_result" | "done" | "error";
+  type:
+    | "thinking"
+    | "token"
+    | "content"
+    | "status"
+    | "code_generated"
+    | "tool_start"
+    | "tool_call"
+    | "tool_result"
+    | "done"
+    | "error";
   data: unknown;
 }
 

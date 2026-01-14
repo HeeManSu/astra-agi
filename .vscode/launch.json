@@ -113,7 +113,10 @@
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "${workspaceFolder}/packages/playground",
       "serverReadyAction": {
         "pattern": "Local:.*(https?://.*)",
@@ -134,6 +137,87 @@
       "justMyCode": false,
       "cwd": "${workspaceFolder}/packages/runtime",
       "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Python: Example 3 - Tool Call Storage",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/storage/03_tool_cal.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Memory: Example 1 - Memory Config",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/memory/01_memory_config.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Memory: Example 2 - Context Window",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/memory/02_context_window.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Memory: Example 4 - Summarization",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Middleware: Example 1 - Input Middleware",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/middleware/01_input_middleware.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Middleware: Example 2 - Output Middleware",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/middleware/02_output_middleware.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+      }
+    },
+    {
+      "name": "Middleware: Example 3 - Combined Middleware",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/framework/examples/middleware/03_combined_middleware.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}",
+      "env": {
         "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
         "HOST": "127.0.0.1",
         "PORT": "8000",
@@ -148,6 +232,48 @@
         "group": "content-research",
         "order": 1
       }
+    },
+    {
+      "name": "Backend: Team Workflow Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/runtime/examples/team_workflow/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}/packages/runtime",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
+        "HOST": "127.0.0.1",
+        "PORT": "8000",
+        "ASTRA_JWT_SECRET": "dev-secret-for-testing",
+        "MONGODB_URL": "mongodb://localhost:27017"
+      },
+      "serverReadyAction": {
+        "pattern": "Server running at: (https?://.*)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      },
+      "presentation": {
+        "group": "team-workflow",
+        "order": 1
+      }
+    },
+    {
+      "name": "Team Workflow: API Client Example",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/packages/runtime/examples/team_workflow/example_api_client.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}/packages/runtime",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
+        "MONGODB_URL": "mongodb://localhost:27017"
+      },
+      "presentation": {
+        "group": "team-workflow",
+        "order": 2
+      }
     }
   ],
   "compounds": [
@@ -160,6 +286,18 @@
       "stopAll": true,
       "presentation": {
         "group": "content-research",
+        "order": 0
+      }
+    },
+    {
+      "name": "Team Workflow: Server + API Client",
+      "configurations": [
+        "Backend: Team Workflow Server",
+        "Team Workflow: API Client Example"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "group": "team-workflow",
         "order": 0
       }
     }

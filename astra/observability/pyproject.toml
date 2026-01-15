@@ -1,0 +1,55 @@
+[project]
+name = "astra-observability"
+version = "0.1.0"
+description = "Astra Observability - Tracing, metrics, and structured logging for AI agents"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = {text = "MIT"}
+authors = [
+    { name = "Himanshu Sharma", email = "himanshu.kumarr07@gmail.com" }
+]
+keywords = [
+    "observability",
+    "tracing",
+    "metrics",
+    "logging",
+    "opentelemetry",
+    "ai-agents",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: System :: Monitoring",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "prometheus-client>=0.20.0",
+    "loguru>=0.7.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/HeeManSu/astra-agi"
+Repository = "https://github.com/HeeManSu/astra-agi"
+Issues = "https://github.com/HeeManSu/astra-agi/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["observability"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "observability/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]

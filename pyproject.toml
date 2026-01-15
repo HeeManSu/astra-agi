@@ -4,19 +4,26 @@
 
 [tool.uv.workspace]
 members = [
-    "packages/framework",
-    "packages/observability",
-    "packages/runtime",
+    # Core packages
+    "astra/framework",
+    "astra/observability",
+    "astra/integrations",
+    "astra/deployment",
+    "astra/memorybase",
+    # Cloud packages
+    "astra-cloud/client",
+    "astra-cloud/server",
 ]
 
 [tool.uv.sources]
+# Folder name mappings
 framework = { workspace = true }
 observability = { workspace = true }
-runtime = { workspace = true }
-# PyPI package name mappings (for when packages depend on each other by PyPI name)
+# PyPI package name mappings
 astra-observability = { workspace = true }
 astra-framework = { workspace = true }
-astra-runtime = { workspace = true }
+astra-cloud = { workspace = true }
+astra-cloud-server = { workspace = true }
 
 [tool.ruff]
 target-version = "py310"

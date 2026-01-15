@@ -234,10 +234,10 @@
       }
     },
     {
-      "name": "Backend: Team Workflow Server",
+      "name": "Backend: Teams Server (Debug)",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/packages/runtime/examples/team_workflow/main.py",
+      "program": "${workspaceFolder}/packages/runtime/examples/teams/main.py",
       "console": "integratedTerminal",
       "justMyCode": false,
       "cwd": "${workspaceFolder}/packages/runtime",
@@ -249,34 +249,45 @@
         "MONGODB_URL": "mongodb://localhost:27017"
       },
       "serverReadyAction": {
-        "pattern": "Server running at: (https?://.*)",
+        "pattern": "Uvicorn running on (https?://.*)",
         "uriFormat": "%s",
         "action": "openExternally"
       },
       "presentation": {
-        "group": "team-workflow",
+        "group": "teams",
         "order": 1
       }
     },
     {
-      "name": "Team Workflow: API Client Example",
+      "name": "Team: Research Team (04)",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/packages/runtime/examples/team_workflow/example_api_client.py",
+      "program": "${workspaceFolder}/packages/framework/examples/team/04_research_team.py",
       "console": "integratedTerminal",
       "justMyCode": false,
-      "cwd": "${workspaceFolder}/packages/runtime",
+      "cwd": "${workspaceFolder}",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
-        "MONGODB_URL": "mongodb://localhost:27017"
+        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
       },
       "presentation": {
-        "group": "team-workflow",
-        "order": 2
+        "group": "team-examples",
+        "order": 1
       }
     }
   ],
   "compounds": [
+    {
+      "name": "Teams: Server + Frontend Playground",
+      "configurations": [
+        "Backend: Teams Server (Debug)",
+        "Frontend: Playground Dev Server"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "group": "teams",
+        "order": 0
+      }
+    },
     {
       "name": "Content Research: Workflow Server + Playground",
       "configurations": [
@@ -286,18 +297,6 @@
       "stopAll": true,
       "presentation": {
         "group": "content-research",
-        "order": 0
-      }
-    },
-    {
-      "name": "Team Workflow: Server + API Client",
-      "configurations": [
-        "Backend: Team Workflow Server",
-        "Team Workflow: API Client Example"
-      ],
-      "stopAll": true,
-      "presentation": {
-        "group": "team-workflow",
         "order": 0
       }
     }

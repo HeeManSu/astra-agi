@@ -66,6 +66,23 @@ class ParamSchema:
     default: Any = None
 
 
+# Field Schema (for return type fields)
+@dataclass
+class FieldSchema:
+    """
+    Schema for a single field in a return type.
+
+    Attributes:
+        name: Field name
+        type: Field type as string (e.g., "str", "float")
+        description: Field description
+    """
+
+    name: str
+    type: str
+    description: str
+
+
 # Return Schema
 @dataclass
 class ReturnSchema:
@@ -77,19 +94,22 @@ class ReturnSchema:
     Attributes:
         type: Return type as string (e.g., "ValidateOrderOutput")
         description: Description of what is returned
-        fields: Dict of field names to their descriptions (from output model)
+        fields: List of FieldSchema objects with name, type, and description
 
     Example:
         ReturnSchema(
             type="ValidateOrderOutput",
             description="Order validation result",
-            fields={"is_valid": "Whether the order is valid", "total_value": "Total order value"},
+            fields=[
+                FieldSchema(name="is_valid", type="bool", description="Whether the order is valid"),
+                FieldSchema(name="total_value", type="float", description="Total order value"),
+            ],
         )
     """
 
     type: str
     description: str
-    fields: dict[str, str] = field(default_factory=dict)
+    fields: list[FieldSchema] = field(default_factory=list)
 
 
 # Example Schema
@@ -240,7 +260,10 @@ class TeamSemanticLayer:
                             "returns": {
                                 "type": t.returns.type,
                                 "description": t.returns.description,
-                                "fields": t.returns.fields,
+                                "fields": {
+                                    f.name: {"type": f.type, "description": f.description}
+                                    for f in t.returns.fields
+                                },
                             },
                             "example": (
                                 {"input": t.example.input, "output": t.example.output}
@@ -262,26 +285,63 @@ def _extract_params_from_pydantic(input_schema: type) -> list[ParamSchema]:
     """
     Extract parameter schemas from a Pydantic model.
 
+    Required Logic:
+        A parameter is considered "required" if:
+        1. It has no default (Field(...)), OR
+        2. It has a non-None default AND the type is NOT Optional (doesn't include None)
+
+        A parameter is "optional" only if:
+        - It has a default value AND the type includes None (e.g., str | None)
+
+    Examples:
+        query: str = Field(...)                    → required=True,  default=None
+        domain: str = Field(default="in")          → required=True,  default="in"
+        postal_code: str | None = Field(default=None) → required=False, default=None
+
     Args:
         input_schema: Pydantic BaseModel class
 
     Returns:
         List of ParamSchema for each field
     """
+    import types
+    from typing import Union, get_args, get_origin
+
     params = []
     for field_name, field_info in input_schema.model_fields.items():
-        # Get type annotation as string
+        # Get type annotation
         annotation = input_schema.model_fields[field_name].annotation
         type_str = getattr(annotation, "__name__", str(annotation))
 
-        # Check if required (no default)
-        is_required = field_info.is_required()
+        # Check if type is Optional (includes None)
+        # Handle Union types (including str | None syntax which is UnionType in Python 3.10+)
+        origin = get_origin(annotation)
+        is_optional_type = False
+        if origin is Union or isinstance(annotation, types.UnionType):
+            args = get_args(annotation)
+            is_optional_type = type(None) in args
+
+        # Pydantic's is_required() only checks for Field(...)
+        pydantic_required = field_info.is_required()
+
+        # New required logic:
+        # - If Pydantic says required (no default) → required
+        # - If has default AND type is NOT Optional → required (with default)
+        # - If has default AND type IS Optional → optional
+        if pydantic_required:
+            is_required = True
+            default = None
+        elif is_optional_type:
+            # Optional type with default → truly optional
+            is_required = False
+            default = field_info.default
+        else:
+            # Non-optional type with default → required (but has fallback default)
+            is_required = True
+            default = field_info.default
 
         # Get description from Field
         description = field_info.description or ""
-
-        # Get default value
-        default = None if is_required else field_info.default
 
         params.append(
             ParamSchema(
@@ -295,6 +355,25 @@ def _extract_params_from_pydantic(input_schema: type) -> list[ParamSchema]:
     return params
 
 
+def _annotation_to_type_string(annotation: Any) -> str:
+    """
+    Convert a type annotation to a string representation.
+
+    Args:
+        annotation: Type annotation from Pydantic field
+
+    Returns:
+        Type as string (e.g., "str", "float", "list[str]")
+    """
+    if annotation is None:
+        return "Any"
+    # Handle simple types like str, int, float
+    if hasattr(annotation, "__name__"):
+        return annotation.__name__
+    # Handle generic types like list[str], dict[str, int]
+    return str(annotation).replace("typing.", "")
+
+
 def _extract_return_schema(output_schema: type) -> ReturnSchema:
     """
     Extract return schema from a Pydantic model.
@@ -303,11 +382,15 @@ def _extract_return_schema(output_schema: type) -> ReturnSchema:
         output_schema: Pydantic BaseModel class
 
     Returns:
-        ReturnSchema with type and field info
+        ReturnSchema with type and field info including types
     """
-    fields = {}
+    fields = []
     for field_name, field_info in output_schema.model_fields.items():
-        fields[field_name] = field_info.description or ""
+        # Get type string from annotation
+        annotation = field_info.annotation
+        type_str = _annotation_to_type_string(annotation)
+        description = field_info.description or ""
+        fields.append(FieldSchema(name=field_name, type=type_str, description=description))
 
     return ReturnSchema(
         type=output_schema.__name__,
@@ -359,7 +442,8 @@ def _build_domain_from_agent(agent: Agent) -> DomainSchema:
     Returns:
         DomainSchema representing the agent as a domain
     """
-    tools = [_build_tool_schema(tool) for tool in (agent.tools or [])]
+    agent_tools = agent.tools or []
+    tools = [_build_tool_schema(tool) for tool in agent_tools]
 
     # Convert agent name to snake_case for class name
     class_id = agent.name.lower().replace(" ", "_").replace("-", "_")
@@ -404,6 +488,8 @@ def build_semantic_layer(team: Team) -> TeamSemanticLayer:
         # member is always TeamMember now
         agent_or_team = member.agent
 
+        # @tTODO Change the className of the agent or team of the generated code from camelCase to snake_case
+
         if isinstance(agent_or_team, Agent):
             # Agent becomes a domain
             domains.append(_build_domain_from_agent(agent_or_team))
@@ -428,177 +514,41 @@ def build_semantic_layer(team: Team) -> TeamSemanticLayer:
     )
 
 
-"""
-{
-  "team_id": "order-processing-team",
-  "team_name": "Order Processing Team",
-  "team_description": "Coordinates complete order fulfillment workflow",
+def build_agent_semantic_layer(agent: Agent) -> TeamSemanticLayer:
+    """
+    Build semantic layer for a single Agent.
 
-  "domains": [
-    {
-      "id": "order_validator",
-      "name": "Order Validator",
-      "description": "Validates order details and customer information",
-      "tools": [
-        {
-          "name": "validate_order",
-          "description": "Validate order details including customer information, items, and shipping address. Returns validation status and any errors.",
-          "parameters": [
-            {"name": "order_id", "type": "str", "required": true, "description": "Unique order identifier"},
-            {"name": "customer_id", "type": "str", "required": true, "description": "Customer ID"},
-            {"name": "items", "type": "list[dict]", "required": true, "description": "List of items with product_id, quantity, price"},
-            {"name": "shipping_address", "type": "dict", "required": true, "description": "Shipping address dictionary"},
-            {"name": "payment_method", "type": "str", "required": false, "default": null, "description": "Optional payment method"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with validation status and errors",
-          "example_call": "order_validator.validate_order('ORD-123', 'CUST-456', [{'product_id': 'PROD-001', 'quantity': 2, 'price': 99.99}], {'country': 'US', 'city': 'NYC'})",
-          "example_result": "{\"status\": \"valid\", \"is_valid\": true, \"total_value\": 199.98}"
-        }
-      ]
-    },
+    Reuses TeamSemanticLayer structure with a single domain (the agent itself).
+    This allows the agent to use the same Sandbox infrastructure as Team.
 
-    {
-      "id": "inventory",
-      "name": "Inventory Manager",
-      "description": "Checks stock and reserves items for orders",
-      "tools": [
-        {
-          "name": "check_inventory",
-          "description": "Check stock availability for products. Returns available quantity and stock status.",
-          "parameters": [
-            {"name": "product_ids", "type": "list[str]", "required": true, "description": "List of product IDs to check"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with inventory status for each product",
-          "example_call": "inventory.check_inventory(['PROD-001', 'PROD-002'])",
-          "example_result": "{\"products\": [{\"product_id\": \"PROD-001\", \"available\": 45, \"in_stock\": true}]}"
+    Args:
+        agent: Agent instance with tools
+
+    Returns:
+        TeamSemanticLayer with single domain containing all agent tools
+
+    Example:
+        agent = Agent(
+            name="Market Analyst",
+            model=model,
+            tools=[analyze_stock, get_market_data],
+            ...
+        )
+        semantic = build_agent_semantic_layer(agent)
+        # semantic.domains[0] contains all tools
+    """
+    # Build single domain from the agent
+    domain = _build_domain_from_agent(agent)
+
+    return TeamSemanticLayer(
+        team_id=agent.id,
+        team_name=agent.name,
+        team_description=agent.description or f"Agent: {agent.name}",
+        team_instructions=agent.instructions,
+        domains=[domain],  # Single domain for the agent
+        metadata={
+            "total_domains": 1,
+            "total_tools": len(domain.tools),
+            "is_agent": True,  # Flag to identify this is an agent, not a team
         },
-        {
-          "name": "reserve_items",
-          "description": "Reserve items for an order to prevent overselling.",
-          "parameters": [
-            {"name": "order_id", "type": "str", "required": true, "description": "Order ID"},
-            {"name": "items", "type": "list[dict]", "required": true, "description": "Items to reserve with product_id and quantity"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with reservation status",
-          "example_call": "inventory.reserve_items('ORD-123', [{'product_id': 'PROD-001', 'quantity': 2}])",
-          "example_result": "{\"reservation_id\": \"RES-ABC\", \"status\": \"reserved\"}"
-        }
-      ]
-    },
-
-    {
-      "id": "payment",
-      "name": "Payment Processor",
-      "description": "Processes payments for orders",
-      "tools": [
-        {
-          "name": "process_payment",
-          "description": "Process payment for an order. Returns payment ID and transaction status.",
-          "parameters": [
-            {"name": "order_id", "type": "str", "required": true, "description": "Order ID"},
-            {"name": "amount", "type": "float", "required": true, "description": "Payment amount"},
-            {"name": "payment_method", "type": "str", "required": true, "description": "Payment method (credit_card, debit_card, paypal)"},
-            {"name": "customer_id", "type": "str", "required": true, "description": "Customer ID"},
-            {"name": "currency", "type": "str", "required": false, "default": "USD", "description": "Currency code"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with payment status and transaction ID",
-          "example_call": "payment.process_payment('ORD-123', 199.98, 'credit_card', 'CUST-456')",
-          "example_result": "{\"payment_id\": \"PAY-ABC\", \"status\": \"completed\", \"transaction_id\": \"TXN-123\"}"
-        },
-        {
-          "name": "refund_payment",
-          "description": "Process refund for a payment.",
-          "parameters": [
-            {"name": "payment_id", "type": "str", "required": true, "description": "Original payment ID"},
-            {"name": "amount", "type": "float", "required": true, "description": "Refund amount"},
-            {"name": "reason", "type": "str", "required": false, "default": null, "description": "Reason for refund"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with refund status",
-          "example_call": "payment.refund_payment('PAY-ABC', 50.00, 'Partial return')",
-          "example_result": "{\"refund_id\": \"REF-XYZ\", \"status\": \"completed\"}"
-        }
-      ]
-    },
-
-    {
-      "id": "shipping",
-      "name": "Shipping Coordinator",
-      "description": "Calculates shipping and generates labels",
-      "tools": [
-        {
-          "name": "calculate_shipping",
-          "description": "Calculate shipping costs and estimated delivery times.",
-          "parameters": [
-            {"name": "destination_country", "type": "str", "required": true, "description": "Destination country code (US, CA, UK)"},
-            {"name": "weight_kg", "type": "float", "required": true, "description": "Package weight in kilograms"},
-            {"name": "shipping_method", "type": "str", "required": false, "default": "standard", "description": "Shipping method (standard, express, overnight)"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with shipping cost and delivery estimate",
-          "example_call": "shipping.calculate_shipping('US', 2.5, 'express')",
-          "example_result": "{\"total_cost\": 15.99, \"estimated_delivery_days\": 2}"
-        },
-        {
-          "name": "generate_label",
-          "description": "Generate shipping label for an order.",
-          "parameters": [
-            {"name": "order_id", "type": "str", "required": true, "description": "Order ID"},
-            {"name": "shipping_address", "type": "dict", "required": true, "description": "Shipping address"},
-            {"name": "shipping_method", "type": "str", "required": true, "description": "Selected shipping method"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with label and tracking number",
-          "example_call": "shipping.generate_label('ORD-123', {'country': 'US', 'city': 'NYC'}, 'express')",
-          "example_result": "{\"label_id\": \"LBL-123\", \"tracking_number\": \"1Z999AA10123456784\"}"
-        }
-      ]
-    },
-
-    {
-      "id": "customer_service",
-      "name": "Customer Service",
-      "description": "Sends notifications and updates order status",
-      "tools": [
-        {
-          "name": "send_notification",
-          "description": "Send notification to customer via email or SMS.",
-          "parameters": [
-            {"name": "customer_id", "type": "str", "required": true, "description": "Customer ID"},
-            {"name": "notification_type", "type": "str", "required": true, "description": "Type (order_confirmed, shipped, delivered)"},
-            {"name": "message", "type": "str", "required": true, "description": "Notification message"},
-            {"name": "channel", "type": "str", "required": false, "default": "email", "description": "Channel (email, sms, push)"},
-            {"name": "order_id", "type": "str", "required": false, "default": null, "description": "Optional order ID"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with notification status",
-          "example_call": "customer_service.send_notification('CUST-456', 'order_confirmed', 'Your order is confirmed!', order_id='ORD-123')",
-          "example_result": "{\"notification_id\": \"NOTIF-ABC\", \"status\": \"sent\"}"
-        },
-        {
-          "name": "update_order_status",
-          "description": "Update order status in the system.",
-          "parameters": [
-            {"name": "order_id", "type": "str", "required": true, "description": "Order ID"},
-            {"name": "status", "type": "str", "required": true, "description": "New status"},
-            {"name": "notes", "type": "str", "required": false, "default": null, "description": "Status notes"}
-          ],
-          "return_type": "str",
-          "return_description": "JSON string with status update confirmation",
-          "example_call": "customer_service.update_order_status('ORD-123', 'shipped', 'Label generated')",
-          "example_result": "{\"order_id\": \"ORD-123\", \"new_status\": \"shipped\"}"
-        }
-      ]
-    }
-  ],
-
-  "metadata": {
-    "total_domains": 5,
-    "total_tools": 9
-  }
-}
-"""
+    )

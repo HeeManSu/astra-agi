@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Daksha Logo - Hexagonal brain/circuit pattern with central node -->
+  
+  <!-- Outer hexagonal frame -->
+  <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" stroke="white" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Inner circuit paths - top section -->
+  <path d="M16 2 L16 8 M16 8 C12 8, 8 10, 6 14 M16 8 C20 8, 24 10, 26 14" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Inner circuit paths - middle connections -->
+  <path d="M4 9 L10 12 C12 13, 13 14, 13 16 M28 9 L22 12 C20 13, 19 14, 19 16" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Inner circuit paths - bottom section -->
+  <path d="M4 23 L10 20 C12 19, 13 18, 13 16 M28 23 L22 20 C20 19, 19 18, 19 16" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Bottom vertex connections -->
+  <path d="M16 30 L16 24 C16 22, 14 20, 13 19 M16 24 C16 22, 18 20, 19 19" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Central node/core -->
+  <circle cx="16" cy="16" r="2.5" fill="white"/>
+</svg>

@@ -686,12 +686,15 @@ class Gemini(Model):
         # Get client and make API call
         client = self._get_client()
 
+        print("Making API call")
+
         try:
             response = await client.aio.models.generate_content(
                 model=self.model_id,
                 contents=formatted_messages,
                 config=config,
             )
+            print("API call successful")
         except (ClientError, ServerError) as e:
             raise RuntimeError(f"Gemini request failed: {e}") from e
         except (ValueError, Exception) as e:

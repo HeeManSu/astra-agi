@@ -1,248 +1,16 @@
 {
   "version": "0.2.0",
   "configurations": [
-    // {
-    //   "name": "Python: Current File",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${file}",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": true,
-    //   "cwd": "${workspaceFolder}",
-    //   "env": {
-    //     "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-    //   }
-    // },
-    // {
-    //   "name": "Python: Cost Reduction",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${workspaceFolder}/packages/framework/examples/code_mode/cost_reduction.py",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": false,
-    //   "cwd": "${workspaceFolder}"
-    // },
-    // {
-    //   "name": "Python: Market Research",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${workspaceFolder}/packages/framework/examples/market_research/example.py",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": false,
-    //   "cwd": "${workspaceFolder}",
-    //   "env": {
-    //     "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-    //   }
-    // },
-    // {
-    //   "name": "Team: Product Launch",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${workspaceFolder}/packages/framework/examples/team/01_product_launch_team.py",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": false,
-    //   "cwd": "${workspaceFolder}",
-    //   "env": {
-    //     "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-    //   }
-    // },
-    // {
-    //   "name": "Python: Basic RAG",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${workspaceFolder}/packages/framework/examples/rag/01_basic_rag.py",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": false,
-    //   "cwd": "${workspaceFolder}",
-    //   "env": {
-    //     "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-    //   }
-    // },
-    // {
-    //   "name": "03_summarization",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": false,
-    //   "cwd": "${workspaceFolder}",
-    //   "env": {
-    //     "PYTHONPATH": "${workspaceFolder}:${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-    //   }
-    // },
-    // {
-    //   "name": "Python: Market Research",
-    //   "type": "debugpy",
-    //   "request": "launch",
-    //   "program": "${workspaceFolder}/packages/runtime/examples/market_research/main.py",
-    //   "console": "integratedTerminal",
-    //   "justMyCode": false,
-    //   "cwd": "${workspaceFolder}/packages/runtime",
-    //   "env": {
-    //     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime/examples",
-    //     "HOST": "127.0.0.1",
-    //     "PORT": "8000"
-    //   }
-    // },
     {
-      "name": "Backend: Test Server (Debug)",
+      "name": "Backend: Finance Team Server",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/packages/runtime/examples/test_server/main.py",
+      "program": "${workspaceFolder}/astra/runtime/examples/finance_team/main.py",
       "console": "integratedTerminal",
       "justMyCode": false,
-      "cwd": "${workspaceFolder}/packages/runtime",
+      "cwd": "${workspaceFolder}/astra/runtime",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
-        "HOST": "127.0.0.1",
-        "PORT": "8000",
-        "ASTRA_JWT_SECRET": "dev-secret-for-testing"
-      },
-      "serverReadyAction": {
-        "pattern": "Server running at: (https?://.*)",
-        "uriFormat": "%s",
-        "action": "openExternally"
-      },
-      "presentation": {
-        "group": "playground",
-        "order": 1
-      }
-    },
-    {
-      "name": "Frontend: Playground Dev Server",
-      "type": "node",
-      "request": "launch",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
-      "cwd": "${workspaceFolder}/packages/playground",
-      "serverReadyAction": {
-        "pattern": "Local:.*(https?://.*)",
-        "uriFormat": "%s",
-        "action": "openExternally"
-      },
-      "presentation": {
-        "group": "playground",
-        "order": 2
-      }
-    },
-    {
-      "name": "Backend: Content Research Workflow Server",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/runtime/examples/content_research_workflow/main.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}/packages/runtime",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Python: Example 3 - Tool Call Storage",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/storage/03_tool_cal.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Memory: Example 1 - Memory Config",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/memory/01_memory_config.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Memory: Example 2 - Context Window",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/memory/02_context_window.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Memory: Example 4 - Summarization",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Middleware: Example 1 - Input Middleware",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/middleware/01_input_middleware.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Middleware: Example 2 - Output Middleware",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/middleware/02_output_middleware.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-      }
-    },
-    {
-      "name": "Middleware: Example 3 - Combined Middleware",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/middleware/03_combined_middleware.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
-        "HOST": "127.0.0.1",
-        "PORT": "8000",
-        "ASTRA_JWT_SECRET": "dev-secret-for-testing"
-      },
-      "serverReadyAction": {
-        "pattern": "Server running at: (https?://.*)",
-        "uriFormat": "%s",
-        "action": "openExternally"
-      },
-      "presentation": {
-        "group": "content-research",
-        "order": 1
-      }
-    },
-    {
-      "name": "Backend: Teams Server (Debug)",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/packages/runtime/examples/teams/main.py",
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "cwd": "${workspaceFolder}/packages/runtime",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/runtime/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase:${workspaceFolder}/packages/runtime:${workspaceFolder}/packages/runtime/examples",
+        "PYTHONPATH": "${workspaceFolder}/astra/framework/src:${workspaceFolder}/astra/runtime/src:${workspaceFolder}/astra/runtime:${workspaceFolder}/astra/runtime/examples",
         "HOST": "127.0.0.1",
         "PORT": "8000",
         "ASTRA_JWT_SECRET": "dev-secret-for-testing",
@@ -254,283 +22,79 @@
         "action": "openExternally"
       },
       "presentation": {
-        "group": "teams",
+        "group": "finance-team",
         "order": 1
       }
     },
     {
-      "name": "Team: Research Team (04)",
+      "name": "Backend: Market Research Server",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/packages/framework/examples/team/04_research_team.py",
+      "program": "${workspaceFolder}/astra/runtime/examples/market_research/main.py",
       "console": "integratedTerminal",
       "justMyCode": false,
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/astra/runtime/examples/market_research",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
+        "PYTHONPATH": "${workspaceFolder}/astra/framework/src:${workspaceFolder}/astra/runtime/src:${workspaceFolder}/astra/runtime:${workspaceFolder}/astra/runtime/examples/market_research",
+        "HOST": "127.0.0.1",
+        "PORT": "8000",
+        "ASTRA_JWT_SECRET": "dev-secret-for-testing"
+      },
+      "serverReadyAction": {
+        "pattern": "Uvicorn running on (https?://.*)",
+        "uriFormat": "%s",
+        "action": "openExternally"
       },
       "presentation": {
-        "group": "team-examples",
+        "group": "market-research",
         "order": 1
+      }
+    },
+    {
+      "name": "Frontend: Playground Dev Server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "cwd": "${workspaceFolder}/astra-playground-ui",
+      "serverReadyAction": {
+        "pattern": "Local:.*(https?://.*)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      },
+      "presentation": {
+        "group": "finance-team",
+        "order": 2
       }
     }
   ],
   "compounds": [
     {
-      "name": "Teams: Server + Frontend Playground",
+      "name": "Finance Team: Server + Frontend",
       "configurations": [
-        "Backend: Teams Server (Debug)",
+        "Backend: Finance Team Server",
         "Frontend: Playground Dev Server"
       ],
       "stopAll": true,
       "presentation": {
-        "group": "teams",
+        "group": "finance-team",
         "order": 0
       }
     },
     {
-      "name": "Content Research: Workflow Server + Playground",
+      "name": "Market Research: Server + Frontend",
       "configurations": [
-        "Backend: Content Research Workflow Server",
+        "Backend: Market Research Server",
         "Frontend: Playground Dev Server"
       ],
       "stopAll": true,
       "presentation": {
-        "group": "content-research",
+        "group": "market-research",
         "order": 0
       }
     }
   ]
 }
-// {
-//   "name": "Python: Example 1 - Simple Agent",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/01_simple_agent.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 2 - Agent with Tools",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/02_agent_with_tools.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 3 - Advanced Agent",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/03_advanced_agent.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 4 - Streaming Tests",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/04_streaming_tests.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}"
-// },
-// {
-//   "name": "Python: Example 5 - Comprehensive Properties",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/05_comprehensive_properties.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}"
-// },
-// {
-//   "name": "Python: Example 6 - Edge Cases",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/06_edge_cases.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}"
-// },
-// {
-//   "name": "Python: Storage: Initialization Example",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/storage/01_initialization.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 2 - Agent with Storage",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/storage/02_persistence.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 3 - Tool Call Storage",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/storage/03_tool_cal.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Memory: Example 1 - Memory Config",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/memory/01_memory_config.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Memory: Example 2 - Context Window",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/memory/02_context_window.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}"
-// },
-// {
-//   "name": "Memory: Example 4 - Summarization",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/memory/03_summarization.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Middleware: Example 1 - Input Middleware",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/middleware/01_input_middleware.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Middleware: Example 2 - Output Middleware",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/middleware/02_output_middleware.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Middleware: Example 3 - Combined Middleware",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/middleware/03_combined_middleware.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 7 - MCP",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/mcp/research_agent.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Python: Example 8 - MCP Hybrid Agent",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/mcp/hybrid_agent.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "MCP Simple demo",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/mcp/simple_demo.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// },
-// {
-//   "name": "Code Mode: Example 11 - Comprehensive API Surface",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "program": "${workspaceFolder}/packages/framework/examples/code_mode/11_comprehensive_api_surface.py",
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}"
-// },
-// {
-//   "name": "Python: Pytest Benchmarks",
-//   "type": "debugpy",
-//   "request": "launch",
-//   "module": "pytest",
-//   "args": [
-//     "packages/framework/tests/benchmarks/test_benchmarks.py",
-//     "-v",
-//     "--benchmark-only"
-//   ],
-//   "console": "integratedTerminal",
-//   "justMyCode": false,
-//   "cwd": "${workspaceFolder}",
-//   "env": {
-//     "PYTHONPATH": "${workspaceFolder}/packages/framework/src:${workspaceFolder}/packages/observability:${workspaceFolder}/packages/memorybase"
-//   }
-// }
-//   ]
-// }

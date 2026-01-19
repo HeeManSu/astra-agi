@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from framework.storage.memory import AgentStorage
+    from framework.storage.client import StorageClient
 
 
 class Memory:
@@ -45,14 +45,14 @@ class Memory:
     async def get_context(
         self,
         thread_id: str,
-        storage: AgentStorage,
+        storage: StorageClient,
     ) -> list[dict[str, Any]]:
         """
         Get recent conversation context for the current turn.
 
         Args:
             thread_id: Thread ID to load context from
-            storage: AgentStorage instance for storage access
+            storage: StorageClient instance for storage access
 
         Returns:
             List of message dicts in format: [{"role": "user", "content": "..."}]

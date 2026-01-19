@@ -16,7 +16,7 @@ import uuid
 
 from framework.memory import Memory
 from framework.models import Model
-from framework.storage.memory import AgentStorage
+from framework.storage.client import StorageClient
 
 
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ class Agent:
         description: str | None = None,
         tools: list[Any] | None = None,
         code_mode: bool = True,
-        storage: AgentStorage | None = None,
+        storage: StorageClient | None = None,
         # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
         # rag_pipeline: Any | None = None,
         # rag_pipelines: dict[str, Any] | None = None,
@@ -240,7 +240,13 @@ class Agent:
 
         return code.strip()
 
-    async def invoke(self, query: str, *, timeout: float | None = None) -> str:
+    async def invoke(
+        self,
+        query: str,
+        *,
+        thread_id: str | None = None,
+        timeout: float | None = None,
+    ) -> str:
         """
         Execute the agent on a query and return the final response.
 
@@ -253,22 +259,40 @@ class Agent:
 
         Args:
             query: The user's request/question
+            thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
 
         Returns:
             The formatted response from the agent
         """
         from framework.code_mode.sandbox import Sandbox
+        from framework.storage.persistence import save_assistant_message, save_user_message
 
+        # Save user message
+        thread_id = await save_user_message(
+            self.storage,
+            thread_id,
+            query,
+            resource_type="agent",
+            resource_id=self.id or self.name,
+            resource_name=self.name,
+        )
+
+        # Execute in sandbox
         sandbox = Sandbox(self)
         result = await sandbox.run(query, timeout=timeout or self.timeout)
+        response = result.formatted_output or result.output
 
-        return result.formatted_output or result.output
+        # Save assistant response
+        await save_assistant_message(self.storage, thread_id, response)
+
+        return response
 
     async def stream(
         self,
         query: str,
         *,
+        thread_id: str | None = None,
         timeout: float | None = None,
     ) -> AsyncIterator[Any]:
         """
@@ -285,13 +309,25 @@ class Agent:
 
         Args:
             query: The user's request/question
+            thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
 
         Yields:
             StreamEvent objects for SSE streaming
         """
         from framework.code_mode.sandbox import Sandbox
+        from framework.storage.persistence import save_assistant_message, save_user_message
         from framework.team.team import StreamEvent
+
+        # Save user message
+        thread_id = await save_user_message(
+            self.storage,
+            thread_id,
+            query,
+            resource_type="agent",
+            resource_id=self.id or self.name,
+            resource_name=self.name,
+        )
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
@@ -343,6 +379,10 @@ class Agent:
             # Format and yield final output
             if result.success:
                 formatted_output = await sandbox.format_response(query, result.output)
+
+                # Save assistant response
+                await save_assistant_message(self.storage, thread_id, formatted_output)
+
                 yield StreamEvent(event_type="content", data={"text": formatted_output})
                 yield StreamEvent(event_type="done", data={"status": "complete"})
             else:

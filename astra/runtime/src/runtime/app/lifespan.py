@@ -13,16 +13,22 @@ async def app_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Manage application lifespan.
 
-    Handles startup and shutdown events.
-    TODO: Add proper lifecycle management when needed:
-        - Database connection pooling
-        - Agent startup/shutdown hooks
-        - Cache warming
+    Handles startup and shutdown events including:
+        - Storage connection/disconnection
     """
-    # Startup
+    from runtime.registry import storage_registry
+
+    # Startup - connect storage
+    storage = storage_registry.get_default()
+    if storage and hasattr(storage, "connect"):
+        await storage.connect()
+
     print("🚀 Astra Server started")  # noqa: T201
 
     yield
 
-    # Shutdown
+    # Shutdown - disconnect storage
+    if storage and hasattr(storage, "disconnect"):
+        await storage.disconnect()
+
     print("👋 Astra Server stopped")  # noqa: T201

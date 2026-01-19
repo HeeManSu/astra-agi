@@ -29,7 +29,7 @@ finance_team = Team(
     name="Hedge Fund Team",
     model=model,
     members=[market_agent, earning_agent, investment_agent],
-    # storage=AgentStorage(storage=MongoDBStorage("mongodb://localhost:27017", "finance_team")),
+    # storage=StorageClient(storage=MongoDBStorage("mongodb://localhost:27017", "finance_team")),
     description="A team of elite financial analysts and strategists working together to outperform the market.",
     instructions="\n".join(
         [

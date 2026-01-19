@@ -7,10 +7,11 @@ from pydantic import BaseModel, Field, field_validator
 class Thread(BaseModel):
     """Represents a conversation thread."""
 
-    id: str
-    agent_name: str | None = None
-    resource_id: str | None = None
-    title: str | None = None
+    id: str | None = None  # Auto-assigned by database
+    resource_type: str  # "agent" | "team" | "stepper" | "workflow"
+    resource_id: str  # The ID of the resource
+    resource_name: str  # Human-readable name for display
+    title: str  # Auto-set from first user message
     message_count: int = 0
     metadata: dict[str, Any] = Field(default_factory=dict)
     is_archived: bool = False
@@ -22,7 +23,7 @@ class Thread(BaseModel):
 class Message(BaseModel):
     """Represents a single message in a thread."""
 
-    id: str
+    id: str | None = None  # Auto-assigned by database
     thread_id: str
     role: str
     content: str
@@ -97,7 +98,7 @@ class TeamAuth(BaseModel):
     Single row table - one email/password for the entire team.
     """
 
-    id: str
+    id: str | None = None  # Auto-assigned by database
     email: str
     password_hash: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

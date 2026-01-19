@@ -33,9 +33,12 @@ astra_threads = Table(
     "astra_threads",
     metadata,
     Column("id", String(64), primary_key=True),
-    Column("agent_name", String(255), nullable=True, index=True),
-    Column("resource_id", String(64), nullable=True, index=True),
-    Column("title", String(255), nullable=True),
+    Column(
+        "resource_type", String(32), nullable=False, index=True
+    ),  # "agent" | "team" | "stepper" | "workflow"
+    Column("resource_id", String(64), nullable=False, index=True),
+    Column("resource_name", String(255), nullable=False),
+    Column("title", String(255), nullable=False),
     Column("message_count", INTEGER, server_default="0"),
     Column("metadata", JSON, nullable=True),
     Column("is_archived", Boolean, nullable=False, server_default="0"),
@@ -51,7 +54,7 @@ astra_threads = Table(
     Index("idx_threads_created_at", "created_at"),
     Index("idx_threads_is_archived", "is_archived"),
     Index("idx_threads_deleted_at", "deleted_at"),
-    Index("idx_threads_resource_id_created", "resource_id", "created_at"),
+    Index("idx_threads_resource_type_id", "resource_type", "resource_id"),
 )
 
 astra_messages = Table(

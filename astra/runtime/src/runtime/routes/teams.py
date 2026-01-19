@@ -58,8 +58,8 @@ async def run_team(team_id: str, request: TeamRunRequest):
     if not team:
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
 
-    # Run the team
-    response = await team.invoke(request.message)
+    # Run the team with optional thread_id for message persistence
+    response = await team.invoke(request.message, thread_id=request.thread_id)
     return {"response": response}
 
 
@@ -73,7 +73,7 @@ async def stream_team(team_id: str, request: TeamRunRequest):
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
 
     async def generate():
-        async for event in team.stream(request.message):
+        async for event in team.stream(request.message, thread_id=request.thread_id):
             yield f"data: {event.model_dump_json()}\n\n"
         yield "data: [DONE]\n\n"
 

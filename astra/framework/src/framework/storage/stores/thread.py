@@ -5,8 +5,10 @@ Provides high-level CRUD operations over the astra_threads table.
 """
 
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from framework.storage.base import StorageBackend
+from framework.storage.databases.mongodb import MongoDBStorage
 from framework.storage.models import Thread
 from framework.storage.stores.base import BaseStore
 
@@ -26,21 +28,42 @@ class ThreadStore(BaseStore[Thread]):
     def __init__(self, storage: StorageBackend) -> None:
         super().__init__(storage=storage, model_cls=Thread, collection_name="astra_threads")
 
+    def _get_id_field(self) -> str:
+        """Return the ID field name based on storage backend."""
+        if isinstance(self._storage, MongoDBStorage):
+            return "_id"
+        return "id"
+
     async def create(self, thread: Thread) -> Thread:
         """
         Insert a new thread row.
-        Note: DB-level defaults (created_at/updated_at) are handled by the database.
+
+        For MongoDB: Let database generate _id (ObjectId)
+        For SQL: Generate id if not provided
 
         Args:
             thread: Thread object to create
 
         Returns:
-            Created Thread object
+            Created Thread object with id populated
         """
         data = thread.model_dump(exclude_unset=True)
-        query = self.storage.build_insert_query(self.collection_name, self._prepare_document(data))
-        await self.storage.execute(query)
-        return thread
+
+        # For SQL backends, generate id if not provided
+        if not isinstance(self._storage, MongoDBStorage):
+            if "id" not in data or data.get("id") is None:
+                data["id"] = f"thread-{uuid4().hex[:10]}"
+
+        doc = self._prepare_document(data)
+        result = await self.storage.execute(
+            self.storage.build_insert_query(self.collection_name, doc)
+        )
+
+        # For MongoDB, get the inserted _id and return updated thread
+        if isinstance(self._storage, MongoDBStorage) and result:
+            data["id"] = str(result.inserted_id)
+
+        return Thread(**data)
 
     async def get(self, thread_id: str) -> Thread | None:
         """
@@ -52,9 +75,23 @@ class ThreadStore(BaseStore[Thread]):
         Returns:
             Thread object or None if not found
         """
+        id_field = self._get_id_field()
+
+        # For MongoDB, need to convert string to ObjectId for _id queries
+        if isinstance(self._storage, MongoDBStorage):
+            from bson import ObjectId
+
+            try:
+                filter_dict = {id_field: ObjectId(thread_id)}
+            except Exception:
+                # If thread_id is not a valid ObjectId, try as string (legacy data)
+                filter_dict = {id_field: thread_id}
+        else:
+            filter_dict = {id_field: thread_id}
+
         query = self.storage.build_select_query(
             collection=self.collection_name,
-            filter_dict={"id": thread_id},
+            filter_dict=filter_dict,
             limit=1,
         )
         row = await self.storage.fetch_one(query)
@@ -69,9 +106,21 @@ class ThreadStore(BaseStore[Thread]):
         Args:
             thread_id: Thread identifier to soft delete
         """
+        id_field = self._get_id_field()
+
+        if isinstance(self._storage, MongoDBStorage):
+            from bson import ObjectId
+
+            try:
+                filter_dict = {id_field: ObjectId(thread_id), "deleted_at": None}
+            except Exception:
+                filter_dict = {id_field: thread_id, "deleted_at": None}
+        else:
+            filter_dict = {id_field: thread_id, "deleted_at": None}
+
         query = self.storage.build_update_query(
             collection=self.collection_name,
-            filter_dict={"id": thread_id, "deleted_at": None},  # Only update if not already deleted
+            filter_dict=filter_dict,
             update_data={"deleted_at": datetime.now(timezone.utc)},
         )
         await self.storage.execute(query)
@@ -80,15 +129,24 @@ class ThreadStore(BaseStore[Thread]):
         """
         Hard delete a thread (permanent deletion).
 
-        Note: This will cascade delete associated messages if foreign key
-        constraints are set with ON DELETE CASCADE.
-
         Args:
             thread_id: Thread identifier to delete
         """
+        id_field = self._get_id_field()
+
+        if isinstance(self._storage, MongoDBStorage):
+            from bson import ObjectId
+
+            try:
+                filter_dict = {id_field: ObjectId(thread_id)}
+            except Exception:
+                filter_dict = {id_field: thread_id}
+        else:
+            filter_dict = {id_field: thread_id}
+
         query = self.storage.build_delete_query(
             collection=self.collection_name,
-            filter_dict={"id": thread_id},
+            filter_dict=filter_dict,
         )
         await self.storage.execute(query)
 
@@ -111,7 +169,18 @@ class ThreadStore(BaseStore[Thread]):
         Returns:
             Updated Thread object or None if not found
         """
-        # Build update data from non-None args
+        id_field = self._get_id_field()
+
+        if isinstance(self._storage, MongoDBStorage):
+            from bson import ObjectId
+
+            try:
+                filter_dict = {id_field: ObjectId(thread_id)}
+            except Exception:
+                filter_dict = {id_field: thread_id}
+        else:
+            filter_dict = {id_field: thread_id}
+
         update_data: dict = {"updated_at": datetime.now(timezone.utc)}
         if title is not None:
             update_data["title"] = title
@@ -122,10 +191,9 @@ class ThreadStore(BaseStore[Thread]):
 
         query = self.storage.build_update_query(
             collection=self.collection_name,
-            filter_dict={"id": thread_id},
+            filter_dict=filter_dict,
             update_data=update_data,
         )
         await self.storage.execute(query)
 
-        # Return updated thread
         return await self.get(thread_id)

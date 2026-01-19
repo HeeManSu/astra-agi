@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import store from "@/store";
 import { useAppSelector } from "@/store/hooks";
 import Sidebar from "@/components/layout/Sidebar";
+import ThreadSidebar from "@/components/layout/ThreadSidebar";
 import ChatArea from "@/components/chat/ChatArea";
 import SettingsPage from "@/components/layout/SettingsPage";
 import "./index.css";
@@ -20,13 +21,15 @@ function Header() {
 }
 
 function AppContent() {
-  const { activeTab } = useAppSelector((state) => state.app);
+  const { activeTab, selectedItem } = useAppSelector((state) => state.app);
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
       <Header />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
+        {/* Thread Sidebar - visible when agent/team is selected */}
+        {selectedItem && activeTab !== "settings" && <ThreadSidebar />}
         {activeTab === "settings" ? <SettingsPage /> : <ChatArea />}
       </div>
       <Toaster position="top-right" richColors />

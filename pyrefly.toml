@@ -2,9 +2,12 @@
 disableTypeErrors = false
 
 [source_paths]
-# Add framework package to pyrefly's search paths
 packages = [
-    "packages/framework/src",
-    "packages/runtime/src"
+    "astra/framework/src",
+    "astra/runtime/src",
     "market-research"
 ]
+
+[tool.pyrefly]
+errors = { missing-override-decorator = "error" }
+

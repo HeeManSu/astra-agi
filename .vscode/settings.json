@@ -3,6 +3,8 @@
     "asyncio",
     "awsrequest",
     "BAAI",
+    "backtest",
+    "backtesting",
     "checkpw",
     "chunker",
     "cursorrules",
@@ -13,6 +15,7 @@
     "embedders",
     "executemany",
     "fastapi",
+    "Fintech",
     "jsons",
     "lancedb",
     "mpnet",
@@ -20,11 +23,13 @@
     "NOTIF",
     "onupdate",
     "parameterless",
+    "Princessa",
     "Qwen",
     "redoc",
     "Reranker",
     "Smol",
     "subteam",
+    "Telehealth",
     "vectordb",
     "مرحبا"
   ],
@@ -32,12 +37,14 @@
   "python.terminal.activateEnvironment": true,
   "python.analysis.extraPaths": [
     "${workspaceFolder}",
-    "${workspaceFolder}/packages/framework/src",
-    "${workspaceFolder}/packages/observability/observability",
-    "${workspaceFolder}/packages/memorybase/memorybase"
+    "${workspaceFolder}/astra/framework/src",
+    "${workspaceFolder}/astra/runtime/src",
+    "${workspaceFolder}/astra/observability/observability",
+    "${workspaceFolder}/astra/memorybase/memorybase"
   ],
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.importFormat": "relative",
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": false,
   "[python]": {
@@ -51,9 +58,11 @@
   "cursorpyright.analysis.autoImportCompletions": true,
   "cursorpyright.analysis.extraPaths": [
     "${workspaceFolder}",
-    "${workspaceFolder}/packages/framework/src",
-    "${workspaceFolder}/packages/observability/observability",
-    "${workspaceFolder}/packages/memorybase/memorybase"
+    "${workspaceFolder}/astra/framework/src",
+    "${workspaceFolder}/astra/runtime/src",
+    "${workspaceFolder}/astra/observability/observability",
+    "${workspaceFolder}/astra/memorybase/memorybase"
   ],
-  "cursorpyright.analysis.typeCheckingMode": "basic"
+  "cursorpyright.analysis.typeCheckingMode": "basic",
+  "cursorpyright.analysis.importFormat": "relative"
 }

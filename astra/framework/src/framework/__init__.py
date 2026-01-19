@@ -4,7 +4,7 @@ Astra Framework - Main entry point.
 Provides Agent and Astra classes for building AI agents.
 """
 
-from framework.agents import Agent, Tool, tool
+from framework.agents import Agent
 from framework.astra import Astra, AstraContext, FrameworkSettings
 
 
@@ -13,6 +13,4 @@ __all__ = [
     "Astra",
     "AstraContext",
     "FrameworkSettings",
-    "Tool",
-    "tool",
 ]

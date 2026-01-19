@@ -14,7 +14,7 @@ Flow:
 from framework.code_mode.sandbox import Sandbox, SandboxResult
 from framework.code_mode.semantic import TeamSemanticLayer, build_semantic_layer
 from framework.code_mode.stub_generator import generate_stubs
-from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
+from framework.code_mode.tool_registry import ToolRegistry
 
 
 __all__ = [
@@ -27,5 +27,4 @@ __all__ = [
     "TeamSemanticLayer",
     # Tool Registry
     "ToolRegistry",
-    "ToolSpec",
 ]

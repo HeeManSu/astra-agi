@@ -20,7 +20,7 @@ from framework.agents.agent import Agent
 from framework.memory import Memory
 from framework.middlewares.base import InputMiddleware, OutputMiddleware
 from framework.models.base import Model
-from framework.storage.memory import AgentStorage
+from framework.storage.client import StorageClient
 
 
 if TYPE_CHECKING:
@@ -124,7 +124,7 @@ class Team:
         members: list[Agent | Team | TeamMember],
         *,
         instructions: str,
-        storage: AgentStorage | None = None,
+        storage: StorageClient | None = None,
         memory: Memory | None = None,
         timeout: float = 300.0,
         max_retries: int = 2,
@@ -258,6 +258,7 @@ class Team:
         self,
         query: str,
         *,
+        thread_id: str | None = None,
         timeout: float | None = None,
     ) -> str:
         """
@@ -271,7 +272,7 @@ class Team:
 
         Args:
             query: The user's request/question
-            thread_id: Optional conversation thread for memory (not yet used)
+            thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
 
         Returns:
@@ -282,6 +283,17 @@ class Team:
             TeamError: If execution fails
         """
         from framework.code_mode.sandbox import Sandbox
+        from framework.storage.persistence import save_assistant_message, save_user_message
+
+        # Save user message
+        thread_id = await save_user_message(
+            self.storage,
+            thread_id,
+            query,
+            resource_type="team",
+            resource_id=self.id or self.name,
+            resource_name=self.name,
+        )
 
         # Create sandbox with this team
         sandbox = Sandbox(self)
@@ -290,9 +302,6 @@ class Team:
         exec_timeout = timeout or self.timeout
 
         # Run the sandbox: generate code → execute → return result
-        # sandbox.run() handles:
-        #   1. generate_code() - LLM creates Python code
-        #   2. execute() - Runs code in subprocess with IPC for tool calls
         result = await sandbox.run(query, timeout=exec_timeout)
 
         # Check for execution errors
@@ -300,12 +309,18 @@ class Team:
             raise TeamError(f"Team execution failed: {result.stderr or result.output}")
 
         # Return formatted (human-readable) output if available, otherwise raw output
-        return result.formatted_output or result.output
+        response = result.formatted_output or result.output
+
+        # Save assistant response
+        await save_assistant_message(self.storage, thread_id, response)
+
+        return response
 
     async def stream(
         self,
         query: str,
         *,
+        thread_id: str | None = None,
         timeout: float | None = None,
     ) -> AsyncIterator[StreamEvent]:
         """
@@ -322,12 +337,24 @@ class Team:
 
         Args:
             query: The user's request/question
+            thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
 
         Yields:
             StreamEvent objects for SSE streaming
         """
         from framework.code_mode.sandbox import Sandbox
+        from framework.storage.persistence import save_assistant_message, save_user_message
+
+        # Save user message
+        thread_id = await save_user_message(
+            self.storage,
+            thread_id,
+            query,
+            resource_type="team",
+            resource_id=self.id or self.name,
+            resource_name=self.name,
+        )
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
@@ -376,8 +403,11 @@ class Team:
 
             # Format and yield final output
             if result.success:
-                # Format the raw JSON into human-readable response
                 formatted_output = await sandbox.format_response(query, result.output)
+
+                # Save assistant response
+                await save_assistant_message(self.storage, thread_id, formatted_output)
+
                 yield StreamEvent(event_type="content", data={"text": formatted_output})
                 yield StreamEvent(event_type="done", data={"status": "complete"})
             else:

@@ -197,14 +197,15 @@ def _generate_docstring(domain_id: str, tool: ToolSchema) -> str:
     # Returns section with field details
     lines.append("")
     lines.append("        Returns:")
+    return_type = _type_to_python(tool.returns.type)
     if tool.returns.fields:
-        lines.append("            dict with fields:")
+        lines.append(f"            {return_type} with fields:")
         lines.extend(
             f"            - {field.name} ({field.type}): {field.description}"
             for field in tool.returns.fields
         )
     else:
-        lines.append(f"            {tool.returns.description}")
+        lines.append(f"            {return_type}: {tool.returns.description}")
 
     # Example section (if available)
     if tool.example:

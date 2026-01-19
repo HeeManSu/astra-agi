@@ -16,8 +16,8 @@ import uuid
 
 from framework.agents import Agent, tool
 from framework.models.huggingface import HuggingFaceLocal, HuggingFaceRemote
+from framework.storage.client import StorageClient
 from framework.storage.databases.libsql import LibSQLStorage
-from framework.storage.memory import AgentStorage
 import pytest
 
 
@@ -140,14 +140,14 @@ async def storage_backend(temp_db_path):
 @pytest.fixture
 async def agent_storage(storage_backend):
     """
-    Creates an AgentStorage instance for testing.
+    Creates an StorageClient instance for testing.
 
     Usage:
         async def test_something(agent_storage):
             thread = await agent_storage.create_thread(thread_id="test_thread")
             await agent_storage.add_message("test_thread", "user", "Hello")
     """
-    storage = AgentStorage(storage=storage_backend, max_messages=100)
+    storage = StorageClient(storage=storage_backend, max_messages=100)
     yield storage
     await storage.stop()
 

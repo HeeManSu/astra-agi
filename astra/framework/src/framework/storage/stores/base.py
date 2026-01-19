@@ -62,13 +62,13 @@ class BaseStore(Generic[TModel]):
         Convert a DB row dict → Pydantic model.
 
         Handles database-specific conversions:
-        - MongoDB: Converts _id to id
+        - MongoDB: Converts _id (ObjectId) to id (string)
         - SQL: Keeps id as is
         """
         row_data = dict(row)
 
         # MongoDB uses _id as primary key, convert to id for our models
-        if "_id" in row_data and "id" not in row_data:
+        if "_id" in row_data:
             row_data["id"] = str(row_data.pop("_id"))
 
         if "metadata" in row_data and row_data["metadata"] is None:
@@ -80,15 +80,14 @@ class BaseStore(Generic[TModel]):
         """
         Prepare document for insertion.
 
-        For MongoDB: Sets _id from id but KEEPS id field for our indexes
-        For SQL: Keeps id as is
+        For MongoDB: Remove id field, let MongoDB auto-generate _id
+        For SQL: Keep id as is
         """
         doc = dict(data)
 
         if isinstance(self._storage, MongoDBStorage):
-            # MongoDB uses _id as primary key
-            # We keep 'id' for our own index but also set '_id' for MongoDB
-            if "id" in doc and "_id" not in doc:
-                doc["_id"] = doc["id"]  # Copy, don't pop - keep both fields
+            # MongoDB auto-generates _id, so remove any id field
+            doc.pop("id", None)
+            doc.pop("_id", None)
 
         return doc

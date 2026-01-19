@@ -12,8 +12,10 @@ router = APIRouter(prefix="/threads", tags=["threads"])
 class ThreadCreate(BaseModel):
     """Request body for creating a thread."""
 
-    agent_id: str | None = None
-    team_id: str | None = None
+    resource_type: str  # "agent" | "team" | "stepper" | "workflow"
+    resource_id: str
+    resource_name: str
+    title: str = ""
     metadata: dict | None = None
 
 
@@ -28,8 +30,10 @@ class ThreadResponse(BaseModel):
     """Thread response."""
 
     id: str
-    agent_id: str | None = None
-    team_id: str | None = None
+    resource_type: str
+    resource_id: str
+    resource_name: str
+    title: str
     created_at: datetime
     metadata: dict | None = None
 
@@ -57,8 +61,10 @@ async def create_thread(request: ThreadCreate) -> ThreadResponse:
     thread_id = str(uuid.uuid4())
     thread = {
         "id": thread_id,
-        "agent_id": request.agent_id,
-        "team_id": request.team_id,
+        "resource_type": request.resource_type,
+        "resource_id": request.resource_id,
+        "resource_name": request.resource_name,
+        "title": request.title,
         "created_at": datetime.utcnow(),
         "metadata": request.metadata or {},
     }

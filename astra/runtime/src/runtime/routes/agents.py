@@ -58,8 +58,8 @@ async def run_agent(agent_id: str, request: AgentRunRequest):
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
 
-    # Run the agent
-    response = await agent.invoke(request.message)
+    # Run the agent with optional thread_id for message persistence
+    response = await agent.invoke(request.message, thread_id=request.thread_id)
     return {"response": response}
 
 
@@ -73,7 +73,7 @@ async def stream_agent(agent_id: str, request: AgentRunRequest):
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
 
     async def generate():
-        async for event in agent.stream(request.message):
+        async for event in agent.stream(request.message, thread_id=request.thread_id):
             yield f"data: {event.model_dump_json()}\n\n"
         yield "data: [DONE]\n\n"
 

@@ -5,7 +5,7 @@ Tests memory context loading and persistent facts in agent responses.
 """
 
 from framework.agents import Agent
-from framework.memory.memory import AgentMemory
+from framework.memory.memory import Memory
 import pytest
 
 
@@ -16,9 +16,9 @@ class TestAgentMemoryContext:
     @pytest.mark.asyncio
     async def test_agent_loads_conversation_history(self, hf_model, storage_backend):
         """Test that agent loads conversation history from storage."""
-        from framework.storage.memory import AgentStorage
+        from framework.storage.client import StorageClient
 
-        agent_storage = AgentStorage(storage=storage_backend, max_messages=50)
+        agent_storage = StorageClient(storage=storage_backend, max_messages=50)
         thread_id = "test_thread_history"
 
         # Add messages to storage
@@ -27,7 +27,7 @@ class TestAgentMemoryContext:
         await agent_storage.queue.flush()
 
         # Create agent with memory and storage (V1: using num_history_responses)
-        memory_config = AgentMemory(num_history_responses=10)
+        memory_config = Memory(num_history_responses=10)
         agent = Agent(
             name="MemoryAgent",
             instructions="You are a helpful assistant. Remember previous conversations.",
@@ -53,9 +53,9 @@ class TestAgentMemoryContext:
     @pytest.mark.asyncio
     async def test_agent_memory_disabled(self, hf_model, storage_backend):
         """Test that agent doesn't load history when memory is disabled."""
-        from framework.storage.memory import AgentStorage
+        from framework.storage.client import StorageClient
 
-        agent_storage = AgentStorage(storage=storage_backend, max_messages=50)
+        agent_storage = StorageClient(storage=storage_backend, max_messages=50)
         thread_id = "test_thread_disabled"
 
         # Add messages
@@ -63,7 +63,7 @@ class TestAgentMemoryContext:
         await agent_storage.queue.flush()
 
         # Create agent with memory disabled
-        memory_config = AgentMemory(add_history_to_messages=False)
+        memory_config = Memory(add_history_to_messages=False)
         agent = Agent(
             name="NoMemoryAgent",
             instructions="You are a helpful assistant.",

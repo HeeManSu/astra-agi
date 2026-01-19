@@ -75,7 +75,7 @@ class AstraServer:
         """
         self.agents = agents or []
         self.teams = teams or []
-        self.storage = storage  # Global storage for all agents/teams
+        self.storage = storage
 
         self.name = name
         self.description = description
@@ -85,25 +85,47 @@ class AstraServer:
         self.jwt_secret = jwt_secret
         self.cors_allowed_origins = cors_allowed_origins or ["*"]
 
-        # Configure storage for all agents if provided
-        if self.storage:
-            self._configure_storage()
+        # Initialize all components in global registries
+        self._initialize_storage()
+        self._initialize_agents()
+        self._initialize_teams()
 
         self._app: FastAPI | None = None
 
-    def _configure_storage(self) -> None:
-        """
-        Configure storage for all registered agents and teams.
+    def _initialize_storage(self) -> None:
+        """Initialize and register storage in the global registry."""
+        from runtime.registry import storage_registry
 
-        Server-level storage OVERRIDES any agent/team level storage.
-        This ensures consistent storage across all components.
-        """
+        if self.storage:
+            storage_registry.set_default(self.storage)
+
+    def _initialize_agents(self) -> None:
+        """Initialize and register all agents in the global registry."""
+        from runtime.registry import agent_registry, storage_registry
+
+        default_storage = storage_registry.get_default()
+
         for agent in self.agents:
-            if hasattr(agent, "storage"):
-                agent.storage = self.storage  # Always override
+            # Configure storage if server-level storage provided
+            if default_storage and hasattr(agent, "storage"):
+                agent.storage = default_storage
+
+            # Register in global registry
+            agent_registry.register(agent)
+
+    def _initialize_teams(self) -> None:
+        """Initialize and register all teams in the global registry."""
+        from runtime.registry import storage_registry, team_registry
+
+        default_storage = storage_registry.get_default()
+
         for team in self.teams:
-            if hasattr(team, "storage"):
-                team.storage = self.storage  # Always override
+            # Configure storage if server-level storage provided
+            if default_storage and hasattr(team, "storage"):
+                team.storage = default_storage
+
+            # Register in global registry
+            team_registry.register(team)
 
     def _configure_auth(self) -> None:
         """Configure auth settings in server_config based on constructor args."""
@@ -144,10 +166,6 @@ class AstraServer:
         if self.enable_auth:
             self._add_auth_middleware(app)
 
-        # Register agents and teams
-        self._register_agents(app)
-        self._register_teams(app)
-
         # Add routes
         self._add_routes(app)
 
@@ -158,20 +176,6 @@ class AstraServer:
         from runtime.auth.middleware import AuthMiddleware
 
         app.add_middleware(AuthMiddleware)
-
-    def _register_agents(self, app: FastAPI) -> None:
-        """Register agents with the server."""
-        from runtime.registry import agent_registry
-
-        for agent in self.agents:
-            agent_registry.register(agent)
-
-    def _register_teams(self, app: FastAPI) -> None:
-        """Register teams with the server."""
-        from runtime.registry import team_registry
-
-        for team in self.teams:
-            team_registry.register(team)
 
     def _add_routes(self, app: FastAPI) -> None:
         """Add API routes to the app."""

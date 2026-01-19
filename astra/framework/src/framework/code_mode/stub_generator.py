@@ -37,8 +37,8 @@ def _type_to_python(type_str: str) -> str:
     """
     Normalize type strings for Python syntax.
 
-    Pydantic model names (like ValidateOrderOutput) are converted to 'str'
-    because tools return JSON strings when called.
+    Pydantic model names (like ValidateOrderOutput) are converted to 'dict'
+    because tools return dict objects that can be inspected.
 
     Args:
         type_str: Type as string from Pydantic schema
@@ -50,7 +50,7 @@ def _type_to_python(type_str: str) -> str:
         >>> _type_to_python("str")
         'str'
         >>> _type_to_python("ValidateOrderOutput")
-        'str'  # Pydantic models serialize to JSON strings
+        'dict'  # Pydantic models return as dict
     """
     # Primitive types - keep as-is
     primitives = {"str", "int", "float", "bool", "dict", "list", "Any", "None"}
@@ -65,8 +65,8 @@ def _type_to_python(type_str: str) -> str:
     if "|" in type_str:
         return type_str
 
-    # Pydantic model names (e.g., ValidateOrderOutput) → tools return JSON strings
-    return "str"
+    # Pydantic model names (e.g., ValidateOrderOutput) → tools return dict
+    return "dict"
 
 
 # Parameter Formatting
@@ -74,10 +74,11 @@ def _format_param_signature(param: ParamSchema) -> str:
     """
     Format a single parameter for the function signature.
 
-    Handles three cases:
-    1. Required params: `order_id: str`
-    2. Optional with default: `currency: str = "USD"`
+    Handles four cases:
+    1. Required without default: `order_id: str`
+    2. Required with default: `domain: str = 'in'` (still required, but has fallback)
     3. Optional with None: `notes: str | None = None`
+    4. Optional with value: `limit: int = 10`
 
     Args:
         param: ParamSchema with name, type, required, default
@@ -88,8 +89,13 @@ def _format_param_signature(param: ParamSchema) -> str:
     type_str = _type_to_python(param.type)
 
     if param.required:
-        # Required: just name: type
-        return f"{param.name}: {type_str}"
+        if param.default is not None:
+            # Required with default: show the default value
+            default_repr = repr(param.default)
+            return f"{param.name}: {type_str} = {default_repr}"
+        else:
+            # Required without default: just name: type
+            return f"{param.name}: {type_str}"
     else:
         # Optional: check if default is None or has a value
         if param.default is None:
@@ -103,21 +109,25 @@ def _format_param_signature(param: ParamSchema) -> str:
 # Example Formatting
 def _format_example(domain_id: str, tool: ToolSchema) -> str:
     """
-    Generate doctest-style example from tool's ExampleSchema.
+    Generate example from tool's ExampleSchema.
 
-    Creates a realistic function call with actual values, making it
-    easy for LLM to learn the expected usage pattern.
+    Creates a readable example with result assignment and formatted dict output,
+    making it easy for LLM to learn the expected usage pattern.
 
     Args:
         domain_id: Class name (e.g., "inventory")
         tool: ToolSchema with example data
 
     Returns:
-        Formatted doctest example string
+        Formatted example string
 
     Output Format:
-        >>> inventory.check_inventory(["PROD-001", "PROD-002"])
-        '{"products": [...]}'
+        result = inventory.check_inventory(["PROD-001", "PROD-002"])
+
+        result == {
+            "products": [...],
+            ...
+        }
     """
     if not tool.example:
         return ""
@@ -132,11 +142,19 @@ def _format_example(domain_id: str, tool: ToolSchema) -> str:
     # Construct call string
     call = f"{domain_id}.{tool.name}({', '.join(args)})"
 
-    # Format result as JSON string
-    result = json.dumps(tool.example.output)
+    # Format output as indented dict
+    output_dict = tool.example.output
+    formatted_output = json.dumps(output_dict, indent=4)
+    # Add proper indentation for docstring (12 spaces for each line)
+    indented_output = "\n".join(f"            {line}" for line in formatted_output.split("\n"))
 
-    # Return formatted doctest (with proper indentation for docstring)
-    return f"            >>> {call}\n            '{result}'"
+    # Return formatted example
+    lines = [
+        f"            result = {call}",
+        "",
+        f"            result == {indented_output.strip()}",
+    ]
+    return "\n".join(lines)
 
 
 # Docstring Generation
@@ -163,14 +181,30 @@ def _generate_docstring(domain_id: str, tool: ToolSchema) -> str:
     lines.append(f"        {tool.description}")
     lines.append("")
 
-    # Args section
+    # Args section - show both default values and required markers
     lines.append("        Args:")
-    lines.extend(f"            {p.name}: {p.description}" for p in tool.parameters)
+    for p in tool.parameters:
+        # Build suffix with default and required markers
+        suffix_parts = []
+        if p.default is not None:
+            suffix_parts.append(f"default: {p.default!r}")
+        if p.required:
+            suffix_parts.append("required")
 
-    # Returns section
+        suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
+        lines.append(f"            {p.name}: {p.description}{suffix}")
+
+    # Returns section with field details
     lines.append("")
     lines.append("        Returns:")
-    lines.append(f"            {tool.returns.description}")
+    if tool.returns.fields:
+        lines.append("            dict with fields:")
+        lines.extend(
+            f"            - {field.name} ({field.type}): {field.description}"
+            for field in tool.returns.fields
+        )
+    else:
+        lines.append(f"            {tool.returns.description}")
 
     # Example section (if available)
     if tool.example:
@@ -205,7 +239,8 @@ def _generate_tool_stub(domain_id: str, tool: ToolSchema) -> str:
     lines = []
 
     # Build parameter list
-    params = [_format_param_signature(p) for p in tool.parameters]
+    parameters = tool.parameters
+    params = [_format_param_signature(param) for param in parameters]
 
     # Format params with proper indentation (one param per line for readability)
     if len(params) <= 2:
@@ -236,7 +271,7 @@ def _generate_domain_stub(domain: DomainSchema) -> list[str]:
     Generate a class stub for a domain (Agent).
 
     Each Agent becomes a Python class with:
-    - Class name from domain.id (snake_case)
+    - Class name from domain.id (used as-is)
     - Class docstring from domain.description
     - @staticmethod methods for each tool
 
@@ -248,14 +283,17 @@ def _generate_domain_stub(domain: DomainSchema) -> list[str]:
     """
     lines = []
 
+    # Use domain.id as-is for class name (no case conversion)
+    class_name = domain.id
+
     # Class definition
-    lines.append(f"class {domain.id}:")
+    lines.append(f"class {class_name}:")
     lines.append(f'    """{domain.description}"""')
 
     # Generate each tool as a @staticmethod
     for tool in domain.tools:
         lines.append("")  # Blank line between methods
-        lines.append(_generate_tool_stub(domain.id, tool))
+        lines.append(_generate_tool_stub(class_name, tool))
 
     # Blank lines after class
     lines.append("")
@@ -312,5 +350,54 @@ def generate_stubs(semantic_layer: TeamSemanticLayer) -> str:
     # Generate each domain (agent) as a class
     for domain in semantic_layer.domains:
         lines.extend(_generate_domain_stub(domain))
+
+    return "\n".join(lines)
+
+
+def generate_runtime_stubs(semantic_layer: TeamSemanticLayer) -> str:
+    """Generate minimal runtime stubs for subprocess execution.
+
+    Unlike generate_stubs() which creates rich docstrings for LLM understanding,
+    this function creates minimal stubs that route calls to call_tool().
+
+    Uses **kwargs pattern for maximum flexibility:
+    - Accepts any combination of arguments the LLM generates
+    - No need to track defaults - the actual tool's Pydantic model handles validation
+    - If LLM adds optional args based on user query, they pass through seamlessly
+
+    Args:
+        semantic_layer: Complete semantic layer from build_semantic_layer()
+
+    Returns:
+        Python stub code that routes class.method(**kwargs) to call_tool()
+
+    Example Output:
+        class market_analyst:
+            @staticmethod
+            def get_stock_price(**kwargs):
+                return call_tool("market_analyst.get_stock_price", **kwargs)
+    """
+    lines = ["\n# ═══════ Agent Stub Classes ═══════\n"]
+
+    for domain in semantic_layer.domains:
+        # Class definition
+        lines.append(f"class {domain.id}:")
+        lines.append(f'    """Agent: {domain.name}"""')
+
+        # Generate @staticmethod for each tool
+        if not domain.tools:
+            lines.append("    pass")
+
+        for tool in domain.tools:
+            # Full qualified name for call_tool routing
+            full_name = f"{domain.id}.{tool.name}"
+
+            # Use **kwargs for maximum flexibility
+            # The actual tool's Pydantic model will validate inputs and apply defaults
+            lines.append("    @staticmethod")
+            lines.append(f"    def {tool.name}(**kwargs):")
+            lines.append(f'        return call_tool("{full_name}", **kwargs)')
+
+        lines.append("")
 
     return "\n".join(lines)

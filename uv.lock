@@ -9,9 +9,14 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "astra-cloud",
+    "astra-cloud-server",
     "astra-framework",
     "astra-observability",
     "astra-runtime",
+    "deployment",
+    "integrations",
+    "memorybase",
 ]
 
 [manifest.dependency-groups]
@@ -244,9 +249,102 @@ wheels = [
 ]
 
 [[package]]
+name = "astra-cloud"
+version = "0.1.0"
+source = { editable = "astra-cloud/client" }
+dependencies = [
+    { name = "astra-framework" },
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "astra-framework", editable = "astra/framework" },
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+]
+
+[[package]]
+name = "astra-cloud-server"
+version = "0.1.0"
+source = { editable = "astra-cloud/server" }
+dependencies = [
+    { name = "astra-framework" },
+    { name = "bcrypt" },
+    { name = "email-validator" },
+    { name = "fastapi" },
+    { name = "pyjwt" },
+    { name = "sse-starlette" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "aioboto3" },
+    { name = "beanie" },
+    { name = "beautifulsoup4" },
+    { name = "boto3" },
+    { name = "duckduckgo-search" },
+    { name = "httpx" },
+    { name = "motor" },
+    { name = "newsapi-python" },
+    { name = "readability-lxml" },
+]
+aws = [
+    { name = "aioboto3" },
+    { name = "boto3" },
+]
+content-research = [
+    { name = "beautifulsoup4" },
+    { name = "duckduckgo-search" },
+    { name = "httpx" },
+    { name = "newsapi-python" },
+    { name = "readability-lxml" },
+]
+mongodb = [
+    { name = "beanie" },
+    { name = "motor" },
+]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aioboto3", marker = "extra == 'aws'", specifier = ">=12.0.0" },
+    { name = "astra-cloud-server", extras = ["mongodb", "aws", "content-research"], marker = "extra == 'all'", editable = "astra-cloud/server" },
+    { name = "astra-framework", editable = "astra/framework" },
+    { name = "bcrypt", specifier = ">=4.0.0" },
+    { name = "beanie", marker = "extra == 'mongodb'", specifier = ">=1.24.0" },
+    { name = "beautifulsoup4", marker = "extra == 'content-research'", specifier = ">=4.12.0" },
+    { name = "boto3", marker = "extra == 'aws'", specifier = ">=1.35.0" },
+    { name = "duckduckgo-search", marker = "extra == 'content-research'", specifier = ">=6.0.0" },
+    { name = "email-validator", specifier = ">=2.0.0" },
+    { name = "fastapi", specifier = ">=0.109.0" },
+    { name = "httpx", marker = "extra == 'content-research'", specifier = ">=0.26.0" },
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.26.0" },
+    { name = "motor", marker = "extra == 'mongodb'", specifier = ">=3.3.0" },
+    { name = "newsapi-python", marker = "extra == 'content-research'", specifier = ">=0.2.7" },
+    { name = "pyjwt", specifier = ">=2.8.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.23.0" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=4.0.0" },
+    { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.5.0" },
+    { name = "readability-lxml", marker = "extra == 'content-research'", specifier = ">=0.8.1" },
+    { name = "sse-starlette", specifier = ">=2.0.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.27.0" },
+]
+provides-extras = ["test", "mongodb", "aws", "content-research", "all"]
+
+[[package]]
 name = "astra-framework"
 version = "0.1.2"
-source = { editable = "packages/framework" }
+source = { editable = "astra/framework" }
 dependencies = [
     { name = "accelerate" },
     { name = "aiohttp" },
@@ -298,8 +396,8 @@ requires-dist = [
     { name = "aioboto3", marker = "extra == 'aws'", specifier = ">=12.0.0" },
     { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "aiosqlite", specifier = ">=0.19.0" },
-    { name = "astra-framework", extras = ["mongodb", "aws"], marker = "extra == 'all'", editable = "packages/framework" },
-    { name = "astra-observability", editable = "packages/observability" },
+    { name = "astra-framework", extras = ["mongodb", "aws"], marker = "extra == 'all'", editable = "astra/framework" },
+    { name = "astra-observability", editable = "astra/observability" },
     { name = "beanie", marker = "extra == 'mongodb'", specifier = ">=1.24.0" },
     { name = "boto3", marker = "extra == 'aws'", specifier = ">=1.35.0" },
     { name = "google-genai", specifier = ">=1.0.0" },
@@ -331,7 +429,7 @@ dev = [
 [[package]]
 name = "astra-observability"
 version = "0.1.0"
-source = { editable = "packages/observability" }
+source = { editable = "astra/observability" }
 dependencies = [
     { name = "loguru" },
     { name = "opentelemetry-api" },
@@ -349,79 +447,37 @@ requires-dist = [
 
 [[package]]
 name = "astra-runtime"
-version = "0.1.5"
-source = { editable = "packages/runtime" }
+version = "0.1.0"
+source = { editable = "astra/runtime" }
 dependencies = [
     { name = "astra-framework" },
-    { name = "bcrypt" },
-    { name = "email-validator" },
     { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "pyjwt" },
-    { name = "sse-starlette" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
-all = [
-    { name = "aioboto3" },
-    { name = "beanie" },
-    { name = "beautifulsoup4" },
-    { name = "boto3" },
-    { name = "duckduckgo-search" },
-    { name = "httpx" },
-    { name = "motor" },
-    { name = "newsapi-python" },
-    { name = "readability-lxml" },
-]
-aws = [
-    { name = "aioboto3" },
-    { name = "boto3" },
-]
-content-research = [
-    { name = "beautifulsoup4" },
-    { name = "duckduckgo-search" },
-    { name = "httpx" },
-    { name = "newsapi-python" },
-    { name = "readability-lxml" },
-]
-mongodb = [
-    { name = "beanie" },
-    { name = "motor" },
-]
 test = [
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-xdist" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aioboto3", marker = "extra == 'aws'", specifier = ">=12.0.0" },
-    { name = "astra-framework", editable = "packages/framework" },
-    { name = "astra-runtime", extras = ["mongodb", "aws", "content-research"], marker = "extra == 'all'", editable = "packages/runtime" },
-    { name = "bcrypt", specifier = ">=4.0.0" },
-    { name = "beanie", marker = "extra == 'mongodb'", specifier = ">=1.24.0" },
-    { name = "beautifulsoup4", marker = "extra == 'content-research'", specifier = ">=4.12.0" },
-    { name = "boto3", marker = "extra == 'aws'", specifier = ">=1.35.0" },
-    { name = "duckduckgo-search", marker = "extra == 'content-research'", specifier = ">=6.0.0" },
-    { name = "email-validator", specifier = ">=2.0.0" },
+    { name = "astra-framework", editable = "astra/framework" },
     { name = "fastapi", specifier = ">=0.109.0" },
-    { name = "httpx", marker = "extra == 'content-research'", specifier = ">=0.26.0" },
     { name = "httpx", marker = "extra == 'test'", specifier = ">=0.26.0" },
-    { name = "motor", marker = "extra == 'mongodb'", specifier = ">=3.3.0" },
-    { name = "newsapi-python", marker = "extra == 'content-research'", specifier = ">=0.2.7" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "pyjwt", specifier = ">=2.8.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.23.0" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=4.0.0" },
-    { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.5.0" },
-    { name = "readability-lxml", marker = "extra == 'content-research'", specifier = ">=0.8.1" },
-    { name = "sse-starlette", specifier = ">=2.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27.0" },
 ]
-provides-extras = ["test", "mongodb", "aws", "content-research", "all"]
+provides-extras = ["test"]
 
 [[package]]
 name = "async-timeout"
@@ -796,6 +852,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/4e/931480b9552c7d0feebe40c73725dd7703dcc578ba9efc14fe0e6d31cfd1/debugpy-1.8.19-cp313-cp313-win_amd64.whl", hash = "sha256:c30639998a9f9cd9699b4b621942c0179a6527f083c72351f95c6ab1728d5b73", size = 5328206, upload-time = "2025-12-15T21:53:55.433Z" },
     { url = "https://files.pythonhosted.org/packages/25/3e/e27078370414ef35fafad2c06d182110073daaeb5d3bf734b0b1eeefe452/debugpy-1.8.19-py2.py3-none-any.whl", hash = "sha256:360ffd231a780abbc414ba0f005dad409e71c78637efe8f2bd75837132a41d38", size = 5292321, upload-time = "2025-12-15T21:54:16.024Z" },
 ]
+
+[[package]]
+name = "deployment"
+version = "0.1.0"
+source = { editable = "astra/deployment" }
 
 [[package]]
 name = "deprecation"
@@ -1222,6 +1283,11 @@ wheels = [
 ]
 
 [[package]]
+name = "integrations"
+version = "0.1.0"
+source = { editable = "astra/integrations" }
+
+[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1557,6 +1623,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2b/98/e48a4bfba0a0ffcf9925fe2d69240bfaa19c6f7507b8cd09c70684a53c1e/markupsafe-3.0.3-cp313-cp313t-win_amd64.whl", hash = "sha256:1b4b79e8ebf6b55351f0d91fe80f893b4743f104bff22e90697db1590e47a218", size = 15200, upload-time = "2025-09-27T18:37:03.582Z" },
     { url = "https://files.pythonhosted.org/packages/0e/72/e3cc540f351f316e9ed0f092757459afbc595824ca724cbc5a5d4263713f/markupsafe-3.0.3-cp313-cp313t-win_arm64.whl", hash = "sha256:ad2cf8aa28b8c020ab2fc8287b0f823d0a7d8630784c31e9ee5edea20f406287", size = 13973, upload-time = "2025-09-27T18:37:04.929Z" },
 ]
+
+[[package]]
+name = "memorybase"
+version = "0.1.0"
+source = { editable = "astra/memorybase" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.0.0" }]
 
 [[package]]
 name = "motor"

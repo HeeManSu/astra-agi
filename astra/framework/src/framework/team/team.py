@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import dataclasses
+import json
+import time
 from typing import TYPE_CHECKING, Any
+
+from pydantic import BaseModel
 
 from framework.agents.agent import Agent
 from framework.memory import Memory
@@ -56,13 +60,13 @@ class TeamMember:
     """
 
     agent: Agent | Team
-    name: str | None = None
+    name: str  # Required - used as agent identifier
     id: str | None = None
     description: str | None = None
 
 
-@dataclasses.dataclass
-class StreamEvent:
+# @dataclasses.dataclass
+class StreamEvent(BaseModel):
     """
     SSE event for team streaming.
 
@@ -88,11 +92,7 @@ class StreamEvent:
         return ""
 
 
-# =============================================================================
 # TEAM CLASS
-# =============================================================================
-
-
 class Team:
     """
     Team class for coordinating multiple agents.
@@ -133,6 +133,7 @@ class Team:
         guardrails: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ):
+        _init_start = time.perf_counter()
         self.id = id
         self.name = name
         self.description = description
@@ -148,8 +149,8 @@ class Team:
             if isinstance(m, TeamMember):
                 self.members.append(m)
             else:
-                # Wrap raw Agent/Team in TeamMember
-                self.members.append(TeamMember(agent=m))
+                # Wrap raw Agent/Team in TeamMember, using agent's name
+                self.members.append(TeamMember(agent=m, name=m.name))
 
         # Execution control
         self.timeout = timeout
@@ -167,6 +168,9 @@ class Team:
         # Lazy-initialized semantic layer (cached after first access)
         self._semantic_layer: TeamSemanticLayer | None = None
 
+        _init_end = time.perf_counter()
+        print(f"[TIMING] Team.__init__({self.name}) took {(_init_end - _init_start) * 1000:.2f}ms")
+
     # PROPERTIES
     @property
     def semantic_layer(self) -> TeamSemanticLayer:
@@ -181,7 +185,17 @@ class Team:
         if self._semantic_layer is None:
             from framework.code_mode.semantic import build_semantic_layer
 
+            print(f"[TIMING] Building semantic layer for {self.name}")
+            _sem_start = time.perf_counter()
             self._semantic_layer = build_semantic_layer(self)
+            file_to_save = "semantic_layer_" + self.name + ".json"
+            with open(file_to_save, "w") as f:
+                json.dump(self._semantic_layer.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"Semantic layer saved to {file_to_save}")
+            _sem_end = time.perf_counter()
+            print(
+                f"[TIMING] build_semantic_layer({self.name}) took {(_sem_end - _sem_start) * 1000:.2f}ms"
+            )
         return self._semantic_layer
 
     @property
@@ -217,32 +231,25 @@ class Team:
 
     @property
     def tool_registry(self) -> ToolRegistry:
-        """
-        Get the tool registry for this team. Lazily initialized.
+        """Get the tool registry for this team. Lazily initialized.
 
-        The registry maps "agent_name.tool_name" to ToolSpec objects,
-        providing a unified interface for tool lookup and execution.
+        Maps "agent_id.tool_name" to Tool objects for lookup and execution.
 
         Returns:
             ToolRegistry with all tools from flat_members
         """
         if not hasattr(self, "_tool_registry") or self._tool_registry is None:
-            from framework.code_mode.tool_registry import ToolRegistry, ToolSpec
+            from framework.code_mode.tool_registry import ToolRegistry
 
-            self._tool_registry = ToolRegistry(agent_id=self.id)
+            self._tool_registry = ToolRegistry()
 
             for member in self.flat_members:
-                agent = member.agent
-                # Use member id/name or fall back to agent's name
-                raw_name = member.id or member.name or getattr(agent, "name", None) or "unknown"
-                module_name = raw_name.replace("-", "_").replace(" ", "_").lower()
-
-                # Get tools from the underlying agent
-                agent_tools = getattr(agent, "tools", []) or []
+                # Generate agent_id matching semantic layer's class_id
+                agent_id = member.name.lower().replace(" ", "_").replace("-", "_")
+                agent_tools = getattr(member.agent, "tools", []) or []
 
                 for tool in agent_tools:
-                    spec = ToolSpec.from_tool(tool, module=module_name)
-                    self._tool_registry.register(spec)
+                    self._tool_registry.register(agent_id, tool)
 
         return self._tool_registry
 
@@ -292,7 +299,8 @@ class Team:
         if not result.success:
             raise TeamError(f"Team execution failed: {result.stderr or result.output}")
 
-        return result.output
+        # Return formatted (human-readable) output if available, otherwise raw output
+        return result.formatted_output or result.output
 
     async def stream(
         self,
@@ -321,7 +329,7 @@ class Team:
         """
         from framework.code_mode.sandbox import Sandbox
 
-        yield StreamEvent("status", {"message": "Generating code..."})
+        yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
         sandbox = Sandbox(self)
         exec_timeout = timeout or self.timeout
@@ -330,14 +338,15 @@ class Team:
         try:
             code = await sandbox.generate_code(query)
             yield StreamEvent(
-                "code_generated",
-                {
+                event_type="code_generated",
+                data={
                     "message": "Code generated. Executing...",
                     "code_preview": code[:200] + "..." if len(code) > 200 else code,
                 },
             )
         except Exception as e:
-            yield StreamEvent("error", {"message": f"Error generating code: {e}"})
+            print(f"Error generating code: {e}")
+            yield StreamEvent(event_type="error", data={"message": f"Error generating code: {e}"})
             return
 
         # Execute and stream results
@@ -348,31 +357,35 @@ class Team:
             if result.tool_calls:
                 for i, tool_call in enumerate(result.tool_calls):
                     yield StreamEvent(
-                        "tool_call",
-                        {
+                        event_type="tool_call",
+                        data={
                             "index": i,
-                            "tool_name": tool_call.get("tool", "unknown"),
-                            "arguments": tool_call.get("arguments", {}),
+                            "tool_name": tool_call.get("name", "unknown"),
+                            "arguments": tool_call.get("args", {}),
                         },
                     )
                     yield StreamEvent(
-                        "tool_result",
-                        {
+                        event_type="tool_result",
+                        data={
                             "index": i,
-                            "tool_name": tool_call.get("tool", "unknown"),
+                            "tool_name": tool_call.get("name", "unknown"),
                             "result": tool_call.get("result", ""),
                             "success": "error" not in tool_call,
                         },
                     )
 
-            # Yield final output
+            # Format and yield final output
             if result.success:
-                yield StreamEvent("content", {"text": result.output})
-                yield StreamEvent("done", {"status": "complete"})
+                # Format the raw JSON into human-readable response
+                formatted_output = await sandbox.format_response(query, result.output)
+                yield StreamEvent(event_type="content", data={"text": formatted_output})
+                yield StreamEvent(event_type="done", data={"status": "complete"})
             else:
                 yield StreamEvent(
-                    "error", {"message": f"Execution failed: {result.stderr or 'Unknown error'}"}
+                    event_type="error",
+                    data={"message": f"Execution failed: {result.stderr or 'Unknown error'}"},
                 )
 
         except Exception as e:
-            yield StreamEvent("error", {"message": f"Execution error: {e}"})
+            print(f"Execution error: {e}")
+            yield StreamEvent(event_type="error", data={"message": f"Execution error: {e}"})

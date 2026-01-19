@@ -64,11 +64,20 @@ export const getTeams = async (serverUrl, apiKey) => {
 /**
  * Run an agent (non-streaming)
  */
-export const runAgent = async (serverUrl, apiKey, agentId, message) => {
+export const runAgent = async (
+  serverUrl,
+  apiKey,
+  agentId,
+  message,
+  threadId = null
+) => {
+  const body = { message };
+  if (threadId) body.thread_id = threadId;
+
   const response = await fetch(`${serverUrl}/agents/${agentId}/invoke`, {
     method: "POST",
     headers: createHeaders(apiKey),
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -88,13 +97,17 @@ export const streamAgent = async (
   message,
   onChunk,
   onDone,
-  onError
+  onError,
+  threadId = null
 ) => {
   try {
+    const body = { message };
+    if (threadId) body.thread_id = threadId;
+
     const response = await fetch(`${serverUrl}/agents/${agentId}/stream`, {
       method: "POST",
       headers: createHeaders(apiKey),
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -148,11 +161,20 @@ export const streamAgent = async (
 /**
  * Run a team (non-streaming)
  */
-export const runTeam = async (serverUrl, apiKey, teamId, message) => {
+export const runTeam = async (
+  serverUrl,
+  apiKey,
+  teamId,
+  message,
+  threadId = null
+) => {
+  const body = { message };
+  if (threadId) body.thread_id = threadId;
+
   const response = await fetch(`${serverUrl}/teams/${teamId}/invoke`, {
     method: "POST",
     headers: createHeaders(apiKey),
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -172,13 +194,17 @@ export const streamTeam = async (
   message,
   onChunk,
   onDone,
-  onError
+  onError,
+  threadId = null
 ) => {
   try {
+    const body = { message };
+    if (threadId) body.thread_id = threadId;
+
     const response = await fetch(`${serverUrl}/teams/${teamId}/stream`, {
       method: "POST",
       headers: createHeaders(apiKey),
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -226,4 +252,98 @@ export const streamTeam = async (
   } catch (error) {
     onError(error);
   }
+};
+
+// ============================================================================
+// Thread API
+// ============================================================================
+
+/**
+ * Get list of threads for a resource
+ */
+export const getThreads = async (
+  serverUrl,
+  apiKey,
+  resourceType,
+  resourceId
+) => {
+  const params = new URLSearchParams();
+  if (resourceType) params.append("resource_type", resourceType);
+  if (resourceId) params.append("resource_id", resourceId);
+
+  const response = await fetch(`${serverUrl}/threads?${params}`, {
+    method: "GET",
+    headers: createHeaders(apiKey),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch threads: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Create a new thread
+ */
+export const createThread = async (serverUrl, apiKey, data) => {
+  const response = await fetch(`${serverUrl}/threads`, {
+    method: "POST",
+    headers: createHeaders(apiKey),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create thread: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Get a thread by ID
+ */
+export const getThread = async (serverUrl, apiKey, threadId) => {
+  const response = await fetch(`${serverUrl}/threads/${threadId}`, {
+    method: "GET",
+    headers: createHeaders(apiKey),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch thread: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Get messages for a thread
+ */
+export const getThreadMessages = async (serverUrl, apiKey, threadId) => {
+  const response = await fetch(`${serverUrl}/threads/${threadId}/messages`, {
+    method: "GET",
+    headers: createHeaders(apiKey),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch messages: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Delete a thread
+ */
+export const deleteThread = async (serverUrl, apiKey, threadId) => {
+  const response = await fetch(`${serverUrl}/threads/${threadId}`, {
+    method: "DELETE",
+    headers: createHeaders(apiKey),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete thread: ${response.statusText}`);
+  }
+
+  return response.json();
 };

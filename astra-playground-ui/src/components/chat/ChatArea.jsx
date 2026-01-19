@@ -143,6 +143,11 @@ function ChatArea() {
     };
 
     try {
+      // Extract thread_id from session key (format: "thread:threadId")
+      const threadId = currentSession?.startsWith("thread:")
+        ? currentSession.replace("thread:", "")
+        : null;
+
       if (streamMode) {
         // Streaming mode
         if (selectedItem.type === "agent") {
@@ -153,7 +158,8 @@ function ChatArea() {
             userMessage,
             onChunk,
             onDone,
-            onError
+            onError,
+            threadId
           );
         } else if (selectedItem.type === "team") {
           await streamTeam(
@@ -163,7 +169,8 @@ function ChatArea() {
             userMessage,
             onChunk,
             onDone,
-            onError
+            onError,
+            threadId
           );
         }
       } else {
@@ -174,14 +181,16 @@ function ChatArea() {
             serverUrl,
             apiKey,
             selectedItem.id,
-            userMessage
+            userMessage,
+            threadId
           );
         } else if (selectedItem.type === "team") {
           response = await runTeam(
             serverUrl,
             apiKey,
             selectedItem.id,
-            userMessage
+            userMessage,
+            threadId
           );
         }
 
@@ -231,27 +240,8 @@ function ChatArea() {
 
   return (
     <div className="flex-1 flex flex-col bg-background">
-      {/* Header */}
-      <div className="h-14 border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            {selectedItem.type === "agent" ? (
-              <Bot className="h-4 w-4 text-primary" />
-            ) : (
-              <User className="h-4 w-4 text-primary" />
-            )}
-          </div>
-          <div>
-            <h2 className="font-semibold text-sm">
-              {selectedItem.data?.name || selectedItem.id}
-            </h2>
-            <p className="text-xs text-muted-foreground capitalize">
-              {selectedItem.type}
-            </p>
-          </div>
-        </div>
-
-        {/* Stream Toggle */}
+      {/* Header - Stream Toggle Only */}
+      <div className="h-14 border-b border-border flex items-center justify-end px-4">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Invoke</span>
           <Switch

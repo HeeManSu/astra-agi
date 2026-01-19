@@ -90,6 +90,15 @@ const chatSlice = createSlice({
     setInputValue: (state, action) => {
       state.inputValue = action.payload;
     },
+    setMessages: (state, action) => {
+      // Set messages for a session (used when loading thread history)
+      const { sessionKey, messages } = action.payload;
+      state.messagesBySession[sessionKey] = messages.map((msg) => ({
+        ...msg,
+        id: msg.id || crypto.randomUUID(),
+        timestamp: msg.created_at || new Date().toISOString(),
+      }));
+    },
     clearSession: (state, action) => {
       const sessionKey = action.payload;
       if (state.messagesBySession[sessionKey]) {
@@ -112,6 +121,7 @@ export const {
   appendStreamingContent,
   clearStreamingContent,
   setInputValue,
+  setMessages,
   clearSession,
   clearAllMessages,
 } = chatSlice.actions;

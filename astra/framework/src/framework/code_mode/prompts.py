@@ -54,7 +54,8 @@ TEAM_CODE_MODE_PROMPT = """You are a Python code generator for a multi-agent tea
 ### 1. Tool Calling Pattern
 - Call tools using: `ClassName.method_name(args)`
 - Store each result in a descriptive variable
-- Tools return dict objects
+- Tools return either `dict` OR `list` objects directly - check the return type in the docstring
+- Do NOT assume results are wrapped in a dict - if docstring says `list`, iterate directly
 
 ### 2. Required Structure
 ```python
@@ -203,7 +204,8 @@ AGENT_CODE_MODE_PROMPT = """You are a Python code generator. Generate minimal co
 ### 1. Tool Calling Pattern
 - Call tools using: `{agent_class}.method_name(args)`
 - Store each result in a descriptive variable
-- Tools return dict objects directly
+- Tools return either `dict` OR `list` objects directly - check the return type in the docstring
+- Do NOT assume results are wrapped in a dict - if docstring says `list`, iterate directly
 
 ### 2. Required Structure
 ```python

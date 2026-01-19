@@ -80,15 +80,17 @@ class MongoDBStorage(StorageBackend):
 
         # astra_threads indexes
         threads_collection = self._db["astra_threads"]
-        await threads_collection.create_index("id", unique=True)
+        # _id is auto-indexed by MongoDB, no need for separate id index
+        await threads_collection.create_index("resource_type")
         await threads_collection.create_index("resource_id")
+        await threads_collection.create_index([("resource_type", 1), ("resource_id", 1)])
         await threads_collection.create_index("created_at")
         await threads_collection.create_index("is_archived")
         await threads_collection.create_index("deleted_at")
 
         # astra_messages indexes
         message_collection = self._db["astra_messages"]
-        await message_collection.create_index("id", unique=True)
+        # _id is auto-indexed by MongoDB, no need for separate id index
         await message_collection.create_index("thread_id")
         await message_collection.create_index([("thread_id", 1), ("sequence", 1)])
         await message_collection.create_index("created_at")
@@ -106,11 +108,11 @@ class MongoDBStorage(StorageBackend):
 
         # astra_team_auth indexes (for playground auth)
         auth_collection = self._db["astra_team_auth"]
-        await auth_collection.create_index("id", unique=True)
+        # _id is auto-indexed by MongoDB, no need for separate id index
         await auth_collection.create_index("email", unique=True)
         await auth_collection.create_index("deleted_at")
 
-    async def execute(self, query: Mapping[str, Any], params: dict[str, Any] | None = None) -> None:
+    async def execute(self, query: Mapping[str, Any], params: dict[str, Any] | None = None) -> Any:
         """
         Execute a write operation.
         For MongoDB, 'query' is expected to be a dictionary with:
@@ -120,7 +122,7 @@ class MongoDBStorage(StorageBackend):
         }
 
         Returns:
-            None (operation result is not returned, matching StorageBackend interface)
+            InsertOneResult/InsertManyResult for insert operations, None for others.
         """
         if not self._initialized:
             await self.connect()
@@ -135,10 +137,12 @@ class MongoDBStorage(StorageBackend):
         collection = self.db[collection_name]
 
         if action == "insert_one":
-            await collection.insert_one(query.get("document", {}))
+            result = await collection.insert_one(query.get("document", {}))
+            return result  # Return InsertOneResult with inserted_id
 
         elif action == "insert_many":
-            await collection.insert_many(query.get("documents", []))
+            result = await collection.insert_many(query.get("documents", []))
+            return result  # Return InsertManyResult with inserted_ids
 
         elif action == "update_one":
             await collection.update_one(
@@ -158,6 +162,8 @@ class MongoDBStorage(StorageBackend):
 
         else:
             raise ValueError(f"Invalid action: {action}")
+
+        return None
 
     async def fetch_all(
         self, query: Mapping[str, Any], params: dict[str, Any] | None = None

@@ -8,6 +8,8 @@ import os
 import sys
 
 from dotenv import load_dotenv
+from framework.storage.client import StorageClient
+from framework.storage.databases.mongodb import MongoDBStorage
 
 
 # Load .env from project root BEFORE any framework imports
@@ -26,6 +28,9 @@ server = AstraServer(
     name="Market Research Server",
     agents=[market_research_agent],
     description="SellerGeni Market Research Agent powered by Astra.",
+    storage=StorageClient(
+        storage=MongoDBStorage("mongodb://localhost:27017", "market_research_agent")
+    ),
 )
 
 # Expose App

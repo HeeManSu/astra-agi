@@ -378,12 +378,42 @@ def _extract_return_schema(output_schema: type) -> ReturnSchema:
     """
     Extract return schema from a Pydantic model.
 
+    Handles special case for RootModel: when the output schema is a RootModel,
+    the actual return type is the inner 'root' field type (e.g., list or dict),
+    NOT a dict with a 'root' field.
+
     Args:
         output_schema: Pydantic BaseModel class
 
     Returns:
         ReturnSchema with type and field info including types
     """
+    from pydantic import RootModel
+
+    # Handle RootModel specially: Pydantic's RootModel wraps a single value and
+    # serializes to just that value (not a dict with 'root' key).
+    #
+    # Example definition:
+    #   class ListOutput(RootModel):
+    #       root: list[Any]
+    #
+    # ListOutput(root=[1,2,3]) serializes to [1,2,3], not {"root": [1,2,3]}
+    #
+    # Without this, the semantic layer would report "dict with fields: root (list)"
+    # causing the LLM to generate incorrect code like result.get('root').
+    # This fix correctly reports "list" so the LLM iterates directly.
+    if issubclass(output_schema, RootModel):
+        root_field = output_schema.model_fields.get("root")
+        if root_field:
+            annotation = root_field.annotation
+            type_str = _annotation_to_type_string(annotation)
+            return ReturnSchema(
+                type=type_str,
+                description=output_schema.__doc__ or f"Returns {type_str}",
+                fields=[],
+            )
+
+    # Standard Pydantic model - extract all fields
     fields = []
     for field_name, field_info in output_schema.model_fields.items():
         # Get type string from annotation

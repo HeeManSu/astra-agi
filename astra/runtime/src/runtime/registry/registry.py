@@ -8,7 +8,7 @@ identifiers to their corresponding instances.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 
 if TYPE_CHECKING:
@@ -60,3 +60,18 @@ class TeamRegistry(Registry["Team"]):
 
     def _get_id(self, team: Team) -> str:
         return team.id or team.name
+
+
+class StorageRegistry:
+    """Registry for storage backends."""
+
+    def __init__(self) -> None:
+        self._default: Any | None = None
+
+    def set_default(self, storage: Any) -> None:
+        """Set the default storage backend."""
+        self._default = storage
+
+    def get_default(self) -> Any | None:
+        """Get the default storage backend."""
+        return self._default

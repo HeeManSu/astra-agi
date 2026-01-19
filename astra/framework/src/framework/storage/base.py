@@ -19,8 +19,8 @@ class StorageBackend:
         """Close the connection to the storage backend."""
 
     @abstractmethod
-    async def execute(self, query: Any, params: dict[str, Any] | None = None) -> None:
-        """Execute a write operation."""
+    async def execute(self, query: Any, params: dict[str, Any] | None = None) -> Any:
+        """Execute a write operation. Returns result for insert operations (e.g., inserted ID)."""
 
     @abstractmethod
     async def fetch_all(

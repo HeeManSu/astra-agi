@@ -9,6 +9,8 @@ import os
 from dotenv import load_dotenv
 from framework.agents import Agent
 from framework.models import Gemini
+from framework.storage.client import StorageClient
+from framework.storage.databases.mongodb import MongoDBStorage
 from tools import (
     amazon_autocomplete_scraper,
     amazon_offers_scraper,
@@ -32,6 +34,9 @@ market_research_agent = Agent(
     name="Market Research Agent",
     model=model,
     description="Expert e-commerce advisor for Amazon sellers. Provides clear, actionable insights focused on revenue impact.",
+    storage=StorageClient(
+        storage=MongoDBStorage("mongodb://localhost:27017", "market_research_agent")
+    ),
     tools=[
         amazon_product_scraper,
         amazon_search_scraper,

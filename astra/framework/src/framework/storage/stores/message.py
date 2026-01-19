@@ -7,8 +7,10 @@ Database-agnostic implementation that works with any storage backend.
 
 import asyncio
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from framework.storage.base import StorageBackend
+from framework.storage.databases.mongodb import MongoDBStorage
 from framework.storage.models import Message
 from framework.storage.stores.base import BaseStore
 
@@ -29,8 +31,13 @@ class MessageStore(BaseStore[Message]):
 
     def __init__(self, storage: StorageBackend) -> None:
         super().__init__(storage=storage, model_cls=Message, collection_name="astra_messages")
-        # Lock for thread-safe sequence generation
         self._sequence_lock = asyncio.Lock()
+
+    def _get_id_field(self) -> str:
+        """Return the ID field name based on storage backend."""
+        if isinstance(self._storage, MongoDBStorage):
+            return "_id"
+        return "id"
 
     async def get_recent(self, thread_id: str, limit: int) -> list[Message]:
         """
@@ -46,11 +53,10 @@ class MessageStore(BaseStore[Message]):
         query = self.storage.build_select_query(
             collection=self.collection_name,
             filter_dict={"thread_id": thread_id},
-            sort=[("sequence", -1)],  # -1 for descending
+            sort=[("sequence", -1)],
             limit=limit,
         )
         rows = await self.storage.fetch_all(query)
-        # Reverse to get chronological order (oldest to newest)
         return [self._row_to_model(row) for row in reversed(rows)]
 
     async def add(self, message: Message) -> Message:
@@ -61,13 +67,25 @@ class MessageStore(BaseStore[Message]):
             message: Message object to insert
 
         Returns:
-            The inserted Message object
+            The inserted Message object with id populated
         """
         data = message.model_dump(exclude_unset=True)
+
+        # For SQL backends, generate id if not provided
+        if not isinstance(self._storage, MongoDBStorage):
+            if "id" not in data or data.get("id") is None:
+                data["id"] = f"msg-{uuid4().hex[:12]}"
+
         prepared_data = self._prepare_document(data)
-        query = self.storage.build_insert_query(self.collection_name, prepared_data)
-        await self.storage.execute(query)
-        return message
+        result = await self.storage.execute(
+            self.storage.build_insert_query(self.collection_name, prepared_data)
+        )
+
+        # For MongoDB, get the inserted _id
+        if isinstance(self._storage, MongoDBStorage) and result:
+            data["id"] = str(result.inserted_id)
+
+        return Message(**data)
 
     async def get_by_thread(self, thread_id: str, limit: int | None = None) -> list[Message]:
         """
@@ -83,7 +101,7 @@ class MessageStore(BaseStore[Message]):
         query = self.storage.build_select_query(
             collection=self.collection_name,
             filter_dict={"thread_id": thread_id},
-            sort=[("sequence", 1)],  # 1 for ascending
+            sort=[("sequence", 1)],
             limit=limit,
         )
         rows = await self.storage.fetch_all(query)
@@ -96,12 +114,21 @@ class MessageStore(BaseStore[Message]):
         Args:
             message_id: Message identifier to soft delete
         """
+        id_field = self._get_id_field()
+
+        if isinstance(self._storage, MongoDBStorage):
+            from bson import ObjectId
+
+            try:
+                filter_dict = {id_field: ObjectId(message_id), "deleted_at": None}
+            except Exception:
+                filter_dict = {id_field: message_id, "deleted_at": None}
+        else:
+            filter_dict = {id_field: message_id, "deleted_at": None}
+
         query = self.storage.build_update_query(
             collection=self.collection_name,
-            filter_dict={
-                "id": message_id,
-                "deleted_at": None,
-            },  # Only update if not already deleted
+            filter_dict=filter_dict,
             update_data={"deleted_at": datetime.now(timezone.utc)},
         )
         await self.storage.execute(query)
@@ -131,20 +158,34 @@ class MessageStore(BaseStore[Message]):
         """
         Bulk insert multiple messages in a single operation.
 
-        This is more efficient than calling add() multiple times.
-
         Args:
             messages: List of Message objects to insert
 
         Returns:
-            List of inserted Message objects
+            List of inserted Message objects with ids populated
         """
         if not messages:
             return []
 
-        # Prepare bulk insert data
-        bulk_data = [msg.model_dump(exclude_unset=True) for msg in messages]
+        bulk_data = []
+        for msg in messages:
+            data = msg.model_dump(exclude_unset=True)
+
+            # For SQL backends, generate id if not provided
+            if not isinstance(self._storage, MongoDBStorage):
+                if "id" not in data or data.get("id") is None:
+                    data["id"] = f"msg-{uuid4().hex[:12]}"
+
+            bulk_data.append(data)
+
         prepared_data = [self._prepare_document(doc) for doc in bulk_data]
-        query = self.storage.build_insert_many_query(self.collection_name, prepared_data)
-        await self.storage.execute(query)
-        return messages
+        result = await self.storage.execute(
+            self.storage.build_insert_many_query(self.collection_name, prepared_data)
+        )
+
+        # For MongoDB, get inserted ids
+        if isinstance(self._storage, MongoDBStorage) and result:
+            for i, inserted_id in enumerate(result.inserted_ids):
+                bulk_data[i]["id"] = str(inserted_id)
+
+        return [Message(**data) for data in bulk_data]

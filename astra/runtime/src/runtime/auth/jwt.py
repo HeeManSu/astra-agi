@@ -1,11 +1,20 @@
 """JWT token handling."""
 
 from datetime import datetime, timedelta
+import os
 from typing import Any
 
 import jwt
 
-from runtime.app.config import server_config
+
+def get_jwt_secret() -> str | None:
+    """Get JWT secret from environment."""
+    return os.getenv("ASTRA_JWT_SECRET")
+
+
+def get_jwt_expiry_hours() -> int:
+    """Get JWT expiry hours from environment."""
+    return int(os.getenv("ASTRA_JWT_EXPIRY_HOURS", "24"))
 
 
 def create_token(payload: dict[str, Any], expires_in_hours: int | None = None) -> str:
@@ -19,10 +28,11 @@ def create_token(payload: dict[str, Any], expires_in_hours: int | None = None) -
     Returns:
         Encoded JWT token
     """
-    if not server_config.jwt_secret:
-        raise ValueError("JWT_SECRET is not configured")
+    jwt_secret = get_jwt_secret()
+    if not jwt_secret:
+        raise ValueError("ASTRA_JWT_SECRET environment variable is not set")
 
-    exp_hours = expires_in_hours or server_config.jwt_expiry_hours
+    exp_hours = expires_in_hours or get_jwt_expiry_hours()
     expiry = datetime.utcnow() + timedelta(hours=exp_hours)
 
     token_data = {
@@ -31,11 +41,7 @@ def create_token(payload: dict[str, Any], expires_in_hours: int | None = None) -
         "iat": datetime.utcnow(),
     }
 
-    return jwt.encode(
-        token_data,
-        server_config.jwt_secret,
-        algorithm=server_config.jwt_algorithm,
-    )
+    return jwt.encode(token_data, jwt_secret, algorithm="HS256")
 
 
 def verify_token(token: str) -> dict[str, Any] | None:
@@ -48,15 +54,12 @@ def verify_token(token: str) -> dict[str, Any] | None:
     Returns:
         Decoded payload if valid, None otherwise
     """
-    if not server_config.jwt_secret:
-        raise ValueError("JWT_SECRET is not configured")
+    jwt_secret = get_jwt_secret()
+    if not jwt_secret:
+        raise ValueError("ASTRA_JWT_SECRET environment variable is not set")
 
     try:
-        return jwt.decode(
-            token,
-            server_config.jwt_secret,
-            algorithms=[server_config.jwt_algorithm],
-        )
+        return jwt.decode(token, jwt_secret, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:

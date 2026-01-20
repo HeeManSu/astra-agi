@@ -3,7 +3,6 @@
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from runtime.app.config import server_config
 from runtime.auth.jwt import verify_token
 
 
@@ -11,30 +10,30 @@ from runtime.auth.jwt import verify_token
 PUBLIC_PATHS = {
     "/",
     "/health",
+    "/auth/token",
     "/docs",
     "/openapi.json",
     "/redoc",
-    "/config",
 }
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """
-    Middleware for API authentication.
+    JWT authentication middleware.
 
-    Supports two modes:
-    1. Security Key: Simple string match (ASTRA_SECURITY_KEY)
-    2. JWT: Signed token with expiry (ASTRA_JWT_SECRET)
-
-    The middleware first tries security key match, then falls back to JWT.
+    Validates Bearer token in Authorization header for all non-public endpoints.
     """
 
     async def dispatch(self, request: Request, call_next):
+        # Skip auth for OPTIONS requests (CORS preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Skip auth for public endpoints
         if request.url.path in PUBLIC_PATHS:
             return await call_next(request)
 
-        # Also skip for paths starting with /docs or /openapi
+        # Skip for paths starting with /docs or /redoc
         if request.url.path.startswith("/docs") or request.url.path.startswith("/redoc"):
             return await call_next(request)
 
@@ -51,29 +50,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not token:
             raise HTTPException(status_code=401, detail="Empty token")
 
-        # Method 1: Check against security key (simple mode)
-        if server_config.security_key:
-            if token == server_config.security_key:
-                # Security key matched - allow request
-                request.state.user = {"auth_type": "security_key"}
-                return await call_next(request)
+        # Verify JWT
+        payload = verify_token(token)
+        if not payload:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-        # Method 2: Try JWT verification (advanced mode)
-        if server_config.jwt_secret:
-            payload = verify_token(token)
-            if payload:
-                # Valid JWT - allow request
-                request.state.user = payload
-                request.state.user["auth_type"] = "jwt"
-                return await call_next(request)
-
-        # Neither method succeeded
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token",
-        )
-
-
-def auth_middleware(app):
-    """Add auth middleware to app."""
-    app.add_middleware(AuthMiddleware)
+        # Attach user info to request
+        request.state.user = payload
+        return await call_next(request)

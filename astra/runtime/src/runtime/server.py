@@ -1,12 +1,12 @@
 """
 AstraServer - Main server class for running agents.
 
-Similar to Agno's AgentOS, this provides a FastAPI-based server
-for running agents, teams, and handling chat requests.
+Provides a FastAPI-based server for running agents, teams, and handling chat requests.
 """
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
@@ -26,17 +26,11 @@ class AstraServer:
         from runtime import AstraServer
         from my_agents import researcher, writer
 
-        # Without auth (local dev)
-        server = AstraServer(
-            agents=[researcher, writer],
-        )
+        # Without auth (set ASTRA_JWT_SECRET env var)
+        server = AstraServer(agents=[researcher, writer])
 
-        # With simple auth (security key)
-        server = AstraServer(
-            agents=[researcher, writer],
-            enable_auth=True,
-            security_key="my-secret-key",
-        )
+        # Disable auth
+        server = AstraServer(agents=[researcher, writer], auth_enabled=False)
 
         app = server.get_app()
         # Run with: uvicorn main:app --reload
@@ -52,9 +46,7 @@ class AstraServer:
         description: str = "AI Agent Server",
         version: str = "0.1.0",
         # Auth
-        enable_auth: bool = False,
-        security_key: str | None = None,
-        jwt_secret: str | None = None,
+        auth_enabled: bool = True,
         # CORS
         cors_allowed_origins: list[str] | None = None,
     ):
@@ -68,9 +60,7 @@ class AstraServer:
             name: Server name
             description: Server description
             version: API version
-            enable_auth: Enable authentication middleware
-            security_key: Simple auth key (alternative to JWT)
-            jwt_secret: Secret for JWT token verification
+            auth_enabled: Enable JWT authentication (requires ASTRA_JWT_SECRET env var)
             cors_allowed_origins: Allowed CORS origins
         """
         self.agents = agents or []
@@ -80,9 +70,7 @@ class AstraServer:
         self.name = name
         self.description = description
         self.version = version
-        self.enable_auth = enable_auth
-        self.security_key = security_key
-        self.jwt_secret = jwt_secret
+        self._auth_enabled = auth_enabled
         self.cors_allowed_origins = cors_allowed_origins or ["*"]
 
         # Initialize all components in global registries
@@ -91,6 +79,11 @@ class AstraServer:
         self._initialize_teams()
 
         self._app: FastAPI | None = None
+
+    @property
+    def auth_enabled(self) -> bool:
+        """Check if auth is enabled (flag + ASTRA_JWT_SECRET set)."""
+        return self._auth_enabled and bool(os.getenv("ASTRA_JWT_SECRET"))
 
     def _initialize_storage(self) -> None:
         """Initialize and register storage in the global registry."""
@@ -106,11 +99,8 @@ class AstraServer:
         default_storage = storage_registry.get_default()
 
         for agent in self.agents:
-            # Configure storage if server-level storage provided
             if default_storage and hasattr(agent, "storage"):
                 agent.storage = default_storage
-
-            # Register in global registry
             agent_registry.register(agent)
 
     def _initialize_teams(self) -> None:
@@ -120,30 +110,12 @@ class AstraServer:
         default_storage = storage_registry.get_default()
 
         for team in self.teams:
-            # Configure storage if server-level storage provided
             if default_storage and hasattr(team, "storage"):
                 team.storage = default_storage
-
-            # Register in global registry
             team_registry.register(team)
 
-    def _configure_auth(self) -> None:
-        """Configure auth settings in server_config based on constructor args."""
-        from runtime.app.config import server_config
-
-        # Override config with constructor values if provided
-        if self.security_key:
-            server_config.security_key = self.security_key
-        if self.jwt_secret:
-            server_config.jwt_secret = self.jwt_secret
-
     def get_app(self) -> FastAPI:
-        """
-        Get the FastAPI application.
-
-        Returns:
-            FastAPI application instance
-        """
+        """Get the FastAPI application."""
         if self._app is None:
             self._app = self._create_app()
         return self._app
@@ -159,11 +131,8 @@ class AstraServer:
             cors_allowed_origins=self.cors_allowed_origins,
         )
 
-        # Configure auth settings
-        self._configure_auth()
-
         # Add auth middleware if enabled
-        if self.enable_auth:
+        if self.auth_enabled:
             self._add_auth_middleware(app)
 
         # Add routes
@@ -181,12 +150,14 @@ class AstraServer:
         """Add API routes to the app."""
         from runtime.routes import (
             agents_router,
+            auth_router,
             health_router,
             teams_router,
             threads_router,
         )
 
         app.include_router(health_router)
+        app.include_router(auth_router)
         app.include_router(agents_router)
         app.include_router(teams_router)
         app.include_router(threads_router)

@@ -18,7 +18,13 @@ from pydantic import BaseModel
 
 from framework.agents.agent import Agent
 from framework.memory import Memory
-from framework.middlewares.base import InputMiddleware, OutputMiddleware
+from framework.middleware import (
+    Middleware,
+    MiddlewareContext,
+    MiddlewareError,
+    MiddlewareStage,
+    run_middlewares,
+)
 from framework.models.base import Model
 from framework.storage.client import StorageClient
 
@@ -128,9 +134,7 @@ class Team:
         memory: Memory | None = None,
         timeout: float = 300.0,
         max_retries: int = 2,
-        input_middlewares: list[InputMiddleware] | None = None,
-        output_middlewares: list[OutputMiddleware] | None = None,
-        guardrails: dict[str, Any] | None = None,
+        middlewares: list[Middleware] | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         _init_start = time.perf_counter()
@@ -160,16 +164,54 @@ class Team:
         self.memory = memory or Memory()
         self.storage = storage
 
-        # Middlewares & Guardrails (for future use)
-        self.input_middlewares = input_middlewares
-        self.output_middlewares = output_middlewares
-        self.guardrails = guardrails
+        # Middlewares (unified list - stages determine when they run)
+        self.middlewares = middlewares or []
 
         # Lazy-initialized semantic layer (cached after first access)
         self._semantic_layer: TeamSemanticLayer | None = None
 
         _init_end = time.perf_counter()
         print(f"[TIMING] Team.__init__({self.name}) took {(_init_end - _init_start) * 1000:.2f}ms")
+
+    # -------------------------------------------------------------------------
+    # Middleware Helpers
+    # -------------------------------------------------------------------------
+
+    async def _run_input_middleware(self, data: Any) -> tuple[Any, str | None]:
+        """
+        Run INPUT stage middlewares.
+
+        Returns:
+            Tuple of (processed_data, error_message).
+            If error_message is not None, the input was rejected.
+        """
+        if not self.middlewares:
+            return data, None
+
+        ctx = MiddlewareContext(data=data)
+        ctx = await run_middlewares(self.middlewares, MiddlewareStage.INPUT, ctx)
+
+        if ctx.stop:
+            return data, ctx.error or "Input rejected by middleware"
+        return ctx.data, None
+
+    async def _run_output_middleware(self, data: Any) -> tuple[Any, str | None]:
+        """
+        Run OUTPUT stage middlewares.
+
+        Returns:
+            Tuple of (processed_data, error_message).
+            If error_message is not None, the output was rejected.
+        """
+        if not self.middlewares:
+            return data, None
+
+        ctx = MiddlewareContext(data=data)
+        ctx = await run_middlewares(self.middlewares, MiddlewareStage.OUTPUT, ctx)
+
+        if ctx.stop:
+            return data, ctx.error or "Output rejected by middleware"
+        return ctx.data, None
 
     # PROPERTIES
     @property
@@ -285,6 +327,11 @@ class Team:
         from framework.code_mode.sandbox import Sandbox
         from framework.storage.persistence import save_assistant_message, save_user_message
 
+        # Run INPUT middlewares
+        query, error = await self._run_input_middleware(query)
+        if error:
+            raise MiddlewareError(error)
+
         # Save user message
         thread_id = await save_user_message(
             self.storage,
@@ -310,6 +357,11 @@ class Team:
 
         # Return formatted (human-readable) output if available, otherwise raw output
         response = result.formatted_output or result.output
+
+        # Run OUTPUT middlewares
+        response, error = await self._run_output_middleware(response)
+        if error:
+            raise MiddlewareError(error)
 
         # Save assistant response
         await save_assistant_message(self.storage, thread_id, response)
@@ -345,6 +397,12 @@ class Team:
         """
         from framework.code_mode.sandbox import Sandbox
         from framework.storage.persistence import save_assistant_message, save_user_message
+
+        # Run INPUT middlewares
+        query, error = await self._run_input_middleware(query)
+        if error:
+            yield StreamEvent(event_type="error", data={"message": error})
+            return
 
         # Save user message
         thread_id = await save_user_message(

@@ -10,11 +10,18 @@ The Agent class is the core abstraction for creating AI agents. It supports:
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 import uuid
 
 from framework.memory import Memory
+from framework.middleware import (
+    Middleware,
+    MiddlewareContext,
+    MiddlewareError,
+    MiddlewareStage,
+    run_middlewares,
+)
 from framework.models import Model
 from framework.storage.client import StorageClient
 
@@ -61,9 +68,7 @@ class Agent:
         temperature: float = 0.7,
         max_tokens: int | None = None,
         stream_enabled: bool = False,
-        input_middlewares: list[Any] | Callable | None = None,
-        output_middlewares: list[Any] | Callable | None = None,
-        guardrails: dict[str, Any] | None = None,
+        middlewares: list[Middleware] | None = None,
     ):
         """
         Initialize an Agent with the provided configuration.
@@ -82,9 +87,7 @@ class Agent:
             temperature: Sampling temperature for model responses (default: 0.7)
             max_tokens: Maximum tokens to generate per response
             stream_enabled: Whether to stream responses by default (default: False)
-            input_middlewares: Optional list of input middlewares
-            output_middlewares: Optional list of output middlewares
-            guardrails: Optional guardrails configuration
+            middlewares: Optional list of middlewares (guardrails, validation, etc.)
         """
         # Basic identifiers & metadata
         self.name = name
@@ -116,10 +119,44 @@ class Agent:
         self.max_tokens = max_tokens
         self.stream_enabled = stream_enabled
 
-        # Middleware / guardrails
-        self.input_middlewares = input_middlewares
-        self.output_middlewares = output_middlewares
-        self.guardrails = guardrails
+        # Middlewares (unified list - stages determine when they run)
+        self.middlewares = middlewares or []
+
+    async def _run_input_middleware(self, data: Any) -> tuple[Any, str | None]:
+        """
+        Run INPUT stage middlewares.
+
+        Returns:
+            Tuple of (processed_data, error_message).
+            If error_message is not None, the input was rejected.
+        """
+        if not self.middlewares:
+            return data, None
+
+        ctx = MiddlewareContext(data=data)
+        ctx = await run_middlewares(self.middlewares, MiddlewareStage.INPUT, ctx)
+
+        if ctx.stop:
+            return data, ctx.error or "Input rejected by middleware"
+        return ctx.data, None
+
+    async def _run_output_middleware(self, data: Any) -> tuple[Any, str | None]:
+        """
+        Run OUTPUT stage middlewares.
+
+        Returns:
+            Tuple of (processed_data, error_message).
+            If error_message is not None, the output was rejected.
+        """
+        if not self.middlewares:
+            return data, None
+
+        ctx = MiddlewareContext(data=data)
+        ctx = await run_middlewares(self.middlewares, MiddlewareStage.OUTPUT, ctx)
+
+        if ctx.stop:
+            return data, ctx.error or "Output rejected by middleware"
+        return ctx.data, None
 
     # PROPERTIES
     @property
@@ -251,11 +288,13 @@ class Agent:
         Execute the agent on a query and return the final response.
 
         This is the main entry point for running an agent in code_mode. It:
-        1. Builds semantic layer from agent's tools
-        2. Generates Python stubs for LLM
-        3. Calls LLM to generate Python code
-        4. Executes code in isolated sandbox
-        5. Formats response via second LLM call
+        1. Runs INPUT middlewares (validation, guardrails)
+        2. Builds semantic layer from agent's tools
+        3. Generates Python stubs for LLM
+        4. Calls LLM to generate Python code
+        5. Executes code in isolated sandbox
+        6. Runs OUTPUT middlewares
+        7. Formats response via second LLM call
 
         Args:
             query: The user's request/question
@@ -264,9 +303,17 @@ class Agent:
 
         Returns:
             The formatted response from the agent
+
+        Raises:
+            MiddlewareError: If a middleware rejects the input/output
         """
         from framework.code_mode.sandbox import Sandbox
         from framework.storage.persistence import save_assistant_message, save_user_message
+
+        # Run INPUT middlewares
+        query, error = await self._run_input_middleware(query)
+        if error:
+            raise MiddlewareError(error)
 
         # Save user message
         thread_id = await save_user_message(
@@ -282,6 +329,11 @@ class Agent:
         sandbox = Sandbox(self)
         result = await sandbox.run(query, timeout=timeout or self.timeout)
         response = result.formatted_output or result.output
+
+        # Run OUTPUT middlewares
+        response, error = await self._run_output_middleware(response)
+        if error:
+            raise MiddlewareError(error)
 
         # Save assistant response
         await save_assistant_message(self.storage, thread_id, response)
@@ -318,6 +370,12 @@ class Agent:
         from framework.code_mode.sandbox import Sandbox
         from framework.storage.persistence import save_assistant_message, save_user_message
         from framework.team.team import StreamEvent
+
+        # Run INPUT middlewares
+        query, error = await self._run_input_middleware(query)
+        if error:
+            yield StreamEvent(event_type="error", data={"message": error})
+            return
 
         # Save user message
         thread_id = await save_user_message(
@@ -379,6 +437,12 @@ class Agent:
             # Format and yield final output
             if result.success:
                 formatted_output = await sandbox.format_response(query, result.output)
+
+                # Run OUTPUT middlewares
+                formatted_output, error = await self._run_output_middleware(formatted_output)
+                if error:
+                    yield StreamEvent(event_type="error", data={"message": error})
+                    return
 
                 # Save assistant response
                 await save_assistant_message(self.storage, thread_id, formatted_output)

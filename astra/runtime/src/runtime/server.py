@@ -122,18 +122,31 @@ class AstraServer:
 
     def _create_app(self) -> FastAPI:
         """Create and configure the FastAPI app."""
+        from fastapi.middleware.cors import CORSMiddleware
+
         from runtime.app.app import create_app
 
+        # Create app without CORS first (we'll add it after auth)
         app = create_app(
             title=self.name,
             description=self.description,
             version=self.version,
-            cors_allowed_origins=self.cors_allowed_origins,
+            cors_allowed_origins=None,  # Don't add CORS here
         )
 
-        # Add auth middleware if enabled
+        # Add auth middleware if enabled (added first, processed second)
         if self.auth_enabled:
             self._add_auth_middleware(app)
+
+        # Add CORS middleware LAST (processed FIRST in request chain)
+        # This ensures CORS headers are added even for preflight requests
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=self.cors_allowed_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
         # Add routes
         self._add_routes(app)

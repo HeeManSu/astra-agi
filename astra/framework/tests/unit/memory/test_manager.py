@@ -7,7 +7,7 @@ Tests message limiting, filtering, and windowing logic.
 from unittest.mock import AsyncMock, MagicMock
 
 from framework.memory.manager import MemoryManager
-from framework.memory.memory import AgentMemory
+from framework.memory.memory import Memory
 import pytest
 
 
@@ -33,31 +33,31 @@ class TestMemoryManagerBasicV1:
     @pytest.mark.asyncio
     async def test_get_context_disabled_history(self, mock_model, mock_storage):
         """Test that get_context returns empty when add_history_to_messages is False."""
-        memory_config = AgentMemory(add_history_to_messages=False)
+        memory_config = Memory(add_history_to_messages=False)
         manager = MemoryManager(memory_config, mock_model)
 
         context = await manager.get_context("thread_1", mock_storage)
         assert context == []
 
     @pytest.mark.asyncio
-    async def test_get_context_uses_num_history_responses(self, mock_model, mock_storage):
-        """Test that get_context uses num_history_responses * 2 for message limit."""
-        memory_config = AgentMemory(num_history_responses=5)
+    async def test_get_context_uses_num_history_turns(self, mock_model, mock_storage):
+        """Test that get_context uses num_history_turns * 2 for message limit."""
+        memory_config = Memory(num_history_turns=5)
         manager = MemoryManager(memory_config, mock_model)
 
-        mock_storage.get_history = AsyncMock(return_value=[])
+        mock_storage.get_history_as_messages = AsyncMock(return_value=[])
 
         await manager.get_context("thread_1", mock_storage)
 
-        # Should request num_history_responses * 2 = 10 messages
-        mock_storage.get_history.assert_called_once()
-        call_args = mock_storage.get_history.call_args
+        # Should request num_history_turns * 2 = 10 messages
+        mock_storage.get_history_as_messages.assert_called_once()
+        call_args = mock_storage.get_history_as_messages.call_args
         assert call_args[1]["limit"] == 10  # 5 * 2
 
     @pytest.mark.asyncio
     async def test_get_context_loads_messages(self, mock_model, mock_storage):
         """Test that get_context loads messages from storage."""
-        memory_config = AgentMemory(num_history_responses=5)
+        memory_config = Memory(num_history_turns=5)
         manager = MemoryManager(memory_config, mock_model)
 
         messages = [
@@ -65,7 +65,7 @@ class TestMemoryManagerBasicV1:
             {"role": "assistant", "content": "Hi"},
             {"role": "user", "content": "How are you?"},
         ]
-        mock_storage.get_history = AsyncMock(return_value=messages)
+        mock_storage.get_history_as_messages = AsyncMock(return_value=messages)
 
         context = await manager.get_context("thread_1", mock_storage)
 

@@ -17,10 +17,16 @@ class Memory:
     """
     Unified memory class for conversation history management.
 
+    Memory is responsible only for:
+    - deciding *whether* history is included
+    - deciding *how much* history is included
+
+    It does NOT manage storage or persistence logic.
+
     Example:
         ```python
         agent = Agent(
-            memory=Memory(num_history_responses=10),
+            memory=Memory(num_history_turns=10),
             ...
         )
         ```
@@ -30,17 +36,17 @@ class Memory:
         self,
         *,
         add_history_to_messages: bool = True,
-        num_history_responses: int = 5,
+        num_history_turns: int = 5,
     ):
         """
         Initialize memory.
 
         Args:
-            add_history_to_messages: Whether to add chat history to model messages
-            num_history_responses: Number of recent conversation turns to keep
+            add_history_to_messages: Whether to include chat history in model input
+            num_history_turns: Number of recent user-assistant turns to include
         """
         self.add_history_to_messages = add_history_to_messages
-        self.num_history_responses = num_history_responses
+        self.num_history_turns = num_history_turns
 
     async def get_context(
         self,
@@ -48,35 +54,29 @@ class Memory:
         storage: StorageClient,
     ) -> list[dict[str, Any]]:
         """
-        Get recent conversation context for the current turn.
+        Load recent conversation context.
 
         Args:
-            thread_id: Thread ID to load context from
-            storage: StorageClient instance for storage access
+            thread_id: Thread identifier
+            storage: Storage client implementation
 
         Returns:
-            List of message dicts in format: [{"role": "user", "content": "..."}]
-            Returns empty list if add_history_to_messages is False
+            A list of message dictionaries ordered from oldest → newest.
+            Returns an empty list if history is disabled.
         """
         if not self.add_history_to_messages:
             return []
 
-        # Simple message limiting using num_history_responses
-        # Load num_history_responses * 2 to account for user/assistant pairs
-        message_limit = self.num_history_responses * 2
+        # Each turn = user + assistant
+        message_limit = self.num_history_turns * 2
 
-        # Load messages from storage
-        recent_messages = await storage.get_history(thread_id, limit=message_limit)
-
-        context = []
-        for msg in recent_messages:
-            msg_dict = storage._message_to_dict(msg)
-            context.append(msg_dict)
-
-        return context
+        return await storage.get_history_as_messages(
+            thread_id,
+            limit=message_limit,
+        )
 
     def __repr__(self) -> str:
         return (
             f"Memory(add_history={self.add_history_to_messages}, "
-            f"num_responses={self.num_history_responses})"
+            f"num_turns={self.num_history_turns})"
         )

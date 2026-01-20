@@ -327,7 +327,7 @@ class Agent:
 
         # Execute in sandbox
         sandbox = Sandbox(self)
-        result = await sandbox.run(query, timeout=timeout or self.timeout)
+        result = await sandbox.run(query, timeout=timeout or self.timeout, thread_id=thread_id)
         response = result.formatted_output or result.output
 
         # Run OUTPUT middlewares

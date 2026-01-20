@@ -216,6 +216,29 @@ class StorageClient:
         effective_limit = limit or self.max_messages
         return await self.messages.get_recent(thread_id, limit=effective_limit)
 
+    async def get_history_as_messages(
+        self,
+        thread_id: str,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get recent conversation history as message dictionaries.
+
+        This is the preferred method for Memory and other components that need
+        message dicts for LLM context.
+
+        Args:
+            thread_id: Thread identifier
+            limit: Optional override for number of messages.
+                   Defaults to self.max_messages.
+
+        Returns:
+            List of message dictionaries ordered from oldest → newest.
+            Format: [{"role": str, "content": str, "tool_calls": list, ...}]
+        """
+        messages = await self.get_history(thread_id, limit=limit)
+        return [self._message_to_dict(msg) for msg in messages]
+
     async def update_thread_title(self, thread_id: str, title: str) -> Thread | None:
         """
         Update thread title.

@@ -173,10 +173,6 @@ class Team:
         _init_end = time.perf_counter()
         print(f"[TIMING] Team.__init__({self.name}) took {(_init_end - _init_start) * 1000:.2f}ms")
 
-    # -------------------------------------------------------------------------
-    # Middleware Helpers
-    # -------------------------------------------------------------------------
-
     async def _run_input_middleware(self, data: Any) -> tuple[Any, str | None]:
         """
         Run INPUT stage middlewares.

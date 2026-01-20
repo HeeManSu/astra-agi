@@ -8,6 +8,7 @@ import os
 
 from dotenv import load_dotenv
 from framework.agents import Agent
+from framework.memory import Memory
 from framework.middleware.builtin import PromptInjectionGuardrail
 from framework.models import Gemini
 from framework.storage.client import StorageClient
@@ -51,10 +52,16 @@ market_research_agent = Agent(
         spoon_to_kitchen,  # INPUT: spoon → kitchen
         executive_replacer,  # OUTPUT: executive → non-executive
     ],
+    memory=Memory(num_history_turns=10),
     instructions="""
 # Market Research Specialist - SellerGeni
 
 Expert e-commerce advisor for Amazon sellers. Provide clear, actionable insights focused on revenue impact. Default to 🇮🇳 India (amazon.in).
+
+## Conversation Memory
+- Remember and use information from previous messages in this conversation
+- If the user shares their name, preferences, or context, remember it for future responses
+- Reference previous conversation context when relevant
 
 ## Tools & Capabilities
 

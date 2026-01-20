@@ -18,13 +18,13 @@ Test Cases:
 11. test_context_initialized_on_access - Context is initialized when accessed
 12. test_stream_enabled_default_false - stream_enabled defaults to False
 13. test_stream_enabled_true - stream_enabled can be set to True
-14. test_default_memory_config - Default AgentMemory is applied
-15. test_custom_memory_config - Custom AgentMemory is preserved
+14. test_default_memory_config - Default Memory is applied
+15. test_custom_memory_config - Custom Memory is preserved
 """
 
 from framework.agents import Agent
 from framework.agents.tool import tool
-from framework.memory import AgentMemory
+from framework.memory import Memory
 from framework.models.huggingface import HuggingFaceLocal
 import pytest
 
@@ -221,20 +221,20 @@ class TestMemoryConfiguration:
     """Tests for memory configuration."""
 
     def test_default_memory_config(self, mock_model):
-        """Default AgentMemory is applied."""
+        """Default Memory is applied."""
         agent = Agent(
             name="TestAgent",
             instructions="You are helpful.",
             model=mock_model,
         )
         assert agent.memory is not None
-        assert isinstance(agent.memory, AgentMemory)
+        assert isinstance(agent.memory, Memory)
 
     def test_custom_memory_config(self, mock_model):
-        """Custom AgentMemory is preserved."""
-        custom_memory = AgentMemory(
-            window_size=10,
-            token_limit=2000,
+        """Custom Memory is preserved."""
+        custom_memory = Memory(
+            num_history_turns=10,
+            add_history_to_messages=True,
         )
         agent = Agent(
             name="TestAgent",
@@ -242,5 +242,5 @@ class TestMemoryConfiguration:
             model=mock_model,
             memory=custom_memory,
         )
-        assert agent.memory.window_size == 10
-        assert agent.memory.token_limit == 2000
+        assert agent.memory.num_history_turns == 10
+        assert agent.memory.add_history_to_messages is True

@@ -5,7 +5,7 @@ Tests summarization, token-aware windowing, and context loading.
 """
 
 from framework.memory.manager import MemoryManager
-from framework.memory.memory import AgentMemory
+from framework.memory.memory import Memory
 import pytest
 
 
@@ -26,7 +26,7 @@ class TestMemoryManagerContextLoadingV1:
         # Wait for queue to flush
         await agent_storage.queue.flush()
 
-        memory_config = AgentMemory(num_history_responses=10)
+        memory_config = Memory(num_history_turns=10)
         manager = MemoryManager(memory_config, hf_model)
 
         context = await manager.get_context(thread_id, agent_storage)
@@ -45,7 +45,7 @@ class TestMemoryManagerContextLoadingV1:
         await agent_storage.add_message(thread_id, "user", "Hello")
         await agent_storage.queue.flush()
 
-        memory_config = AgentMemory(add_history_to_messages=False)
+        memory_config = Memory(add_history_to_messages=False)
         manager = MemoryManager(memory_config, hf_model)
 
         context = await manager.get_context(thread_id, agent_storage)

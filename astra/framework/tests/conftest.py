@@ -14,7 +14,19 @@ import tempfile
 from typing import Any
 import uuid
 
-from framework.agents import Agent, tool
+from framework.agents import Agent
+
+
+# Try to import tool, but don't fail if it doesn't exist
+try:
+    from framework.agents.tool import tool
+except ImportError:
+    # If tool doesn't exist, create a dummy decorator for fixtures
+    def tool(func):
+        """Dummy tool decorator for tests that don't actually need it."""
+        return func
+
+
 from framework.models.huggingface import HuggingFaceLocal, HuggingFaceRemote
 from framework.storage.client import StorageClient
 from framework.storage.databases.libsql import LibSQLStorage

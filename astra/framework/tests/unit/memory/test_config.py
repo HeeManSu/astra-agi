@@ -1,32 +1,32 @@
 """
-Unit tests for AgentMemory configuration model.
+Unit tests for Memory configuration model.
 
 Tests pure configuration logic without LLM calls.
 """
 
-from framework.memory.memory import AgentMemory
+from framework.memory.memory import Memory
 import pytest
 
 
 @pytest.mark.unit
-class TestAgentMemory:
-    """Tests for AgentMemory configuration model."""
+class TestMemory:
+    """Tests for Memory configuration model."""
 
     def test_default_values(self):
-        """Test that AgentMemory has correct default values for V1."""
-        memory = AgentMemory()
+        """Test that Memory has correct default values for V1."""
+        memory = Memory()
         assert memory.add_history_to_messages is True
-        assert memory.num_history_responses == 5
+        assert memory.num_history_turns == 5
 
     def test_add_history_disabled(self):
         """Test that add_history_to_messages can be disabled."""
-        memory = AgentMemory(add_history_to_messages=False)
+        memory = Memory(add_history_to_messages=False)
         assert memory.add_history_to_messages is False
 
-    def test_custom_num_history_responses(self):
-        """Test that num_history_responses can be customized."""
-        memory = AgentMemory(num_history_responses=10)
-        assert memory.num_history_responses == 10
+    def test_custom_num_history_turns(self):
+        """Test that num_history_turns can be customized."""
+        memory = Memory(num_history_turns=10)
+        assert memory.num_history_turns == 10
 
 
 # @TODO: Himanshu. Disabled for now and will be enabled later with proper testing.

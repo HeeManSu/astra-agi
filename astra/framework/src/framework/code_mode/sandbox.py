@@ -171,7 +171,7 @@ class Sandbox:
     # Use run() for simple cases. Use generate_code() + execute() separately
     # when you need to yield events between steps (e.g., for streaming).
 
-    async def run(self, user_query: str, timeout: float = 60.0) -> SandboxResult:
+    async def run(self, user_query: str, timeout: float = 60.0, thread_id: str | None = None) -> SandboxResult:
         """Generate code from a user query, execute it, and format the response.
 
         This is the simplest way to use the sandbox - just pass a query and get results.
@@ -188,6 +188,7 @@ class Sandbox:
         Args:
             user_query: What the user wants to do (e.g., "Get stock price for AAPL")
             timeout: How long to wait before killing the subprocess (default: 60 seconds)
+            thread_id: Optional thread ID for loading conversation history
 
         Returns:
             SandboxResult containing:
@@ -198,7 +199,7 @@ class Sandbox:
                 - stderr: Any error messages (for debugging)
         """
         # Step 1: Ask LLM to generate Python code
-        code = await self.generate_code(user_query)
+        code = await self.generate_code(user_query, thread_id=thread_id)
         with open("generated_code.txt", "w") as f:
             f.write(code)
         print("Generated code saved in the file generated_code.txt")
@@ -252,14 +253,15 @@ class Sandbox:
 
         return content.strip()
 
-    async def generate_code(self, user_query: str) -> str:
+    async def generate_code(self, user_query: str, thread_id: str | None = None) -> str:
         """Ask the LLM to generate Python code based on a user query.
 
         This is the "brain" part of the sandbox. It:
             1. Gets the semantic layer (describes what tools are available)
             2. Generates Python stubs (code templates the LLM can use)
-            3. Builds a prompt explaining what to do
-            4. Calls the LLM to generate the actual code
+            3. Loads conversation history if thread_id is provided
+            4. Builds a prompt explaining what to do
+            5. Calls the LLM to generate the actual code
 
         The generated code will look something like:
             price = market_analyst.get_stock_price('AAPL')
@@ -268,6 +270,7 @@ class Sandbox:
 
         Args:
             user_query: What the user wants (e.g., "Get Apple stock info")
+            thread_id: Optional thread ID for loading conversation history
 
         Returns:
             Python code as a string (ready to execute)
@@ -285,7 +288,13 @@ class Sandbox:
             f.write(stubs)
         print("Stubs saved to stubs.txt")
 
-        # Step 3: Build the prompt - use different template for Agent vs Team
+        # Step 3: Load conversation history if memory is configured and thread_id is provided
+        messages = []
+        if thread_id and hasattr(self.team, "memory") and self.team.memory and hasattr(self.team, "storage") and self.team.storage:
+            history = await self.team.memory.get_context(thread_id, self.team.storage)
+            messages.extend(history)
+
+        # Step 4: Build the prompt - use different template for Agent vs Team
         # Agent doesn't have 'members' attribute, Team does
         is_agent = not hasattr(self.team, "members")
 
@@ -310,9 +319,12 @@ class Sandbox:
                 user_query=user_query,
             )
 
-        # Step 4: Call the LLM to generate code
+        # Step 5: Add the current user query to messages
+        messages.append({"role": "user", "content": prompt})
+
+        # Step 6: Call the LLM to generate code
         print("Invoking LLM")
-        response = await self.model.invoke([{"role": "user", "content": prompt}])
+        response = await self.model.invoke(messages)
 
         # Extract the code from the LLM's response
         content = response.content if hasattr(response, "content") else str(response)

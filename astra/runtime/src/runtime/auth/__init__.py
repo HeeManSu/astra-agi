@@ -1,11 +1,11 @@
 """Auth module for JWT authentication."""
 
 from runtime.auth.jwt import create_token, verify_token
-from runtime.auth.middleware import auth_middleware
+from runtime.auth.middleware import AuthMiddleware
 
 
 __all__ = [
-    "auth_middleware",
+    "AuthMiddleware",
     "create_token",
     "verify_token",
 ]

@@ -19,6 +19,22 @@ const createHeaders = (apiKey) => {
 };
 
 /**
+ * Get auth token from server
+ */
+export const getAuthToken = async (serverUrl) => {
+  const response = await fetch(`${serverUrl}/auth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get token: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
  * Check if server is reachable
  */
 export const checkHealth = async (serverUrl, apiKey) => {
@@ -69,7 +85,7 @@ export const runAgent = async (
   apiKey,
   agentId,
   message,
-  threadId = null
+  threadId = null,
 ) => {
   const body = { message };
   if (threadId) body.thread_id = threadId;
@@ -98,7 +114,7 @@ export const streamAgent = async (
   onChunk,
   onDone,
   onError,
-  threadId = null
+  threadId = null,
 ) => {
   try {
     const body = { message };
@@ -166,7 +182,7 @@ export const runTeam = async (
   apiKey,
   teamId,
   message,
-  threadId = null
+  threadId = null,
 ) => {
   const body = { message };
   if (threadId) body.thread_id = threadId;
@@ -195,7 +211,7 @@ export const streamTeam = async (
   onChunk,
   onDone,
   onError,
-  threadId = null
+  threadId = null,
 ) => {
   try {
     const body = { message };
@@ -265,7 +281,7 @@ export const getThreads = async (
   serverUrl,
   apiKey,
   resourceType,
-  resourceId
+  resourceId,
 ) => {
   const params = new URLSearchParams();
   if (resourceType) params.append("resource_type", resourceType);

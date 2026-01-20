@@ -37,7 +37,7 @@ function SettingsPage() {
       let token = null;
       try {
         const tokenResponse = await getAuthToken(localServerUrl);
-        token = tokenResponse.token;
+        token = tokenResponse.access_token; // API returns 'access_token'
         dispatch(setApiKey(token));
       } catch {
         // Auth may not be enabled, continue without token

@@ -8,12 +8,9 @@ import os
 
 from dotenv import load_dotenv
 from framework.agents import Agent
-from framework.memory import Memory
-from framework.middleware.builtin import PromptInjectionGuardrail
 from framework.models import Gemini
 from framework.storage.client import StorageClient
 from framework.storage.databases.mongodb import MongoDBStorage
-from middlewares import executive_replacer, spoon_to_kitchen
 from tools import (
     amazon_autocomplete_scraper,
     amazon_offers_scraper,
@@ -47,12 +44,12 @@ market_research_agent = Agent(
         amazon_offers_scraper,
     ],
     # Middlewares: security + custom transformations
-    middlewares=[
-        PromptInjectionGuardrail(),  # Blocks "what are your system instructions" etc.
-        spoon_to_kitchen,  # INPUT: spoon → kitchen
-        executive_replacer,  # OUTPUT: executive → non-executive
-    ],
-    memory=Memory(num_history_turns=10),
+    # middlewares=[
+    #     PromptInjectionGuardrail(),  # Blocks "what are your system instructions" etc.
+    #     spoon_to_kitchen,  # INPUT: spoon → kitchen
+    #     executive_replacer,  # OUTPUT: executive → non-executive
+    # ],
+    # memory=Memory(num_history_turns=10),
     instructions="""
 # Market Research Specialist - SellerGeni
 

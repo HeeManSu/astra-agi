@@ -436,20 +436,32 @@ def parse_usage_metadata(usage_meta: Any) -> dict[str, int]:
         usage_meta: Gemini usage_metadata object
 
     Returns:
-        Dict with token counts: input_tokens, output_tokens, total_tokens
+        Dict with token counts: input_tokens, output_tokens, thoughts_tokens, total_tokens
 
     Example:
         >>> usage = parse_usage_metadata(response.usage_metadata)
         >>> usage
-        {"input_tokens": 50, "output_tokens": 100, "total_tokens": 150}
+        {"input_tokens": 50, "output_tokens": 100, "thoughts_tokens": 1325, "total_tokens": 1475}
     """
     if not usage_meta:
         return {}
 
+    input_tokens = getattr(usage_meta, "prompt_token_count", 0) or 0
+    output_tokens = getattr(usage_meta, "candidates_token_count", 0) or 0
+    total_tokens = getattr(usage_meta, "total_token_count", 0) or 0
+
+    # Gemini 2.5+ models with thinking enabled have thoughts_token_count
+    thoughts_tokens = getattr(usage_meta, "thoughts_token_count", 0) or 0
+
+    # If thoughts_tokens not available, calculate from mismatch
+    if thoughts_tokens == 0 and total_tokens > (input_tokens + output_tokens):
+        thoughts_tokens = total_tokens - input_tokens - output_tokens
+
     return {
-        "input_tokens": getattr(usage_meta, "prompt_token_count", 0) or 0,
-        "output_tokens": getattr(usage_meta, "candidates_token_count", 0) or 0,
-        "total_tokens": getattr(usage_meta, "total_token_count", 0) or 0,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "thoughts_tokens": thoughts_tokens,
+        "total_tokens": total_tokens,
     }
 
 

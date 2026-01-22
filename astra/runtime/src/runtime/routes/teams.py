@@ -54,18 +54,31 @@ async def get_team(team_id: str) -> TeamResponse:
 @router.post("/{team_id}/invoke")
 async def run_team(team_id: str, request: TeamRunRequest):
     """Run a team synchronously."""
+    import time
+
     team = team_registry.get(team_id)
     if not team:
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
 
+    start_time = time.time()
+    print(f"[TIMING] Team '{team_id}' invoke started at {time.strftime('%H:%M:%S')}")
+
     # Run the team with optional thread_id for message persistence
     response = await team.invoke(request.message, thread_id=request.thread_id)
-    return {"response": response}
+
+    end_time = time.time()
+    duration_ms = (end_time - start_time) * 1000
+    print(f"[TIMING] Team '{team_id}' invoke completed at {time.strftime('%H:%M:%S')}")
+    print(f"[TIMING] Team '{team_id}' total time: {duration_ms:.2f}ms ({duration_ms / 1000:.2f}s)")
+
+    return {"response": response, "timing_ms": round(duration_ms, 2)}
 
 
 @router.post("/{team_id}/stream")
 async def stream_team(team_id: str, request: TeamRunRequest):
     """Stream a team response using SSE."""
+    import time
+
     from fastapi.responses import StreamingResponse
 
     team = team_registry.get(team_id)
@@ -73,8 +86,20 @@ async def stream_team(team_id: str, request: TeamRunRequest):
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
 
     async def generate():
+        start_time = time.time()
+        print(f"[TIMING] Team '{team_id}' stream started at {time.strftime('%H:%M:%S')}")
+
         async for event in team.stream(request.message, thread_id=request.thread_id):
             yield f"data: {event.model_dump_json()}\n\n"
+
+        end_time = time.time()
+        duration_ms = (end_time - start_time) * 1000
+        print(f"[TIMING] Team '{team_id}' stream completed at {time.strftime('%H:%M:%S')}")
+        print(
+            f"[TIMING] Team '{team_id}' total time: {duration_ms:.2f}ms ({duration_ms / 1000:.2f}s)"
+        )
+
+        yield f'data: {{"timing_ms": {round(duration_ms, 2)}}}\n\n'
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")

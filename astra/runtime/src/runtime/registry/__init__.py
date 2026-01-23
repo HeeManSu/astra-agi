@@ -1,6 +1,10 @@
-"""Registry module for agents and teams."""
+"""Registry module for agents, teams, and storage."""
 
-from runtime.registry.registry import AgentRegistry, StorageRegistry, TeamRegistry
+from runtime.registry.registry import (
+    AgentRegistry,
+    StorageRegistry,
+    TeamRegistry,
+)
 
 
 # Global registries

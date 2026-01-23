@@ -10,6 +10,7 @@ import sys
 from dotenv import load_dotenv
 from framework.storage.client import StorageClient
 from framework.storage.databases.mongodb import MongoDBStorage
+from runtime import AstraServer, TelemetryConfig
 
 
 # Load .env from project root BEFORE any framework imports
@@ -20,7 +21,6 @@ load_dotenv(env_path, override=True)
 sys.path.insert(0, os.path.dirname(__file__))
 
 from agent import market_research_agent
-from runtime import AstraServer
 
 
 # Create Server
@@ -33,6 +33,10 @@ server = AstraServer(
     ),
     cors_allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     # Auth enabled by default (requires ASTRA_JWT_SECRET env var)
+    telemetry=TelemetryConfig(
+        enabled=True,
+        db_path="./market_obs.db",
+    ),
 )
 
 # Expose App

@@ -31,6 +31,7 @@ classifiers = [
 ]
 dependencies = [
     "astra-framework>=0.1.0",
+    "astra-observability>=0.1.0",
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.0.0",
@@ -73,3 +74,4 @@ exclude = [
 
 [tool.uv.sources]
 astra-framework = { workspace = true }
+astra-observability = { workspace = true }

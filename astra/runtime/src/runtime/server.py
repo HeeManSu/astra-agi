@@ -6,6 +6,7 @@ Provides a FastAPI-based server for running agents, teams, and handling chat req
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import os
 from typing import TYPE_CHECKING, Any
 
@@ -17,20 +18,39 @@ if TYPE_CHECKING:
     from framework.team import Team
 
 
+@dataclass
+class TelemetryConfig:
+    """
+    Configuration for observability/telemetry.
+
+    Attributes:
+        enabled: Whether telemetry is enabled
+        db_path: Path to SQLite database (default: ./observability.db)
+        debug: Enable debug-level logging
+    """
+
+    enabled: bool = True
+    db_path: str = "./observability.db"
+    debug: bool = False
+
+
 class AstraServer:
     """
     Astra Server for running AI agents.
 
     Example:
         ```python
-        from runtime import AstraServer
+        from runtime import AstraServer, TelemetryConfig
         from my_agents import researcher, writer
 
-        # Without auth (set ASTRA_JWT_SECRET env var)
-        server = AstraServer(agents=[researcher, writer])
-
-        # Disable auth
-        server = AstraServer(agents=[researcher, writer], auth_enabled=False)
+        server = AstraServer(
+            agents=[researcher, writer],
+            telemetry=TelemetryConfig(
+                enabled=True,
+                db_path="./my_obs.db",
+                debug=True,
+            ),
+        )
 
         app = server.get_app()
         # Run with: uvicorn main:app --reload
@@ -49,6 +69,8 @@ class AstraServer:
         auth_enabled: bool = True,
         # CORS
         cors_allowed_origins: list[str] | None = None,
+        # Telemetry
+        telemetry: TelemetryConfig | None = None,
     ):
         """
         Initialize AstraServer.
@@ -62,6 +84,7 @@ class AstraServer:
             version: API version
             auth_enabled: Enable JWT authentication (requires ASTRA_JWT_SECRET env var)
             cors_allowed_origins: Allowed CORS origins
+            telemetry: Telemetry/observability configuration
         """
         self.agents = agents or []
         self.teams = teams or []
@@ -72,6 +95,7 @@ class AstraServer:
         self.version = version
         self._auth_enabled = auth_enabled
         self.cors_allowed_origins = cors_allowed_origins or ["*"]
+        self.telemetry = telemetry or TelemetryConfig()
 
         # Initialize all components in global registries
         self._initialize_storage()
@@ -126,12 +150,13 @@ class AstraServer:
 
         from runtime.app.app import create_app
 
-        # Create app without CORS first (we'll add it after auth)
+        # Create app with telemetry config (stored in app.state before lifespan)
         app = create_app(
             title=self.name,
             description=self.description,
             version=self.version,
             cors_allowed_origins=None,  # Don't add CORS here
+            telemetry_config=self.telemetry,
         )
 
         # Add auth middleware if enabled (added first, processed second)
@@ -165,6 +190,7 @@ class AstraServer:
             agents_router,
             auth_router,
             health_router,
+            observability_router,
             teams_router,
             threads_router,
         )
@@ -174,3 +200,4 @@ class AstraServer:
         app.include_router(agents_router)
         app.include_router(teams_router)
         app.include_router(threads_router)
+        app.include_router(observability_router)

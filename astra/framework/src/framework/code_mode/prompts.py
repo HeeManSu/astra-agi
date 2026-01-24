@@ -13,6 +13,9 @@ TEAM_CODE_MODE_PROMPT = """You are a Python code generator for a multi-agent tea
 ## Team Workflow Instructions
 {team_instructions}
 
+## Runtime Context
+{runtime_context}
+
 ## Available Tools
 {stubs}
 
@@ -166,8 +169,7 @@ CRITICAL RULES:
 - Follow the format guidelines in the agent_instructions
 - If the agent instructions specify a report format, tables, or structure - use it exactly
 - Always generate the response in a markdown file.
-- If table has to be generated, make sure it it a textual visual representation of the table properly formatted with pipe characters and dashes.
-
+- Don't generate any tables for any other visualizations for now.
 ---
 
 ## agent_instructions (includes format guidelines):
@@ -193,6 +195,9 @@ AGENT_CODE_MODE_PROMPT = """You are a Python code generator. Generate minimal co
 
 ## Instructions
 {agent_instructions}
+
+## Runtime Context
+{runtime_context}
 
 ## Available Tools
 {stubs}

@@ -91,15 +91,21 @@ def call_tool(name: str, **kwargs):
     return response.get("data", {})
 
 
-def synthesize_response(message: str):
+def synthesize_response(message):   # (message:str -> message)
     """Return final response to parent and exit.
 
     This ends the subprocess execution and sends the final answer.
 
     Args:
-        message: Final response message to user
+        message: Final response message (can be str, dict, or list)
     """
-    request = {"type": "synthesize", "message": str(message)}
+    # Handle dict/list by JSON serializing, otherwise use str @todo: Proper review required
+    if isinstance(message, (dict, list)):
+        message_str = json.dumps(message, ensure_ascii=False, default=str)
+    else:
+        message_str = str(message)
+
+    request = {"type": "synthesize", "message": message_str}
     print(json.dumps(request), flush=True)
     sys.exit(0)
 
@@ -146,7 +152,10 @@ class Sandbox:
         "Order ORD-001 processed successfully!"
     """
 
-    def __init__(self, team_or_agent: Team | Agent):
+    def __init__(
+        self,
+        team_or_agent: Team | Agent,
+    ):
         """Initialize sandbox with Team or Agent.
 
         Both Team and Agent have the same interface for code mode:
@@ -171,7 +180,13 @@ class Sandbox:
     # Use run() for simple cases. Use generate_code() + execute() separately
     # when you need to yield events between steps (e.g., for streaming).
 
-    async def run(self, user_query: str, timeout: float = 60.0, thread_id: str | None = None) -> SandboxResult:
+    async def run(
+        self,
+        user_query: str,
+        timeout: float = 60.0,
+        thread_id: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> SandboxResult:
         """Generate code from a user query, execute it, and format the response.
 
         This is the simplest way to use the sandbox - just pass a query and get results.
@@ -189,6 +204,7 @@ class Sandbox:
             user_query: What the user wants to do (e.g., "Get stock price for AAPL")
             timeout: How long to wait before killing the subprocess (default: 60 seconds)
             thread_id: Optional thread ID for loading conversation history
+            context: Optional runtime context (e.g., store_id, user_tier) to pass to the LLM
 
         Returns:
             SandboxResult containing:
@@ -199,7 +215,7 @@ class Sandbox:
                 - stderr: Any error messages (for debugging)
         """
         # Step 1: Ask LLM to generate Python code
-        code = await self.generate_code(user_query, thread_id=thread_id)
+        code = await self.generate_code(user_query, thread_id=thread_id, context=context)
         with open("generated_code.txt", "w") as f:
             f.write(code)
         print("Generated code saved in the file generated_code.txt")
@@ -237,11 +253,16 @@ class Sandbox:
         Returns:
             Human-readable formatted response
         """
+
+        # Escape curly braces in JSON to prevent .format() from interpreting them as placeholders
+        # JSON uses {} for objects, but .format() uses {} for variable substitution
+        escaped_output = raw_output.replace("{", "{{").replace("}", "}}")
+
         prompt = RESPONSE_FORMAT_PROMPT.format(
             agent_name=self.team.name,
             agent_instructions=getattr(self.team, "instructions", "") or "",
             user_query=user_query,
-            tool_results=raw_output,
+            tool_results=escaped_output,
         )
 
         response = await self.model.invoke([{"role": "user", "content": prompt}])
@@ -253,7 +274,9 @@ class Sandbox:
 
         return content.strip()
 
-    async def generate_code(self, user_query: str, thread_id: str | None = None) -> str:
+    async def generate_code(
+        self, user_query: str, thread_id: str | None = None, context: dict[str, Any] | None = None
+    ) -> str:
         """Ask the LLM to generate Python code based on a user query.
 
         This is the "brain" part of the sandbox. It:
@@ -271,6 +294,7 @@ class Sandbox:
         Args:
             user_query: What the user wants (e.g., "Get Apple stock info")
             thread_id: Optional thread ID for loading conversation history
+            context: Optional runtime context dict to include in the prompt
 
         Returns:
             Python code as a string (ready to execute)
@@ -290,11 +314,32 @@ class Sandbox:
 
         # Step 3: Load conversation history if memory is configured and thread_id is provided
         messages = []
-        if thread_id and hasattr(self.team, "memory") and self.team.memory and hasattr(self.team, "storage") and self.team.storage:
+        if (
+            thread_id
+            and hasattr(self.team, "memory")
+            and self.team.memory
+            and hasattr(self.team, "storage")
+            and self.team.storage
+        ):
             history = await self.team.memory.get_context(thread_id, self.team.storage)
             messages.extend(history)
 
-        # Step 4: Build the prompt - use different template for Agent vs Team
+        # Step 4: Format runtime context for the prompt
+        # TODO: Currently we directly serialize the runtime context into the prompt.
+        # In future, this should be routed through a Context Builder layer to:
+        # 1) Filter sensitive/operational fields (e.g., storeId, auth tokens)
+        # 2) Inject only reasoning-relevant data into the LLM
+        # 3) Keep execution context clean and minimal
+        # 4) Support dynamic tool filtering and feature extensions (evals, guardrails)
+        # Direct dumping may increase token usage and create security risks.
+        # Or think of a better solution for this.
+        runtime_context_str = ""
+        if context:
+            runtime_context_str = "\n".join([f"- {k}: {v}" for k, v in context.items()])
+        else:
+            runtime_context_str = "No additional runtime context provided."
+
+        # Step 5: Build the prompt - use different template for Agent vs Team
         # Agent doesn't have 'members' attribute, Team does
         is_agent = not hasattr(self.team, "members")
 
@@ -307,6 +352,7 @@ class Sandbox:
                 agent_instructions=self.team.instructions or "",
                 agent_class=agent_class,
                 stubs=stubs,
+                runtime_context=runtime_context_str,
                 user_query=user_query,
             )
         else:
@@ -316,6 +362,7 @@ class Sandbox:
                 team_description=self.team.description or "",
                 team_instructions=self.team.instructions or "",
                 stubs=stubs,
+                runtime_context=runtime_context_str,
                 user_query=user_query,
             )
 

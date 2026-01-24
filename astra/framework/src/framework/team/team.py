@@ -298,6 +298,7 @@ class Team:
         *,
         thread_id: str | None = None,
         timeout: float | None = None,
+        context: dict[str, Any] | None = None,
     ) -> str:
         """
         Execute the team on a query and return the final response.
@@ -312,6 +313,7 @@ class Team:
             query: The user's request/question
             thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
+            context: Optional runtime context dict (e.g., store_id, user_tier)
 
         Returns:
             The final response string from the team
@@ -338,14 +340,14 @@ class Team:
             resource_name=self.name,
         )
 
-        # Create sandbox with this team
+        # Create sandbox
         sandbox = Sandbox(self)
 
         # Use provided timeout or fall back to team's default
         exec_timeout = timeout or self.timeout
 
         # Run the sandbox: generate code → execute → return result
-        result = await sandbox.run(query, timeout=exec_timeout)
+        result = await sandbox.run(query, timeout=exec_timeout, context=context)
 
         # Check for execution errors
         if not result.success:
@@ -370,6 +372,7 @@ class Team:
         *,
         thread_id: str | None = None,
         timeout: float | None = None,
+        context: dict[str, Any] | None = None,
     ) -> AsyncIterator[StreamEvent]:
         """
         Stream the team execution, yielding SSE events.
@@ -387,6 +390,7 @@ class Team:
             query: The user's request/question
             thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
+            context: Optional runtime context dict (e.g., store_id, user_tier)
 
         Yields:
             StreamEvent objects for SSE streaming
@@ -412,12 +416,13 @@ class Team:
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
+        # Create sandbox
         sandbox = Sandbox(self)
         exec_timeout = timeout or self.timeout
 
         # Generate code first
         try:
-            code = await sandbox.generate_code(query)
+            code = await sandbox.generate_code(query, context=context)
             yield StreamEvent(
                 event_type="code_generated",
                 data={

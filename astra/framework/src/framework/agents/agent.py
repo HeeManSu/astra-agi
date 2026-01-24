@@ -283,6 +283,7 @@ class Agent:
         *,
         thread_id: str | None = None,
         timeout: float | None = None,
+        context: dict[str, Any] | None = None,
     ) -> str:
         """
         Execute the agent on a query and return the final response.
@@ -300,6 +301,7 @@ class Agent:
             query: The user's request/question
             thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
+            context: Optional runtime context dict (e.g., store_id, user_tier)
 
         Returns:
             The formatted response from the agent
@@ -327,7 +329,9 @@ class Agent:
 
         # Execute in sandbox
         sandbox = Sandbox(self)
-        result = await sandbox.run(query, timeout=timeout or self.timeout, thread_id=thread_id)
+        result = await sandbox.run(
+            query, timeout=timeout or self.timeout, thread_id=thread_id, context=context
+        )
         response = result.formatted_output or result.output
 
         # Run OUTPUT middlewares
@@ -346,6 +350,7 @@ class Agent:
         *,
         thread_id: str | None = None,
         timeout: float | None = None,
+        context: dict[str, Any] | None = None,
     ) -> AsyncIterator[Any]:
         """
         Stream the agent execution, yielding SSE events.
@@ -363,6 +368,7 @@ class Agent:
             query: The user's request/question
             thread_id: Optional thread ID for message persistence
             timeout: Override default timeout (seconds)
+            context: Optional runtime context dict (e.g., store_id, user_tier)
 
         Yields:
             StreamEvent objects for SSE streaming
@@ -389,12 +395,13 @@ class Agent:
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
+        # Create sandbox
         sandbox = Sandbox(self)
         exec_timeout = timeout or self.timeout
 
         # Generate code first
         try:
-            code = await sandbox.generate_code(query)
+            code = await sandbox.generate_code(query, context=context)
             with open("generated_code.txt", "w") as f:
                 f.write(code)
             print("Generated code saved in the file generated_code.py")
@@ -456,7 +463,13 @@ class Agent:
                 )
 
         except Exception as e:
-            yield StreamEvent(event_type="error", data={"message": f"Execution error: {e}"})
+            import traceback
+
+            tb = traceback.format_exc()
+            print(f"Execution error: {e}\n{tb}")
+            yield StreamEvent(
+                event_type="error", data={"message": f"Execution error: {e}", "traceback": tb}
+            )
 
     def __repr__(self) -> str:
         """Minimal string representation of the Agent."""

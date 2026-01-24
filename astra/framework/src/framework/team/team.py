@@ -30,7 +30,7 @@ from framework.storage.client import StorageClient
 
 
 if TYPE_CHECKING:
-    from framework.code_mode.semantic import TeamSemanticLayer
+    from framework.code_mode.semantic import EntitySemanticLayer
     from framework.code_mode.tool_registry import ToolRegistry
 
 
@@ -168,7 +168,7 @@ class Team:
         self.middlewares = middlewares or []
 
         # Lazy-initialized semantic layer (cached after first access)
-        self._semantic_layer: TeamSemanticLayer | None = None
+        self._semantic_layer: EntitySemanticLayer | None = None
 
         _init_end = time.perf_counter()
         print(f"[TIMING] Team.__init__({self.name}) took {(_init_end - _init_start) * 1000:.2f}ms")
@@ -209,9 +209,13 @@ class Team:
             return data, ctx.error or "Output rejected by middleware"
         return ctx.data, None
 
-    # PROPERTIES
+    # CODE MODE PROVIDER PROPERTIES
     @property
-    def semantic_layer(self) -> TeamSemanticLayer:
+    def provider_type(self) -> str:
+        return "TEAM"
+
+    @property
+    def semantic_layer(self) -> EntitySemanticLayer:
         """
         Get the semantic layer for this team. Lazily initialized.
 
@@ -221,20 +225,56 @@ class Team:
         2. Build the tool map for sandbox execution
         """
         if self._semantic_layer is None:
-            from framework.code_mode.semantic import build_semantic_layer
+            from framework.code_mode.semantic import build_entity_semantic_layer
 
             print(f"[TIMING] Building semantic layer for {self.name}")
             _sem_start = time.perf_counter()
-            self._semantic_layer = build_semantic_layer(self)
+
+            # Build domains from members
+            domains = self._build_semantic_domains()
+
+            self._semantic_layer = build_entity_semantic_layer(
+                provider_id=self.id,
+                provider_name=self.name,
+                provider_description=self.description,
+                provider_instructions=self.instructions,
+                domains=domains,
+            )
+
             file_to_save = "semantic_layer_" + self.name + ".json"
             with open(file_to_save, "w") as f:
                 json.dump(self._semantic_layer.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"Semantic layer saved to {file_to_save}")
             _sem_end = time.perf_counter()
             print(
-                f"[TIMING] build_semantic_layer({self.name}) took {(_sem_end - _sem_start) * 1000:.2f}ms"
+                f"[TIMING] build_entity_semantic_layer({self.name}) took {(_sem_end - _sem_start) * 1000:.2f}ms"
             )
         return self._semantic_layer
+
+    def _build_semantic_domains(self) -> list[Any]:
+        """
+        Recursively build domain schemas from team members.
+        """
+        from framework.code_mode.semantic import build_domain_schema
+
+        domains = []
+        for member in self.members:
+            agent_or_team = member.agent
+            if isinstance(agent_or_team, Agent):
+                # Agent becomes a domain
+                domain = build_domain_schema(
+                    id=member.name.lower().replace(" ", "_").replace("-", "_"),
+                    name=member.name,
+                    description=member.description or agent_or_team.description,
+                    tools=agent_or_team.tools or [],
+                )
+                domains.append(domain)
+            elif isinstance(agent_or_team, Team):
+                # Nested team: recursively build and merge domains
+                nested_domains = agent_or_team._build_semantic_domains()
+                domains.extend(nested_domains)
+
+        return domains
 
     @property
     def flat_members(self) -> list[TeamMember]:
@@ -290,6 +330,14 @@ class Team:
                     self._tool_registry.register(agent_id, tool)
 
         return self._tool_registry
+
+    async def get_history(self, thread_id: str) -> list[dict[str, Any]]:
+        """
+        Get conversation history for this team.
+        """
+        if self.memory and self.storage:
+            return await self.memory.get_context(thread_id, self.storage)
+        return []
 
     # EXECUTION METHODS
     async def invoke(

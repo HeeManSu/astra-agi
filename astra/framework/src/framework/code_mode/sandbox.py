@@ -43,8 +43,7 @@ from framework.code_mode.stub_generator import generate_runtime_stubs, generate_
 
 
 if TYPE_CHECKING:
-    from framework.agents.agent import Agent
-    from framework.team.team import Team
+    from framework.code_mode.provider import CodeModeProvider
 
 
 # RUNTIME BRIDGE
@@ -154,21 +153,18 @@ class Sandbox:
 
     def __init__(
         self,
-        team_or_agent: Team | Agent,
+        provider: CodeModeProvider,
     ):
-        """Initialize sandbox with Team or Agent.
+        """Initialize sandbox with a CodeModeProvider.
 
-        Both Team and Agent have the same interface for code mode:
-        - semantic_layer: Structured representation of tools
-        - tool_registry: Maps tool names to Tool objects
-        - model: LLM model for code generation
-        - name, description, instructions: Metadata for prompts
+        The provider (Agent, Team, Workflow, etc.) must implement the
+        CodeModeProvider protocol.
 
         Args:
-            team_or_agent: Team or Agent instance to generate/execute code for
+            provider: The entity providing tools and metadata
         """
-        self.team = team_or_agent  # Keep as "team" for backward compatibility
-        self.model = team_or_agent.model
+        self.provider = provider
+        self.model = provider.model
         # Tool registry is accessed via team.tool_registry (lazily built)
 
     # PUBLIC API
@@ -254,13 +250,16 @@ class Sandbox:
             Human-readable formatted response
         """
 
+        # Use semantic layer for metadata
+        semantic = self.provider.semantic_layer
+
         # Escape curly braces in JSON to prevent .format() from interpreting them as placeholders
-        # JSON uses {} for objects, but .format() uses {} for variable substitution
+        # JSON uses {} for objects, but .format() uses {} for variable substitution. @TODO: review it properly
         escaped_output = raw_output.replace("{", "{{").replace("}", "}}")
 
         prompt = RESPONSE_FORMAT_PROMPT.format(
-            agent_name=self.team.name,
-            agent_instructions=getattr(self.team, "instructions", "") or "",
+            provider_name=semantic.provider_name,
+            provider_instructions=semantic.provider_instructions or "",
             user_query=user_query,
             tool_results=escaped_output,
         )
@@ -301,7 +300,7 @@ class Sandbox:
         """
 
         # Step 1: Get the semantic layer
-        semantic_layer = self.team.semantic_layer
+        semantic_layer = self.provider.semantic_layer
         with open("semantic_layer.json", "w") as f:
             json.dump(semantic_layer.to_dict(), f, indent=2, ensure_ascii=False)
         print("Semantic layer saved to semantic_layer.json")
@@ -312,16 +311,10 @@ class Sandbox:
             f.write(stubs)
         print("Stubs saved to stubs.txt")
 
-        # Step 3: Load conversation history if memory is configured and thread_id is provided
+        # Step 3: Load conversation history
         messages = []
-        if (
-            thread_id
-            and hasattr(self.team, "memory")
-            and self.team.memory
-            and hasattr(self.team, "storage")
-            and self.team.storage
-        ):
-            history = await self.team.memory.get_context(thread_id, self.team.storage)
+        if thread_id:
+            history = await self.provider.get_history(thread_id)
             messages.extend(history)
 
         # Step 4: Format runtime context for the prompt
@@ -339,28 +332,26 @@ class Sandbox:
         else:
             runtime_context_str = "No additional runtime context provided."
 
-        # Step 5: Build the prompt - use different template for Agent vs Team
-        # Agent doesn't have 'members' attribute, Team does
-        is_agent = not hasattr(self.team, "members")
-
-        if is_agent:
+        # Step 5: Build the prompt based on provider_type
+        if self.provider.provider_type == "AGENT":
             # Agent: use agent-specific prompt
-            agent_class = self.team.name.lower().replace(" ", "_").replace("-", "_")
+            agent_class = semantic_layer.provider_name.lower().replace(" ", "_").replace("-", "_")
             prompt = AGENT_CODE_MODE_PROMPT.format(
-                agent_name=self.team.name,
-                agent_description=self.team.description or f"Agent: {self.team.name}",
-                agent_instructions=self.team.instructions or "",
+                agent_name=semantic_layer.provider_name,
+                agent_description=semantic_layer.provider_description
+                or f"Agent: {semantic_layer.provider_name}",
+                agent_instructions=semantic_layer.provider_instructions or "",
                 agent_class=agent_class,
                 stubs=stubs,
                 runtime_context=runtime_context_str,
                 user_query=user_query,
             )
         else:
-            # Team: use team-specific prompt
+            # Team (or other multi-agent): use team-specific prompt
             prompt = TEAM_CODE_MODE_PROMPT.format(
-                team_name=self.team.name,
-                team_description=self.team.description or "",
-                team_instructions=self.team.instructions or "",
+                team_name=semantic_layer.provider_name,
+                team_description=semantic_layer.provider_description or "",
+                team_instructions=semantic_layer.provider_instructions or "",
                 stubs=stubs,
                 runtime_context=runtime_context_str,
                 user_query=user_query,
@@ -492,7 +483,7 @@ class Sandbox:
         # These make agent.tool() calls work by routing them to call_tool()
         # Example: market_analyst.get_stock_price('AAPL')
         #          -> call_tool("market_analyst.get_stock_price", symbol="AAPL")
-        runtime_stubs = generate_runtime_stubs(self.team.semantic_layer)
+        runtime_stubs = generate_runtime_stubs(self.provider.semantic_layer)
         parts.append(runtime_stubs)
 
         # Part 3: LLM Generated Code
@@ -635,7 +626,7 @@ class Sandbox:
 
         # Look up tool in registry by qualified name (agent_id.tool_name)
         qualified_name = f"{module_name}.{tool_name}"
-        tool = self.team.tool_registry.get(qualified_name)
+        tool = self.provider.tool_registry.get(qualified_name)
 
         if not tool:
             return {"type": "error", "message": f"Tool '{qualified_name}' not found"}

@@ -26,8 +26,8 @@ import json
 
 from framework.code_mode.semantic import (
     DomainSchema,
+    EntitySemanticLayer,
     ParamSchema,
-    TeamSemanticLayer,
     ToolSchema,
 )
 
@@ -304,7 +304,7 @@ def _generate_domain_stub(domain: DomainSchema) -> list[str]:
 
 
 # Main Entry Point
-def generate_stubs(semantic_layer: TeamSemanticLayer) -> str:
+def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     """
     Generate complete Python stub code from a TeamSemanticLayer.
 
@@ -319,7 +319,7 @@ def generate_stubs(semantic_layer: TeamSemanticLayer) -> str:
                     └── ToolSchema → @staticmethod
 
     Args:
-        semantic_layer: Complete semantic layer from build_semantic_layer()
+        semantic_layer: Complete semantic layer from build_team_semantic_layer()
 
     Returns:
         Python stub code as a single string
@@ -342,7 +342,7 @@ def generate_stubs(semantic_layer: TeamSemanticLayer) -> str:
     lines.append(
         "# ═══════════════════════════════════════════════════════════════════════════════"
     )
-    lines.append(f"# AVAILABLE TOOLS - {semantic_layer.team_name}")
+    lines.append(f"# AVAILABLE TOOLS - {semantic_layer.provider_name}")
     lines.append(
         "# ═══════════════════════════════════════════════════════════════════════════════"
     )
@@ -355,7 +355,7 @@ def generate_stubs(semantic_layer: TeamSemanticLayer) -> str:
     return "\n".join(lines)
 
 
-def generate_runtime_stubs(semantic_layer: TeamSemanticLayer) -> str:
+def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
     """Generate minimal runtime stubs for subprocess execution.
 
     Unlike generate_stubs() which creates rich docstrings for LLM understanding,
@@ -367,7 +367,7 @@ def generate_runtime_stubs(semantic_layer: TeamSemanticLayer) -> str:
     - If LLM adds optional args based on user query, they pass through seamlessly
 
     Args:
-        semantic_layer: Complete semantic layer from build_semantic_layer()
+        semantic_layer: Complete semantic layer from build_team_semantic_layer()
 
     Returns:
         Python stub code that routes class.method(**kwargs) to call_tool()

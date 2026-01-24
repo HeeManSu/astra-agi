@@ -16,22 +16,17 @@ Architecture:
                    → ExampleSchema (example usage)
 
 Usage:
-    from framework.code_mode.semantic import build_semantic_layer
+    from framework.code_mode.semantic import build_team_semantic_layer
 
     team = Team(...)
-    semantic = build_semantic_layer(team)
+    semantic = build_team_semantic_layer(team)
     stubs = generate_stubs(semantic)  # In stub_generator.py
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
-
-
-if TYPE_CHECKING:
-    from framework.agents.agent import Agent
-    from framework.team.team import Team
+from typing import Any
 
 
 # Parameter Schema
@@ -196,47 +191,47 @@ class DomainSchema:
     tools: list[ToolSchema]
 
 
-# Team Semantic Layer (Root)
+# Entity Semantic Layer (Root)
 @dataclass
-class TeamSemanticLayer:
+class EntitySemanticLayer:
     """
     Root container for the semantic layer.
 
-    Represents the entire Team's API surface in a structured format.
+    Represents the entity's (Agent, Team, Workflow) API surface in a structured format.
 
     Attributes:
-        team_id: Team identifier
-        team_name: Team display name
-        team_description: Team description
-        team_instructions: Team instructions (workflow hints for LLM)
-        domains: List of domain schemas (one per agent/nested team)
+        provider_id: Unique identifier
+        provider_name: Display name
+        provider_description: Description
+        provider_instructions: Instructions (workflow hints for LLM)
+        domains: List of domain schemas (one per agent/nested team/workflow phase)
         metadata: Additional metadata for extensions
 
     Example:
-        TeamSemanticLayer(
-            team_id="order-processing-team",
-            team_name="Order Processing Team",
-            team_description="Coordinates complete order fulfillment workflow",
-            team_instructions="1. Validate order → 2. Check inventory → 3. Process payment",
-            domains=[DomainSchema(id="inventory", ...), DomainSchema(id="payment", ...)],
-            metadata={"total_domains": 2, "total_tools": 5},
+        EntitySemanticLayer(
+            provider_id="order-team",
+            provider_name="Order Processing Team",
+            provider_description="Handles order processing workflow",
+            provider_instructions="Process orders in the following way: ...",
+            domains=[DomainSchema(...), DomainSchema(...)],
+            metadata={...},
         )
     """
 
-    team_id: str
-    team_name: str
-    team_description: str
-    team_instructions: str
+    provider_id: str
+    provider_name: str
+    provider_description: str
+    provider_instructions: str
     domains: list[DomainSchema]
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
-            "team_id": self.team_id,
-            "team_name": self.team_name,
-            "team_description": self.team_description,
-            "team_instructions": self.team_instructions,
+            "provider_id": self.provider_id,
+            "provider_name": self.provider_name,
+            "provider_description": self.provider_description,
+            "provider_instructions": self.provider_instructions,
             # Domain represents a subteam or agent
             "domains": [
                 {
@@ -462,123 +457,71 @@ def _build_tool_schema(tool: Any) -> ToolSchema:
     )
 
 
-def _build_domain_from_agent(agent: Agent) -> DomainSchema:
+def build_domain_schema(
+    id: str,
+    name: str,
+    description: str | None,
+    tools: list[Any],
+) -> DomainSchema:
     """
-    Build DomainSchema from an Agent.
+    Build DomainSchema from raw domain properties.
 
     Args:
-        agent: Agent instance
+        id: Domain identifier
+        name: Domain name
+        description: Domain description
+        tools: List of tool objects
 
     Returns:
-        DomainSchema representing the agent as a domain
+        DomainSchema representing the domain
     """
-    agent_tools = agent.tools or []
-    tools = [_build_tool_schema(tool) for tool in agent_tools]
+    tool_schemas = [_build_tool_schema(tool) for tool in tools]
 
-    # Convert agent name to snake_case for class name
-    class_id = agent.name.lower().replace(" ", "_").replace("-", "_")
+    # Convert name to snake_case for class id if id not provided
+    class_id = id if id else name.lower().replace(" ", "_").replace("-", "_")
 
     return DomainSchema(
         id=class_id,
-        name=agent.name,
-        description=agent.description or f"Agent: {agent.name}",
-        tools=tools,
+        name=name,
+        description=description or f"Domain: {name}",
+        tools=tool_schemas,
     )
 
 
-def build_semantic_layer(team: Team) -> TeamSemanticLayer:
+def build_entity_semantic_layer(
+    provider_id: str,
+    provider_name: str,
+    provider_description: str,
+    provider_instructions: str,
+    domains: list[DomainSchema],
+    metadata: dict[str, Any] | None = None,
+) -> EntitySemanticLayer:
     """
-    Build semantic layer from a Team.
+    Build a complete EntitySemanticLayer from raw components.
 
-    Traverses all team members (Agents or nested Teams) and builds
-    a structured representation for code generation.
+    This is the core factory for the semantic layer. It is agnostic to
+    whether the source is an Agent, Team, or Workflow.
 
     Args:
-        team: Team instance with members
+        provider_id: Unique identifier for the provider
+        provider_name: Display name
+        provider_description: Description
+        provider_instructions: Instructions/Workflow hints
+        domains: List of domain schemas
+        metadata: Optional additional metadata
 
     Returns:
-        TeamSemanticLayer containing all domain and tool schemas
-
-    Example:
-        team = Team(
-            id="order-team",
-            name="Order Processing Team",
-            members=[inventory_agent, payment_agent],
-            ...
-        )
-        semantic = build_semantic_layer(team)
-        print(semantic.to_dict())
+        Configured EntitySemanticLayer
     """
-    from framework.agents.agent import Agent
-    from framework.team.team import Team as TeamClass
-
-    domains = []
-
-    for member in team.members:
-        # member is always TeamMember now
-        agent_or_team = member.agent
-
-        # @tTODO Change the className of the agent or team of the generated code from camelCase to snake_case
-
-        if isinstance(agent_or_team, Agent):
-            # Agent becomes a domain
-            domains.append(_build_domain_from_agent(agent_or_team))
-        elif isinstance(agent_or_team, TeamClass):
-            # Nested team: recursively build and merge domains
-            # Note: We flattens domains.
-            # If we want to preserve hierarchy, we might need a different structure,
-            # but for now, code mode sees a flat list of "agents" (domains).
-            nested_semantic = build_semantic_layer(agent_or_team)
-            domains.extend(nested_semantic.domains)
-
-    return TeamSemanticLayer(
-        team_id=team.id,
-        team_name=team.name,
-        team_description=team.description,
-        team_instructions=team.instructions,
+    return EntitySemanticLayer(
+        provider_id=provider_id,
+        provider_name=provider_name,
+        provider_description=provider_description,
+        provider_instructions=provider_instructions,
         domains=domains,
-        metadata={
+        metadata=metadata
+        or {
             "total_domains": len(domains),
             "total_tools": sum(len(d.tools) for d in domains),
-        },
-    )
-
-
-def build_agent_semantic_layer(agent: Agent) -> TeamSemanticLayer:
-    """
-    Build semantic layer for a single Agent.
-
-    Reuses TeamSemanticLayer structure with a single domain (the agent itself).
-    This allows the agent to use the same Sandbox infrastructure as Team.
-
-    Args:
-        agent: Agent instance with tools
-
-    Returns:
-        TeamSemanticLayer with single domain containing all agent tools
-
-    Example:
-        agent = Agent(
-            name="Market Analyst",
-            model=model,
-            tools=[analyze_stock, get_market_data],
-            ...
-        )
-        semantic = build_agent_semantic_layer(agent)
-        # semantic.domains[0] contains all tools
-    """
-    # Build single domain from the agent
-    domain = _build_domain_from_agent(agent)
-
-    return TeamSemanticLayer(
-        team_id=agent.id,
-        team_name=agent.name,
-        team_description=agent.description or f"Agent: {agent.name}",
-        team_instructions=agent.instructions,
-        domains=[domain],  # Single domain for the agent
-        metadata={
-            "total_domains": 1,
-            "total_tools": len(domain.tools),
-            "is_agent": True,  # Flag to identify this is an agent, not a team
         },
     )

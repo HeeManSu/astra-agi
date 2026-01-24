@@ -27,7 +27,7 @@ from framework.storage.client import StorageClient
 
 
 if TYPE_CHECKING:
-    from framework.code_mode.semantic import TeamSemanticLayer
+    from framework.code_mode.semantic import EntitySemanticLayer
     from framework.code_mode.tool_registry import ToolRegistry
 
 
@@ -101,7 +101,7 @@ class Agent:
         self.code_mode = code_mode
 
         # Lazy-initialized (cached after first access)
-        self._semantic_layer: TeamSemanticLayer | None = None
+        self._semantic_layer: EntitySemanticLayer | None = None
         self._tool_registry: ToolRegistry | None = None
 
         # Memory & Storage
@@ -158,9 +158,13 @@ class Agent:
             return data, ctx.error or "Output rejected by middleware"
         return ctx.data, None
 
-    # PROPERTIES
+    # CODE MODE PROVIDER PROPERTIES
     @property
-    def semantic_layer(self) -> TeamSemanticLayer:
+    def provider_type(self) -> str:
+        return "AGENT"
+
+    @property
+    def semantic_layer(self) -> EntitySemanticLayer:
         """
         Get the semantic layer for this agent. Lazily initialized.
 
@@ -168,12 +172,32 @@ class Agent:
         available for this agent. It's used to generate Python stubs.
         """
         if self._semantic_layer is None:
-            from framework.code_mode.semantic import build_agent_semantic_layer
+            from framework.code_mode.semantic import (
+                build_domain_schema,
+                build_entity_semantic_layer,
+            )
 
-            self._semantic_layer = build_agent_semantic_layer(self)
-            with open("semantic_agnet_layer.json", "w") as f:
-                f.write(str(self._semantic_layer))
-            print("Semantic layer generated in the file semantic_agnet_layer.json")
+            # Build single domain for the agent
+            domain = build_domain_schema(
+                id=self.name.lower().replace(" ", "_").replace("-", "_"),
+                name=self.name,
+                description=self.description,
+                tools=self.tools or [],
+            )
+
+            self._semantic_layer = build_entity_semantic_layer(
+                provider_id=self.id,
+                provider_name=self.name,
+                provider_description=self.description or f"Agent: {self.name}",
+                provider_instructions=self.instructions,
+                domains=[domain],
+                metadata={"is_agent": True},
+            )
+            with open("semantic_agent_layer.json", "w") as f:
+                import json
+
+                f.write(json.dumps(self._semantic_layer.to_dict(), indent=2, ensure_ascii=False))
+            print("Semantic layer generated in the file semantic_agent_layer.json")
         return self._semantic_layer
 
     @property
@@ -196,6 +220,14 @@ class Agent:
                 self._tool_registry.register(agent_id, tool)
 
         return self._tool_registry
+
+    async def get_history(self, thread_id: str) -> list[dict[str, Any]]:
+        """
+        Get conversation history for this agent.
+        """
+        if self.memory and self.storage:
+            return await self.memory.get_context(thread_id, self.storage)
+        return []
 
     def get_stubs(self) -> str:
         """

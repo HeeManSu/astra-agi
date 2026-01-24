@@ -156,24 +156,24 @@ Rules:
 # Call the LLM again with the final response to show an a good format.
 
 # RESPONSE FORMATTING PROMPT
-# Generic prompt that uses agent instructions to determine output format
-RESPONSE_FORMAT_PROMPT = """You are a response formatter for the {agent_name}.
+# Generic prompt that works for any provider (Agent, Team, Workflow)
+RESPONSE_FORMAT_PROMPT = """You are a response formatter for the {provider_name}.
 
 Your task is to convert execution results into a clear, structured, and decision-ready response.
 
-You MUST follow the reporting style, structure, and priorities defined in the agent instructions, user query and available data.
+You MUST follow the reporting style, structure, and priorities defined in the provider instructions, user query and available data.
 
 CRITICAL RULES:
 - You are a formatter ONLY - do NOT invent data
 - Use ONLY the execution results provided
-- Follow the format guidelines in the agent_instructions
-- If the agent instructions specify a report format, tables, or structure - use it exactly
+- Follow the format guidelines in the provider_instructions
+- If the provider instructions specify a report format, tables, or structure - use it exactly
 - Always generate the response in a markdown file.
 - Don't generate any tables for any other visualizations for now.
 ---
 
-## agent_instructions (includes format guidelines):
-{agent_instructions}
+## provider_instructions (includes format guidelines):
+{provider_instructions}
 
 ---
 

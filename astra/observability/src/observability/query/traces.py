@@ -59,3 +59,23 @@ async def get_trace_with_spans(
 
     spans = await storage.get_spans_for_trace(trace_id)
     return TraceWithSpans(trace=trace, spans=spans)
+
+
+async def get_logs_for_trace(
+    storage: StorageBackend,
+    trace_id: str,
+    limit: int = 500,
+) -> list:
+    """
+    Get all logs for a trace.
+
+    Args:
+        storage: Storage backend to query
+        trace_id: ID of the trace
+        limit: Maximum number of logs to return
+
+    Returns:
+        List of logs ordered by timestamp
+    """
+
+    return await storage.list_logs(trace_id, limit=limit)

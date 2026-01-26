@@ -6,6 +6,7 @@ Defines the interface that all storage implementations must follow.
 
 from abc import ABC, abstractmethod
 
+from observability.logs.model import Log
 from observability.tracing.span import Span
 from observability.tracing.trace import Trace
 
@@ -14,7 +15,7 @@ class StorageBackend(ABC):
     """
     Abstract storage backend for observability data.
 
-    Implementations: SQLiteStorage, PostgresStorage (future)
+    Implementations: TelemetrySQLite, TelemetryMongoDB
     """
 
     @abstractmethod
@@ -56,4 +57,20 @@ class StorageBackend(ABC):
     @abstractmethod
     async def get_spans_for_trace(self, trace_id: str) -> list[Span]:
         """Get all spans for a trace, ordered by start_time."""
+        ...
+
+    # Log operations
+    @abstractmethod
+    async def save_log(self, log: Log) -> None:
+        """Save a log entry."""
+        ...
+
+    @abstractmethod
+    async def list_logs(
+        self,
+        trace_id: str,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Log]:
+        """List logs for a trace."""
         ...

@@ -30,7 +30,7 @@ node_modules/
 dist/
 astra_landing_page/
 astra-cloud/
-
+astra/runtime/.debug/
 
 
 projects/

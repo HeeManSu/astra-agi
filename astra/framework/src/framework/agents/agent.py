@@ -133,12 +133,34 @@ class Agent:
         if not self.middlewares:
             return data, None
 
-        ctx = MiddlewareContext(data=data)
-        ctx = await run_middlewares(self.middlewares, MiddlewareStage.INPUT, ctx)
+        # Calculate effective input middlewares
+        input_middlewares = [
+            m for m in self.middlewares if MiddlewareStage.INPUT in m.effective_stages
+        ]
 
-        if ctx.stop:
-            return data, ctx.error or "Input rejected by middleware"
-        return ctx.data, None
+        if not input_middlewares:
+            return data, None
+
+        from observability import LogLevel, log, span
+
+        async with span(
+            "middleware.input",
+            attributes={
+                "middleware_count": len(input_middlewares),
+                "middleware_names": [m.__class__.__name__ for m in input_middlewares],
+            },
+        ):
+            await log(LogLevel.INFO, "Running input middlewares")
+            ctx = MiddlewareContext(data=data)
+            ctx = await run_middlewares(self.middlewares, MiddlewareStage.INPUT, ctx)
+
+            if ctx.stop:
+                error_msg = ctx.error or "Input rejected by middleware"
+                await log(LogLevel.ERROR, f"Middleware error: {error_msg}")
+                return data, error_msg
+
+            await log(LogLevel.INFO, "All input middlewares completed successfully")
+            return ctx.data, None
 
     async def _run_output_middleware(self, data: Any) -> tuple[Any, str | None]:
         """
@@ -405,25 +427,38 @@ class Agent:
         Yields:
             StreamEvent objects for SSE streaming
         """
+        from observability import LogLevel, log, span
+
         from framework.code_mode.sandbox import Sandbox
         from framework.storage.persistence import save_assistant_message, save_user_message
         from framework.team.team import StreamEvent
 
-        # Run INPUT middlewares
+        # Run INPUT middlewares (instrumentation handled internally)
         query, error = await self._run_input_middleware(query)
         if error:
             yield StreamEvent(event_type="error", data={"message": error})
             return
 
-        # Save user message
-        thread_id = await save_user_message(
-            self.storage,
-            thread_id,
-            query,
-            resource_type="agent",
-            resource_id=self.id or self.name,
-            resource_name=self.name,
-        )
+        # Save user message with instrumentation
+        async with span(
+            "persistence.save_user_message",
+            attributes={
+                "thread_id": thread_id or "new",
+                "message_length": len(query),
+                "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
+            },
+        ):
+            await log(LogLevel.INFO, "Saving user message to storage")
+            thread_id = await save_user_message(
+                self.storage,
+                thread_id,
+                query,
+                resource_type="agent",
+                resource_id=self.id or self.name,
+                resource_name=self.name,
+            )
+            await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
+            await log(LogLevel.INFO, "Persistence complete")
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 

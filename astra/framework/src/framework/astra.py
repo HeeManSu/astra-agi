@@ -7,9 +7,9 @@ This module contains:
 - Astra: Main orchestrator class.
 """
 
+import logging
 from typing import Any
 
-from observability import Observability
 from pydantic import ConfigDict, Field
 from pydantic_settings import BaseSettings
 
@@ -21,45 +21,42 @@ class FrameworkSettings(BaseSettings):
 
     service_name: str = Field(default="astra", validation_alias="SERVICE_NAME")
     environment: str = Field(default="development", validation_alias="ENVIRONMENT")
-    observability_log_file: str | None = Field(
-        default="./jsons/astra_observability.json", validation_alias="ASTRA_OBSERVABILITY_LOG_FILE"
-    )
-    observability_log_level: str = Field(default="INFO", validation_alias="ASTRA_LOG_LEVEL")
+    log_level: str = Field(default="INFO", validation_alias="ASTRA_LOG_LEVEL")
 
 
 class AstraContext:
     """
     Infrastructure root for Astra applications.
 
-    Holds shared resources like settings, observability, and logger.
-    This context is injected into agents to provide them with the necessary infrastructure.
+    Holds shared resources like settings and logger.
+    Observability (tracing) is handled by the runtime, not the framework.
     """
 
     def __init__(self, settings: FrameworkSettings | None = None):
         self.settings = settings or FrameworkSettings()
 
-        # Initialize observability immediately
-        self.observability = Observability.init(
-            service_name=self.settings.service_name,
-            log_level=self.settings.observability_log_level,
-            enable_json_logs=True,
-            log_file=self.settings.observability_log_file,
-        )
+        # Setup standard Python logger
+        self.logger = logging.getLogger(self.settings.service_name)
+        self.logger.setLevel(self.settings.log_level.upper())
 
-        # Logger initialized from observability
-        self.logger = self.observability.logger
+        # Add handler if not already configured
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
     def shutdown(self) -> None:
         """Shutdown infrastructure."""
-        if self.observability:
-            self.observability.shutdown()
+        # No cleanup needed for standard logging
 
 
 class Astra:
     """
     Global infrastructure manager for Astra.
 
-    Provides shared resources like observability, logging, and configuration. Agents can use this infrastructure but are managed independently.
+    Provides shared resources like logging and configuration.
+    Observability (tracing) is handled by the runtime.
 
     Example:
      Initialize global infrastructure
@@ -73,13 +70,8 @@ class Astra:
         Args:
             settings: Optional framework settings
         """
-
-        # Create shared infrastructure (observability, logger, settings)
         self.context = AstraContext(settings)
         self._initialized = True
-
-        # Logger from context
-        self._logger = self.context.logger
 
     @property
     def logger(self) -> Any:
@@ -90,7 +82,6 @@ class Astra:
         """Cleanup framework components."""
         if self.context:
             self.context.shutdown()
-
         self._initialized = False
 
     def __repr__(self) -> str:

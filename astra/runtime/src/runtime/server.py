@@ -25,12 +25,12 @@ class TelemetryConfig:
 
     Attributes:
         enabled: Whether telemetry is enabled
-        db_path: Path to SQLite database (default: ./observability.db)
+        db_path: Path to SQLite database or a StorageBackend instance
         debug: Enable debug-level logging
     """
 
     enabled: bool = True
-    db_path: str = "./observability.db"
+    db_path: Any = "./observability.db"
     debug: bool = False
 
 

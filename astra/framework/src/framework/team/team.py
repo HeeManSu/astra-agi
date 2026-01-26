@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import dataclasses
-import json
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -171,7 +170,7 @@ class Team:
         self._semantic_layer: EntitySemanticLayer | None = None
 
         _init_end = time.perf_counter()
-        print(f"[TIMING] Team.__init__({self.name}) took {(_init_end - _init_start) * 1000:.2f}ms")
+        _init_end = time.perf_counter()
 
     async def _run_input_middleware(self, data: Any) -> tuple[Any, str | None]:
         """
@@ -184,12 +183,34 @@ class Team:
         if not self.middlewares:
             return data, None
 
-        ctx = MiddlewareContext(data=data)
-        ctx = await run_middlewares(self.middlewares, MiddlewareStage.INPUT, ctx)
+        # Calculate effective input middlewares
+        input_middlewares = [
+            m for m in self.middlewares if MiddlewareStage.INPUT in m.effective_stages
+        ]
 
-        if ctx.stop:
-            return data, ctx.error or "Input rejected by middleware"
-        return ctx.data, None
+        if not input_middlewares:
+            return data, None
+
+        from observability import LogLevel, log, span
+
+        async with span(
+            "middleware.input",
+            attributes={
+                "middleware_count": len(input_middlewares),
+                "middleware_names": [m.__class__.__name__ for m in input_middlewares],
+            },
+        ):
+            await log(LogLevel.INFO, "Running input middlewares")
+            ctx = MiddlewareContext(data=data)
+            ctx = await run_middlewares(self.middlewares, MiddlewareStage.INPUT, ctx)
+
+            if ctx.stop:
+                error_msg = ctx.error or "Input rejected by middleware"
+                await log(LogLevel.ERROR, f"Middleware error: {error_msg}")
+                return data, error_msg
+
+            await log(LogLevel.INFO, "All input middlewares completed successfully")
+            return ctx.data, None
 
     async def _run_output_middleware(self, data: Any) -> tuple[Any, str | None]:
         """
@@ -227,7 +248,6 @@ class Team:
         if self._semantic_layer is None:
             from framework.code_mode.semantic import build_entity_semantic_layer
 
-            print(f"[TIMING] Building semantic layer for {self.name}")
             _sem_start = time.perf_counter()
 
             # Build domains from members
@@ -241,14 +261,7 @@ class Team:
                 domains=domains,
             )
 
-            file_to_save = "semantic_layer_" + self.name + ".json"
-            with open(file_to_save, "w") as f:
-                json.dump(self._semantic_layer.to_dict(), f, indent=2, ensure_ascii=False)
-            print(f"Semantic layer saved to {file_to_save}")
             _sem_end = time.perf_counter()
-            print(
-                f"[TIMING] build_entity_semantic_layer({self.name}) took {(_sem_end - _sem_start) * 1000:.2f}ms"
-            )
         return self._semantic_layer
 
     def _build_semantic_domains(self) -> list[Any]:
@@ -443,24 +456,37 @@ class Team:
         Yields:
             StreamEvent objects for SSE streaming
         """
+        from observability import LogLevel, log, span
+
         from framework.code_mode.sandbox import Sandbox
         from framework.storage.persistence import save_assistant_message, save_user_message
 
-        # Run INPUT middlewares
+        # Run INPUT middlewares (instrumentation handled internally)
         query, error = await self._run_input_middleware(query)
         if error:
             yield StreamEvent(event_type="error", data={"message": error})
             return
 
-        # Save user message
-        thread_id = await save_user_message(
-            self.storage,
-            thread_id,
-            query,
-            resource_type="team",
-            resource_id=self.id or self.name,
-            resource_name=self.name,
-        )
+        # Save user message with instrumentation
+        async with span(
+            "persistence.save_user_message",
+            attributes={
+                "thread_id": thread_id or "new",
+                "message_length": len(query),
+                "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
+            },
+        ):
+            await log(LogLevel.INFO, "Saving user message to storage")
+            thread_id = await save_user_message(
+                self.storage,
+                thread_id,
+                query,
+                resource_type="team",
+                resource_id=self.id or self.name,
+                resource_name=self.name,
+            )
+            await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
+            await log(LogLevel.INFO, "Persistence complete")
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
@@ -479,7 +505,6 @@ class Team:
                 },
             )
         except Exception as e:
-            print(f"Error generating code: {e}")
             yield StreamEvent(event_type="error", data={"message": f"Error generating code: {e}"})
             return
 
@@ -524,5 +549,4 @@ class Team:
                 )
 
         except Exception as e:
-            print(f"Execution error: {e}")
             yield StreamEvent(event_type="error", data={"message": f"Execution error: {e}"})

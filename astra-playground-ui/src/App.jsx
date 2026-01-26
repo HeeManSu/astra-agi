@@ -6,6 +6,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import ThreadSidebar from "@/components/layout/ThreadSidebar";
 import ChatArea from "@/components/chat/ChatArea";
 import SettingsPage from "@/components/layout/SettingsPage";
+import TelemetryPage from "@/components/telemetry/TelemetryPage";
 import "./index.css";
 
 function Header() {
@@ -29,8 +30,16 @@ function AppContent() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
         {/* Thread Sidebar - visible when agent/team is selected */}
-        {selectedItem && activeTab !== "settings" && <ThreadSidebar />}
-        {activeTab === "settings" ? <SettingsPage /> : <ChatArea />}
+        {selectedItem &&
+          activeTab !== "settings" &&
+          activeTab !== "telemetry" && <ThreadSidebar />}
+        {activeTab === "settings" ? (
+          <SettingsPage />
+        ) : activeTab === "telemetry" ? (
+          <TelemetryPage />
+        ) : (
+          <ChatArea />
+        )}
       </div>
       <Toaster position="top-right" richColors />
     </div>

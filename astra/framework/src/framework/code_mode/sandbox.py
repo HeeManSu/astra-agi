@@ -31,6 +31,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import json
+import os
 import sys
 from typing import TYPE_CHECKING, Any
 
@@ -109,6 +110,13 @@ def synthesize_response(message):   # (message:str -> message)
     sys.exit(0)
 
 '''
+
+
+def save_debug_artifact(filename: str, content: str) -> None:
+    """Save a debug artifact to the .debug directory."""
+    os.makedirs(".debug", exist_ok=True)
+    with open(f".debug/{filename}", "w") as f:
+        f.write(content)
 
 
 # RESULT DATACLASS
@@ -212,9 +220,6 @@ class Sandbox:
         """
         # Step 1: Ask LLM to generate Python code
         code = await self.generate_code(user_query, thread_id=thread_id, context=context)
-        with open("generated_code.txt", "w") as f:
-            f.write(code)
-        print("Generated code saved in the file generated_code.txt")
 
         # Step 2: Run the generated code in an isolated subprocess
         result = await self.execute(code, timeout=timeout)
@@ -223,12 +228,6 @@ class Sandbox:
         # Step 3: Format the response into human-readable text
         if result.success and result.output:
             result.formatted_output = await self.format_response(user_query, result.output)
-
-        print(result)
-
-        with open("result.md", "w") as f:
-            f.write(result.formatted_output)
-        print("Result saved to result.md")
 
         return result
 
@@ -249,7 +248,6 @@ class Sandbox:
         Returns:
             Human-readable formatted response
         """
-
         # Use semantic layer for metadata
         semantic = self.provider.semantic_layer
 
@@ -264,14 +262,31 @@ class Sandbox:
             tool_results=escaped_output,
         )
 
-        response = await self.model.invoke([{"role": "user", "content": prompt}])
-        content = response.content if hasattr(response, "content") else str(response)
+        from observability import LogLevel, SpanKind, log, span, update_span
 
-        with open("response.md", "w") as f:
-            f.write(content)
-        print("Response saved to response.md")
+        async with span(
+            "response_formatting",
+            kind=SpanKind.GENERATION,
+            attributes={"model": getattr(self.model, "model_id", "unknown")},
+        ):
+            await log(LogLevel.INFO, "Invoking LLM for response formatting")
+            response = await self.model.invoke([{"role": "user", "content": prompt}])
+            content = response.content if hasattr(response, "content") else str(response)
 
-        return content.strip()
+            # Update span attributes so engine can track tokens
+            # ModelResponse standardize usage in .usage dict
+            usage = response.usage
+            if usage:
+                update_span(
+                    {
+                        "input_tokens": usage.get("input_tokens", 0),
+                        "output_tokens": usage.get("output_tokens", 0),
+                        "thoughts_tokens": usage.get("thoughts_tokens", 0),
+                        "total_tokens": usage.get("total_tokens", 0),
+                    }
+                )
+
+            return content.strip()
 
     async def generate_code(
         self, user_query: str, thread_id: str | None = None, context: dict[str, Any] | None = None
@@ -298,76 +313,149 @@ class Sandbox:
         Returns:
             Python code as a string (ready to execute)
         """
+        from observability import LogLevel, log, span, update_span
 
-        # Step 1: Get the semantic layer
-        semantic_layer = self.provider.semantic_layer
-        with open("semantic_layer.json", "w") as f:
-            json.dump(semantic_layer.to_dict(), f, indent=2, ensure_ascii=False)
-        print("Semantic layer saved to semantic_layer.json")
+        async with span("code_generation"):
+            # Step 1: Get the semantic layer
+            async with span("semantic_layer.build"):
+                await log(LogLevel.INFO, "Building semantic layer")
+                semantic_layer = self.provider.semantic_layer
+                agent_count = len(semantic_layer.domains)
+                total_tools = sum(len(d.tools) for d in semantic_layer.domains)
+                await log(
+                    LogLevel.DEBUG,
+                    f"Agents: {agent_count}, Tools: {total_tools}",
+                    {"agent_count": agent_count, "total_tools": total_tools},
+                )
+                save_debug_artifact(
+                    "semantic_layer.json",
+                    json.dumps(semantic_layer.to_dict(), indent=2, ensure_ascii=False),
+                )
+                await log(LogLevel.DEBUG, "Saved to: .debug/semantic_layer.json")
 
-        # Step 2: Generate Python stubs from the semantic layer
-        stubs = generate_stubs(semantic_layer)
-        with open("stubs.txt", "w") as f:
-            f.write(stubs)
-        print("Stubs saved to stubs.txt")
+            # Step 2: Generate Python stubs
+            async with span("stubs.generate"):
+                await log(LogLevel.INFO, "Generating Python stubs")
+                stubs = generate_stubs(semantic_layer)
+                stub_lines = stubs.count("\n")
+                agents = [d.id for d in semantic_layer.domains]
+                await log(
+                    LogLevel.DEBUG,
+                    f"Generated {stub_lines} lines for {len(agents)} agents",
+                    {"stub_lines": stub_lines, "agents": agents},
+                )
+                save_debug_artifact("stubs.py", stubs)
+                await log(LogLevel.DEBUG, "Saved to: .debug/stubs.py")
 
-        # Step 3: Load conversation history
-        messages = []
-        if thread_id:
-            history = await self.provider.get_history(thread_id)
-            messages.extend(history)
+            # Step 3: Load conversation history
+            async with span(
+                "memory.load_context",
+                attributes={
+                    "thread_id": thread_id or "none",
+                    "has_memory": bool(thread_id),
+                },
+            ):
+                await log(LogLevel.INFO, "Loading conversation history")
+                messages: list[dict[str, Any]] = []
+                if thread_id:
+                    history = await self.provider.get_history(thread_id)
+                    messages.extend(history)
+                await log(
+                    LogLevel.DEBUG,
+                    f"Retrieved {len(messages)} messages from storage",
+                    {"messages_loaded": len(messages)},
+                )
+                if messages:
+                    save_debug_artifact(
+                        "conversation_context.json",
+                        json.dumps(messages, indent=2, ensure_ascii=False),
+                    )
+                    await log(LogLevel.DEBUG, "Saved to: .debug/conversation_context.json")
 
-        # Step 4: Format runtime context for the prompt
-        # TODO: Currently we directly serialize the runtime context into the prompt.
-        # In future, this should be routed through a Context Builder layer to:
-        # 1) Filter sensitive/operational fields (e.g., storeId, auth tokens)
-        # 2) Inject only reasoning-relevant data into the LLM
-        # 3) Keep execution context clean and minimal
-        # 4) Support dynamic tool filtering and feature extensions (evals, guardrails)
-        # Direct dumping may increase token usage and create security risks.
-        # Or think of a better solution for this.
-        runtime_context_str = ""
-        if context:
-            runtime_context_str = "\n".join([f"- {k}: {v}" for k, v in context.items()])
-        else:
-            runtime_context_str = "No additional runtime context provided."
+            # Step 4: Build the prompt
+            async with span(
+                "prompt.build",
+                attributes={
+                    "prompt_type": self.provider.provider_type.lower(),
+                    "has_history": bool(messages),
+                    "has_runtime_context": bool(context),
+                },
+            ):
+                await log(LogLevel.INFO, "Building prompt")
 
-        # Step 5: Build the prompt based on provider_type
-        if self.provider.provider_type == "AGENT":
-            # Agent: use agent-specific prompt
-            agent_class = semantic_layer.provider_name.lower().replace(" ", "_").replace("-", "_")
-            prompt = AGENT_CODE_MODE_PROMPT.format(
-                agent_name=semantic_layer.provider_name,
-                agent_description=semantic_layer.provider_description
-                or f"Agent: {semantic_layer.provider_name}",
-                agent_instructions=semantic_layer.provider_instructions or "",
-                agent_class=agent_class,
-                stubs=stubs,
-                runtime_context=runtime_context_str,
-                user_query=user_query,
-            )
-        else:
-            # Team (or other multi-agent): use team-specific prompt
-            prompt = TEAM_CODE_MODE_PROMPT.format(
-                team_name=semantic_layer.provider_name,
-                team_description=semantic_layer.provider_description or "",
-                team_instructions=semantic_layer.provider_instructions or "",
-                stubs=stubs,
-                runtime_context=runtime_context_str,
-                user_query=user_query,
-            )
+                # Format runtime context
+                runtime_context_str = ""
+                if context:
+                    runtime_context_str = "\n".join([f"- {k}: {v}" for k, v in context.items()])
+                    await log(LogLevel.DEBUG, f"Runtime context keys: {list(context.keys())}")
+                else:
+                    runtime_context_str = "No additional runtime context provided."
 
-        # Step 5: Add the current user query to messages
-        messages.append({"role": "user", "content": prompt})
+                # Build prompt based on provider type
+                if self.provider.provider_type == "AGENT":
+                    agent_class = (
+                        semantic_layer.provider_name.lower().replace(" ", "_").replace("-", "_")
+                    )
+                    prompt = AGENT_CODE_MODE_PROMPT.format(
+                        agent_name=semantic_layer.provider_name,
+                        agent_description=semantic_layer.provider_description
+                        or f"Agent: {semantic_layer.provider_name}",
+                        agent_instructions=semantic_layer.provider_instructions or "",
+                        agent_class=agent_class,
+                        stubs=stubs,
+                        runtime_context=runtime_context_str,
+                        user_query=user_query,
+                    )
+                    await log(LogLevel.DEBUG, "Using AGENT_CODE_MODE_PROMPT template")
+                else:
+                    prompt = TEAM_CODE_MODE_PROMPT.format(
+                        team_name=semantic_layer.provider_name,
+                        team_description=semantic_layer.provider_description or "",
+                        team_instructions=semantic_layer.provider_instructions or "",
+                        stubs=stubs,
+                        runtime_context=runtime_context_str,
+                        user_query=user_query,
+                    )
+                    await log(LogLevel.DEBUG, "Using TEAM_CODE_MODE_PROMPT template")
 
-        # Step 6: Call the LLM to generate code
-        print("Invoking LLM")
-        response = await self.model.invoke(messages)
+                messages.append({"role": "user", "content": prompt})
+                save_debug_artifact("prompt.txt", prompt)
+                await log(LogLevel.DEBUG, "Saved to: .debug/prompt.txt")
 
-        # Extract the code from the LLM's response
-        content = response.content if hasattr(response, "content") else str(response)
+            # Step 5: Call the LLM
+            async with span(
+                "llm.generate_code",
+                attributes={"model": getattr(self.model, "model_id", "unknown")},
+            ):
+                await log(LogLevel.INFO, "Invoking LLM for code generation")
+                await log(LogLevel.DEBUG, f"Model: {getattr(self.model, 'name', 'unknown')}")
 
-        return content.strip()
+                response = await self.model.invoke(messages)
+                content = response.content if hasattr(response, "content") else str(response)
+
+                # Update span attributes so engine can track tokens
+                # The attributes will be automatically logged on span end
+                usage = response.usage
+                if usage:
+                    update_span(
+                        {
+                            "input_tokens": usage.get("input_tokens", 0),
+                            "output_tokens": usage.get("output_tokens", 0),
+                            "thoughts_tokens": usage.get("thoughts_tokens", 0),
+                            "total_tokens": usage.get("total_tokens", 0),
+                        }
+                    )
+
+                await log(
+                    LogLevel.DEBUG,
+                    f"Generated code: {len(content)} chars",
+                    {"code_length": len(content)},
+                )
+                save_debug_artifact("generated_code.py", content)
+                await log(LogLevel.DEBUG, "Saved to: .debug/generated_code.py")
+                await log(LogLevel.INFO, "Code generation complete")
+
+            return content.strip()
 
     async def execute(self, code: str, timeout: float = 60.0) -> SandboxResult:
         """Run Python code in an isolated subprocess.
@@ -398,45 +486,71 @@ class Sandbox:
         Returns:
             SandboxResult with the output and metadata
         """
-        # Step 1: Build the complete executable code
-        # This combines: runtime bridge functions + agent stub classes + LLM code
-        full_code = self._build_full_code(code)
+        from observability import LogLevel, SpanKind, log, span, update_span
 
-        # Step 2: Start an isolated subprocess
-        # We use Python's asyncio to run subprocess non-blocking
-        # stdin/stdout/stderr are all piped so we can communicate with it
-        # Use 100MB limit for large tool responses (default is 64KB)
-        large_limit = 100 * 1024 * 1024  # 100MB
-        proc = await asyncio.create_subprocess_exec(
-            sys.executable,  # Use the same Python interpreter
-            "-c",  # Run code from command line argument
-            full_code,  # The complete code to execute
-            stdin=asyncio.subprocess.PIPE,  # We'll send tool results here
-            stdout=asyncio.subprocess.PIPE,  # We'll read tool calls from here
-            stderr=asyncio.subprocess.PIPE,  # Capture errors for debugging
-            limit=large_limit,  # Buffer limit for StreamReader (default 64KB)
-        )
+        async with span(
+            "sandbox.execution",
+            kind=SpanKind.STEP,
+            attributes={
+                "code_length": len(code),
+                "timeout": timeout,
+            },
+        ):
+            await log(LogLevel.INFO, "Starting sandbox execution")
 
-        try:
-            # Step 3: Monitor the subprocess and handle tool calls
-            # This loop reads stdout, executes tools, and sends responses back
-            result = await asyncio.wait_for(
-                self._monitor_subprocess(proc),
-                timeout=timeout,  # Kill if it takes too long
+            # Step 1: Build the complete executable code
+            # This combines: runtime bridge functions + agent stub classes + LLM code
+            full_code = self._build_full_code(code)
+            await log(
+                LogLevel.DEBUG,
+                f"Built full code with runtime bridge ({len(full_code)} chars)",
+                {"code_length": len(full_code)},
             )
-            return result
 
-        except asyncio.TimeoutError:
-            # If the subprocess takes too long, we kill it
-            # This prevents infinite loops or slow operations from hanging
-            proc.kill()
-            await proc.wait()  # Clean up the dead process
-            return SandboxResult(
-                output="Execution timed out",
-                success=False,
-                exit_code=-1,
-                stderr="TimeoutError: Execution exceeded time limit",
+            # Save full runtime code for debugging as requested
+            save_debug_artifact("full_runtime_code.py", full_code)
+            await log(LogLevel.DEBUG, "Saved full runtime code to: .debug/full_runtime_code.py")
+
+            # Step 2: Start an isolated subprocess
+            # We use Python's asyncio to run subprocess non-blocking
+            # stdin/stdout/stderr are all piped so we can communicate with it
+            # Use 100MB limit for large tool responses (default is 64KB)
+            large_limit = 100 * 1024 * 1024  # 100MB
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable,  # Use the same Python interpreter
+                "-c",  # Run code from command line argument
+                full_code,  # The complete code to execute
+                stdin=asyncio.subprocess.PIPE,  # We'll send tool results here
+                stdout=asyncio.subprocess.PIPE,  # We'll read tool calls from here
+                stderr=asyncio.subprocess.PIPE,  # Capture errors for debugging
+                limit=large_limit,  # Buffer limit for StreamReader (default 64KB)
             )
+
+            await log(LogLevel.DEBUG, f"Subprocess started with PID: {proc.pid}")
+            update_span({"subprocess_id": proc.pid})
+
+            try:
+                # Step 3: Monitor the subprocess and handle tool calls
+                # This loop reads stdout, executes tools, and sends responses back
+                await log(LogLevel.DEBUG, "Monitoring subprocess for tool calls")
+                result = await asyncio.wait_for(
+                    self._monitor_subprocess(proc),
+                    timeout=timeout,  # Kill if it takes too long
+                )
+                return result
+
+            except asyncio.TimeoutError:
+                # If the subprocess takes too long, we kill it
+                # This prevents infinite loops or slow operations from hanging
+                proc.kill()
+                await proc.wait()  # Clean up the dead process
+                await log(LogLevel.ERROR, f"Execution timed out after {timeout}s")
+                return SandboxResult(
+                    output="Execution timed out",
+                    success=False,
+                    exit_code=-1,
+                    stderr="TimeoutError: Execution exceeded time limit",
+                )
 
     # PRIVATE: Code Assembly
     # These methods build the code that runs in the subprocess.
@@ -494,9 +608,6 @@ class Sandbox:
         # Combine everything into one script
         full_code = "\n".join(parts)
 
-        # Debug: Print the full code (remove in production)
-        print("DEBUG: Full Execution Code:\n" + "=" * 40 + "\n" + full_code + "\n" + "=" * 40)
-
         return full_code
 
     # PRIVATE: IPC Loop
@@ -547,8 +658,6 @@ class Sandbox:
 
                     if msg_type == "call_tool":
                         # Tool call request from subprocess
-                        tool_name = request.get("name", "unknown")
-                        print(f"DEBUG: Tool call received: {tool_name}")
                         tool_calls.append(request)
 
                         # Execute the tool and send response
@@ -557,31 +666,27 @@ class Sandbox:
                         # Store result in tool_calls for history/metrics
                         if response.get("type") == "error":
                             request["error"] = response.get("message")
-                            print(f"DEBUG: Tool error: {response.get('message')}")
                         else:
                             request["result"] = response.get("data")
-                            data_preview = str(response.get("data"))[:200]
-                            print(f"DEBUG: Tool success, data preview: {data_preview}...")
 
                         response_json = json.dumps(response) + "\n"
                         proc.stdin.write(response_json.encode())
                         await proc.stdin.drain()
-                        print("DEBUG: Response sent to subprocess")
 
                     elif msg_type == "synthesize":
                         # Final response from subprocess
                         final_response = request.get("message", "")
-                        print(f"DEBUG: Synthesize received: {str(final_response)[:200]}...")
 
                     continue  # Don't add JSON to output
 
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     # Log the failed JSON parsing for debugging
-                    print(f"DEBUG: JSONDecodeError - {e}")
-                    print(f"DEBUG: Failed to parse line: {text[:200]}...")
+                    pass
 
             # Regular output line (print statements, etc.)
             output_lines.append(text)
+
+        from observability import LogLevel, log, span
 
         # Wait for process to exit
         await proc.wait()
@@ -594,6 +699,26 @@ class Sandbox:
 
         # Determine final output
         output = final_response if final_response else "\n".join(output_lines)
+
+        if proc.returncode == 0:
+            await log(
+                LogLevel.INFO,
+                f"Sandbox execution successful ({len(tool_calls)} tool calls)",
+                {"tool_calls_count": len(tool_calls)},
+            )
+        else:
+            await log(LogLevel.ERROR, f"Sandbox execution failed with exit code: {proc.returncode}")
+
+        # Emit completion event span as requested
+        async with span(
+            "event.done",
+            attributes={
+                "event_type": "done",
+                "status": "complete" if proc.returncode == 0 else "error",
+                "tool_calls_count": len(tool_calls),
+            },
+        ):
+            await log(LogLevel.DEBUG, "Emitting SSE event: done")
 
         return SandboxResult(
             output=output,
@@ -614,6 +739,8 @@ class Sandbox:
         Returns:
             Response dict with "type" and "data" or "message"
         """
+        from observability import LogLevel, SpanKind, log, span
+
         name = request.get("name", "")
         args = request.get("args", {})
 
@@ -628,40 +755,88 @@ class Sandbox:
         qualified_name = f"{module_name}.{tool_name}"
         tool = self.provider.tool_registry.get(qualified_name)
 
-        if not tool:
-            return {"type": "error", "message": f"Tool '{qualified_name}' not found"}
+        # Determine execution type safely
+        exec_type = "unknown"
+        if tool:
+            exec_type = "async" if asyncio.iscoroutinefunction(tool.func) else "sync"
 
-        try:
-            # Get the callable function from Tool
-            tool_callable = tool.func
+        async with span(
+            f"tool.{tool_name}",
+            kind=SpanKind.TOOL,
+            attributes={
+                "tool_name": tool_name,
+                "tool_qualified_name": qualified_name,
+                "args": args,
+                "execution_type": exec_type,
+            },
+        ):
+            await log(LogLevel.INFO, f"Executing tool: {tool_name}")
+            await log(LogLevel.DEBUG, f"Tool args: {json.dumps(args)}")
 
-            # Construct Pydantic input model if available
-            if tool.input_schema:
-                input_model = tool.input_schema(**args)
-                # Get actual parameter name from function signature
-                import inspect
+            # Emit SSE event span for frontend real-time updates as requested
+            async with span(
+                "event.tool_call",
+                attributes={"event_type": "tool_call", "tool": tool_name, "args": args},
+            ):
+                await log(LogLevel.DEBUG, "Emitting SSE event: tool_call")
 
-                sig = inspect.signature(tool_callable)
-                param_name = next(iter(sig.parameters.keys()))  # First (and only) parameter
-                call_args = {param_name: input_model}
-            else:
-                call_args = args
+            if not tool:
+                error_msg = f"Tool '{qualified_name}' not found"
+                await log(LogLevel.ERROR, error_msg)
+                return {"type": "error", "message": error_msg}
 
-            # Execute tool (may be sync or async)
-            if asyncio.iscoroutinefunction(tool_callable):
-                result = await tool_callable(**call_args)
-            else:
-                result = tool_callable(**call_args)
+            try:
+                # Get the callable function from Tool
+                tool_callable = tool.func
 
-            # Serialize result
-            if hasattr(result, "model_dump"):
-                data = result.model_dump()
-            elif hasattr(result, "model_dump_json"):
-                data = json.loads(result.model_dump_json())
-            else:
-                data = result
+                # Construct Pydantic input model if available
+                if tool.input_schema:
+                    input_model = tool.input_schema(**args)
+                    # Get actual parameter name from function signature
+                    import inspect
 
-            return {"type": "result", "data": data}
+                    sig = inspect.signature(tool_callable)
+                    param_name = next(iter(sig.parameters.keys()))  # First (and only) parameter
+                    call_args = {param_name: input_model}
+                else:
+                    call_args = args
 
-        except Exception as e:
-            return {"type": "error", "message": str(e)}
+                # Execute tool (may be sync or async)
+                if asyncio.iscoroutinefunction(tool_callable):
+                    result = await tool_callable(**call_args)
+                else:
+                    result = tool_callable(**call_args)
+
+                # Serialize result
+                if hasattr(result, "model_dump"):
+                    data = result.model_dump()
+                elif hasattr(result, "model_dump_json"):
+                    data = json.loads(result.model_dump_json())
+                else:
+                    data = result
+
+                await log(LogLevel.INFO, "Tool execution completed successfully")
+
+                # Emit result event span
+                async with span(
+                    "event.tool_result",
+                    attributes={"event_type": "tool_result", "tool": tool_name, "success": True},
+                ):
+                    await log(LogLevel.DEBUG, "Emitting SSE event: tool_result")
+
+                return {"type": "result", "data": data}
+
+            except Exception as e:
+                await log(LogLevel.ERROR, f"Tool execution failed: {e!s}")
+                # Emit error event span
+                async with span(
+                    "event.tool_result",
+                    attributes={
+                        "event_type": "tool_result",
+                        "tool": tool_name,
+                        "success": False,
+                        "error": str(e),
+                    },
+                ):
+                    await log(LogLevel.DEBUG, "Emitting SSE event: tool_result (error)")
+                return {"type": "error", "message": str(e)}

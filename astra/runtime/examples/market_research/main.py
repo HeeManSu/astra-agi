@@ -34,7 +34,7 @@ server = AstraServer(
     cors_allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     # Auth enabled by default (requires ASTRA_JWT_SECRET env var)
     telemetry=TelemetryConfig(
-        enabled=True,
+        enabled=False,
         db_path="./market_obs.db",
     ),
 )

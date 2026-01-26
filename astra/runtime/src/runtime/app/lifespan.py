@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+import sys
 
 from fastapi import FastAPI
 
@@ -25,35 +26,40 @@ async def app_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     telemetry_config = getattr(app.state, "telemetry_config", None)
     if telemetry_config and telemetry_config.enabled:
         try:
-            from observability import ObservabilityEngine, SQLiteStorage
+            from observability import ObservabilityEngine, init
 
-            obs_storage = SQLiteStorage(telemetry_config.db_path)
+            obs_storage = telemetry_config.db_path
             await obs_storage.init()
 
-            obs_engine = ObservabilityEngine(obs_storage)
+            obs_engine = ObservabilityEngine(obs_storage, debug_mode=telemetry_config.debug)
             app.state.observability = obs_engine
 
+            # Wire engine to ContextVars-based instrument module
+            init(obs_engine)
+
             if telemetry_config.debug:
-                print(f"📊 Observability initialized (db: {telemetry_config.db_path}, debug=True)")  # noqa: T201
+                sys.stdout.write(
+                    f"Observability initialized (db: {telemetry_config.db_path}, debug=True)"
+                )
             else:
-                print(f"📊 Observability initialized (db: {telemetry_config.db_path})")  # noqa: T201
+                sys.stdout.write(f"Observability initialized (db: {telemetry_config.db_path})")
         except ImportError:
             app.state.observability = None
-            print("⚠️  Observability not available (package not installed)")  # noqa: T201
+            sys.stdout.write("Observability not available (package not installed)")
         except Exception as e:
             app.state.observability = None
-            print(f"⚠️  Observability init failed: {e}")  # noqa: T201
+            sys.stdout.write(f"Observability init failed: {e}")
     else:
         app.state.observability = None
         if telemetry_config and not telemetry_config.enabled:
-            print("📊 Observability disabled")  # noqa: T201
+            sys.stdout.write("Observability disabled")
 
     # 2. Connect storage
     storage = storage_registry.get_default()
     if storage and hasattr(storage, "connect"):
         await storage.connect()
 
-    print("🚀 Astra Server started")  # noqa: T201
+    sys.stdout.write("Astra Server started")
 
     yield
 
@@ -65,8 +71,8 @@ async def app_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # 2. Shutdown observability
     obs = getattr(app.state, "observability", None)
-    if obs and hasattr(obs, "storage"):
+    if obs:
         await obs.storage.close()
-        print("Observability shutdown")  # noqa: T201
+        sys.stdout.write("Observability shutdown")
 
-    print("Astra Server stopped")  # noqa: T201
+    sys.stdout.write("Astra Server stopped")

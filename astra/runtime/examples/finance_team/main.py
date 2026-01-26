@@ -3,6 +3,9 @@ import sys
 
 # CRITICAL: Load .env BEFORE any framework imports that might use API keys
 from dotenv import load_dotenv
+from framework.storage.client import StorageClient
+from framework.storage.databases.mongodb import MongoDBStorage
+from observability.storage.mongodb import TelemetryMongoDB
 from runtime import AstraServer, TelemetryConfig
 
 
@@ -48,7 +51,7 @@ finance_team = Team(
     name="Hedge Fund Team",
     model=model,
     members=[market_agent, earning_agent, investment_agent],
-    # storage=StorageClient(storage=MongoDBStorage("mongodb://localhost:27017", "finance_team")),
+    # storage=StorageClient(storage=FrameworkMongoDB("mongodb://localhost:27017", "finance_team")),
     description="A team of elite financial analysts and strategists working together to outperform the market.",
     instructions="\n".join(
         [
@@ -66,9 +69,10 @@ server = AstraServer(
     agents=[market_agent, earning_agent, investment_agent],
     teams=[finance_team],  # Register the team so it's available via API
     description="A server hosting a specialized Finance Team.",
+    storage=StorageClient(storage=MongoDBStorage("mongodb://localhost:27017", "finance_team")),
     telemetry=TelemetryConfig(
         enabled=True,
-        db_path="./finance_obs.db",
+        db_path=TelemetryMongoDB("mongodb://localhost:27017", "telemetry_finance_team"),
         debug=True,
     ),
 )

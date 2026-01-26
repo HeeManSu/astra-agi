@@ -10,24 +10,25 @@ import json
 
 import aiosqlite
 
+from observability.logs.model import Log, LogLevel
 from observability.tracing.span import Span, SpanKind, SpanStatus
 from observability.tracing.trace import Trace, TraceStatus
 
 from .base import StorageBackend
 
 
-class SQLiteStorage(StorageBackend):
+class TelemetrySQLite(StorageBackend):
     """
     SQLite-based storage for traces and spans.
 
     Usage:
-        storage = SQLiteStorage("./observability.db")
+        storage = TelemetrySQLite("observability.db")
         await storage.init()
         await storage.save_trace(trace)
         await storage.close()
     """
 
-    def __init__(self, db_path: str = "./observability.db"):
+    def __init__(self, db_path: str = "observability.db"):
         """
         Initialize SQLite storage.
 
@@ -52,7 +53,12 @@ class SQLiteStorage(StorageBackend):
                 status TEXT NOT NULL,
                 start_time TEXT NOT NULL,
                 end_time TEXT,
-                attributes TEXT NOT NULL DEFAULT '{}'
+                attributes TEXT NOT NULL DEFAULT '{}',
+                total_tokens INTEGER DEFAULT 0,
+                input_tokens INTEGER DEFAULT 0,
+                output_tokens INTEGER DEFAULT 0,
+                thoughts_tokens INTEGER DEFAULT 0,
+                model TEXT
             )
         """)
 
@@ -74,11 +80,27 @@ class SQLiteStorage(StorageBackend):
             )
         """)
 
+        # Create logs table
+        await self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+                id TEXT PRIMARY KEY,
+                trace_id TEXT NOT NULL,
+                span_id TEXT,
+                level TEXT NOT NULL,
+                message TEXT NOT NULL,
+                attributes TEXT NOT NULL DEFAULT '{}',
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (trace_id) REFERENCES traces(trace_id)
+            )
+        """)
+
         # Create indexes
         await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id)")
         await self._conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_traces_start_time ON traces(start_time DESC)"
         )
+        await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_logs_trace_id ON logs(trace_id)")
+        await self._conn.execute("CREATE INDEX IF NOT EXISTS idx_logs_span_id ON logs(span_id)")
 
         await self._conn.commit()
 
@@ -97,12 +119,20 @@ class SQLiteStorage(StorageBackend):
 
         await self._conn.execute(
             """
-            INSERT INTO traces (trace_id, name, status, start_time, end_time, attributes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO traces (
+                trace_id, name, status, start_time, end_time, attributes,
+                total_tokens, input_tokens, output_tokens, thoughts_tokens, model
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(trace_id) DO UPDATE SET
                 status = excluded.status,
                 end_time = excluded.end_time,
-                attributes = excluded.attributes
+                attributes = excluded.attributes,
+                total_tokens = excluded.total_tokens,
+                input_tokens = excluded.input_tokens,
+                output_tokens = excluded.output_tokens,
+                thoughts_tokens = excluded.thoughts_tokens,
+                model = excluded.model
             """,
             (
                 trace.trace_id,
@@ -111,6 +141,11 @@ class SQLiteStorage(StorageBackend):
                 trace.start_time.isoformat(),
                 trace.end_time.isoformat() if trace.end_time else None,
                 json.dumps(trace.attributes),
+                trace.total_tokens,
+                trace.input_tokens,
+                trace.output_tokens,
+                trace.thoughts_tokens,
+                trace.model,
             ),
         )
         await self._conn.commit()
@@ -121,7 +156,11 @@ class SQLiteStorage(StorageBackend):
             raise RuntimeError("Storage not initialized. Call init() first.")
 
         async with self._conn.execute(
-            "SELECT trace_id, name, status, start_time, end_time, attributes FROM traces WHERE trace_id = ?",
+            """
+            SELECT trace_id, name, status, start_time, end_time, attributes,
+                   total_tokens, input_tokens, output_tokens, thoughts_tokens, model
+            FROM traces WHERE trace_id = ?
+            """,
             (trace_id,),
         ) as cursor:
             row = await cursor.fetchone()
@@ -136,6 +175,11 @@ class SQLiteStorage(StorageBackend):
             start_time=datetime.fromisoformat(row[3]),
             end_time=datetime.fromisoformat(row[4]) if row[4] else None,
             attributes=json.loads(row[5]),
+            total_tokens=row[6],
+            input_tokens=row[7],
+            output_tokens=row[8],
+            thoughts_tokens=row[9],
+            model=row[10],
         )
 
     async def list_traces(
@@ -149,7 +193,8 @@ class SQLiteStorage(StorageBackend):
 
         async with self._conn.execute(
             """
-            SELECT trace_id, name, status, start_time, end_time, attributes
+            SELECT trace_id, name, status, start_time, end_time, attributes,
+                   total_tokens, input_tokens, output_tokens, thoughts_tokens, model
             FROM traces
             ORDER BY start_time DESC
             LIMIT ? OFFSET ?
@@ -166,6 +211,11 @@ class SQLiteStorage(StorageBackend):
                 start_time=datetime.fromisoformat(row[3]),
                 end_time=datetime.fromisoformat(row[4]) if row[4] else None,
                 attributes=json.loads(row[5]),
+                total_tokens=row[6],
+                input_tokens=row[7],
+                output_tokens=row[8],
+                thoughts_tokens=row[9],
+                model=row[10],
             )
             for row in rows
         ]
@@ -237,6 +287,67 @@ class SQLiteStorage(StorageBackend):
                 duration_ms=row[8],
                 attributes=json.loads(row[9]),
                 error=row[10],
+            )
+            for row in rows
+        ]
+
+    # Log operations
+
+    async def save_log(self, log: Log) -> None:
+        """Save a log entry."""
+        if not self._conn:
+            raise RuntimeError("Storage not initialized. Call init() first.")
+
+        await self._conn.execute(
+            """
+            INSERT INTO logs (
+                id, trace_id, span_id, level, message, attributes, timestamp
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                log.id,
+                log.trace_id,
+                log.span_id,
+                log.level.value,
+                log.message,
+                json.dumps(log.attributes),
+                log.timestamp.isoformat(),
+            ),
+        )
+        await self._conn.commit()
+
+    async def list_logs(
+        self,
+        trace_id: str,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Log]:
+        """List logs for a trace, ordered by timestamp ASC."""
+        if not self._conn:
+            raise RuntimeError("Storage not initialized. Call init() first.")
+
+        async with self._conn.execute(
+            """
+            SELECT id, trace_id, span_id, level, message, attributes, timestamp
+            FROM logs
+            WHERE trace_id = ?
+            ORDER BY timestamp ASC
+            LIMIT ? OFFSET ?
+            """,
+            (trace_id, limit, offset),
+        ) as cursor:
+            rows = await cursor.fetchall()
+
+        return [
+            Log(
+                id=row[0],
+                trace_id=row[1],
+                span_id=row[2],
+                level=LogLevel(row[3]),
+                message=row[4],
+                attributes=json.loads(row[5]),
+                timestamp=datetime.fromisoformat(row[6]),
             )
             for row in rows
         ]

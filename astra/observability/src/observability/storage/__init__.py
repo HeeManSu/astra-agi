@@ -1,7 +1,6 @@
-"""Storage module for Astra Observability."""
-
 from .base import StorageBackend
-from .sqlite import SQLiteStorage
+from .mongodb import TelemetryMongoDB
+from .sqlite import TelemetrySQLite
 
 
-__all__ = ["SQLiteStorage", "StorageBackend"]
+__all__ = ["StorageBackend", "TelemetryMongoDB", "TelemetrySQLite"]

@@ -1,6 +1,8 @@
 """Agent routes."""
 
-from fastapi import APIRouter, HTTPException
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from runtime.registry import agent_registry
@@ -14,6 +16,7 @@ class AgentRunRequest(BaseModel):
 
     message: str
     thread_id: str | None = None
+    context: dict[str, Any] | None = None
 
 
 class AgentResponse(BaseModel):
@@ -64,7 +67,9 @@ async def run_agent(agent_id: str, request: AgentRunRequest):
     print(f"[TIMING] Agent '{agent_id}' invoke started at {time.strftime('%H:%M:%S')}")
 
     # Run the agent with optional thread_id for message persistence
-    response = await agent.invoke(request.message, thread_id=request.thread_id)
+    response = await agent.invoke(
+        request.message, thread_id=request.thread_id, context=request.context
+    )
 
     end_time = time.time()
     duration_ms = (end_time - start_time) * 1000
@@ -77,11 +82,12 @@ async def run_agent(agent_id: str, request: AgentRunRequest):
 
 
 @router.post("/{agent_id}/stream")
-async def stream_agent(agent_id: str, request: AgentRunRequest):
+async def stream_agent(agent_id: str, request: AgentRunRequest, http_request: Request):
     """Stream an agent response using SSE."""
     import time
 
     from fastapi.responses import StreamingResponse
+    from observability import LogLevel, log, span, trace
 
     agent = agent_registry.get(agent_id)
     if not agent:
@@ -91,8 +97,31 @@ async def stream_agent(agent_id: str, request: AgentRunRequest):
         start_time = time.time()
         print(f"[TIMING] Agent '{agent_id}' stream started at {time.strftime('%H:%M:%S')}")
 
-        async for event in agent.stream(request.message, thread_id=request.thread_id):
-            yield f"data: {event.model_dump_json()}\n\n"
+        # Use ContextVar-based trace (works even if observability not initialized)
+        async with trace(
+            f"agent.{agent_id}.stream",
+            attributes={
+                "agent_id": agent_id,
+                "agent_name": agent.name,
+                "thread_id": request.thread_id or "new",
+                "user_query": request.message[:100] if request.message else "",
+                "operation": "stream",
+                **(request.context or {}),
+            },
+        ):
+            # Log trace-level events
+            async with span("request.init"):
+                await log(LogLevel.INFO, "Stream started")
+                if request.context:
+                    await log(LogLevel.INFO, f"Request received with context: {request.context}")
+
+            # Execute the streaming logic
+            async for event in agent.stream(
+                request.message,
+                thread_id=request.thread_id,
+                context=request.context,
+            ):
+                yield f"data: {event.model_dump_json()}\n\n"
 
         end_time = time.time()
         duration_ms = (end_time - start_time) * 1000

@@ -29,6 +29,7 @@ import {
   ChevronDown,
   Folder,
   Wrench,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,12 @@ function Sidebar() {
   const handleOpenSettings = () => {
     dispatch(setSelectedItem(null));
     dispatch(setActiveTab("settings"));
+  };
+
+  // Open telemetry page
+  const handleOpenTelemetry = () => {
+    dispatch(setSelectedItem(null));
+    dispatch(setActiveTab("telemetry"));
   };
 
   return (
@@ -153,7 +160,7 @@ function Sidebar() {
                         selectedItem?.type === "agent" &&
                           selectedItem?.id === (agent.id || agent.name)
                           ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
+                          : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50",
                       )}
                     >
                       <div className="truncate">{agent.name}</div>
@@ -198,7 +205,7 @@ function Sidebar() {
                         selectedItem?.type === "team" &&
                           selectedItem?.id === (team.id || team.name)
                           ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
+                          : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50",
                       )}
                     >
                       <div className="truncate">{team.name}</div>
@@ -245,15 +252,27 @@ function Sidebar() {
         </div>
       </ScrollArea>
 
-      {/* Settings Button at Bottom */}
-      <div className="border-t border-sidebar-border p-2">
+      {/* Settings & Telemetry at Bottom */}
+      <div className="border-t border-sidebar-border p-2 space-y-1">
+        <button
+          onClick={handleOpenTelemetry}
+          className={cn(
+            "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+            activeTab === "telemetry"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50",
+          )}
+        >
+          <Activity className="h-4 w-4" />
+          Telemetry
+        </button>
         <button
           onClick={handleOpenSettings}
           className={cn(
             "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
             activeTab === "settings"
               ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
+              : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50",
           )}
         >
           <Settings className="h-4 w-4" />

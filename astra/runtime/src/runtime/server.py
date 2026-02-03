@@ -11,6 +11,9 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
+from framework.tool.mcp import MCPToolkit
+
+from runtime.sync.tool_sync import sync_local_tools, sync_mcp_tools
 
 
 if TYPE_CHECKING:
@@ -138,6 +141,38 @@ class AstraServer:
                 team.storage = default_storage
             team_registry.register(team)
 
+    async def sync_tools(self) -> dict[str, Any]:
+        """Sync tools from agents to database. Returns sync report."""
+        from framework.storage.client import StorageClient
+        from framework.tool import Tool
+
+        from runtime.registry import storage_registry
+        from runtime.sync.tool_sync import SyncReport
+
+        report = SyncReport()
+
+        storage = storage_registry.get_default()
+        if storage is None or not isinstance(storage, StorageClient):
+            return report.to_dict()
+
+        for agent in self.agents:
+            tools = getattr(agent, "tools", []) or []
+            local_tools = [t for t in tools if isinstance(t, Tool)]
+            mcp_tools = [t for t in tools if isinstance(t, MCPToolkit)]
+
+            if local_tools:
+                synced, unchanged = await sync_local_tools(storage, local_tools, source="local")
+                report.local_synced += synced
+                report.local_unchanged += unchanged
+
+            if mcp_tools:
+                mcp_results = await sync_mcp_tools(storage, mcp_tools, source="mcp")
+                for server, (synced, unchanged) in mcp_results.items():
+                    report.mcp_synced[server] = report.mcp_synced.get(server, 0) + synced
+                    report.mcp_unchanged[server] = report.mcp_unchanged.get(server, 0) + unchanged
+
+        return report.to_dict()
+
     def get_app(self) -> FastAPI:
         """Get the FastAPI application."""
         if self._app is None:
@@ -158,6 +193,9 @@ class AstraServer:
             cors_allowed_origins=None,  # Don't add CORS here
             telemetry_config=self.telemetry,
         )
+
+        # Store server reference for lifespan access (initialize_tools)
+        app.state.astra_server = self
 
         # Add auth middleware if enabled (added first, processed second)
         if self.auth_enabled:
@@ -193,6 +231,7 @@ class AstraServer:
             observability_router,
             teams_router,
             threads_router,
+            tools_router,
         )
 
         app.include_router(health_router)
@@ -200,4 +239,5 @@ class AstraServer:
         app.include_router(agents_router)
         app.include_router(teams_router)
         app.include_router(threads_router)
+        app.include_router(tools_router)
         app.include_router(observability_router)

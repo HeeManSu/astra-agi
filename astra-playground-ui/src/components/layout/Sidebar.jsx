@@ -233,22 +233,22 @@ function Sidebar() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Tools Section (Placeholder) */}
-          <Collapsible className="space-y-1">
-            <CollapsibleTrigger className="flex items-center w-full p-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md group">
-              <ChevronRight className="h-4 w-4 mr-2 text-muted-foreground" />
-              <Wrench className="h-4 w-4 mr-2" />
-              Tools
-              <span className="ml-auto text-xs text-muted-foreground">0</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="pl-6 space-y-1">
-                <p className="text-xs text-muted-foreground py-2 px-2">
-                  Coming soon
-                </p>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          {/* Tools Section */}
+          <button
+            onClick={() => {
+              dispatch(setSelectedItem(null));
+              dispatch(setActiveTab("tools"));
+            }}
+            className={cn(
+              "flex items-center w-full p-2 text-sm font-medium hover:bg-sidebar-accent/50 rounded-md group",
+              activeTab === "tools"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground",
+            )}
+          >
+            <Wrench className="h-4 w-4 mr-2" />
+            Tools
+          </button>
         </div>
       </ScrollArea>
 

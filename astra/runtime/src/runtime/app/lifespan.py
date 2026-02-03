@@ -59,7 +59,13 @@ async def app_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if storage and hasattr(storage, "connect"):
         await storage.connect()
 
-    sys.stdout.write("Astra Server started")
+    # 3. Sync tools to DB
+    astra_server = getattr(app.state, "astra_server", None)
+    if astra_server and hasattr(astra_server, "sync_tools"):
+        report = await astra_server.sync_tools()
+        sys.stdout.write(f"Tools synced: {report}\n")
+
+    sys.stdout.write("Astra Server started\n")
 
     yield
 

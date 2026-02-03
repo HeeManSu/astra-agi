@@ -7,6 +7,7 @@ import ThreadSidebar from "@/components/layout/ThreadSidebar";
 import ChatArea from "@/components/chat/ChatArea";
 import SettingsPage from "@/components/layout/SettingsPage";
 import TelemetryPage from "@/components/telemetry/TelemetryPage";
+import ToolsPage from "@/components/tools/ToolsPage";
 import "./index.css";
 
 function Header() {
@@ -32,11 +33,14 @@ function AppContent() {
         {/* Thread Sidebar - visible when agent/team is selected */}
         {selectedItem &&
           activeTab !== "settings" &&
-          activeTab !== "telemetry" && <ThreadSidebar />}
+          activeTab !== "telemetry" &&
+          activeTab !== "tools" && <ThreadSidebar />}
         {activeTab === "settings" ? (
           <SettingsPage />
         ) : activeTab === "telemetry" ? (
           <TelemetryPage />
+        ) : activeTab === "tools" ? (
+          <ToolsPage />
         ) : (
           <ChatArea />
         )}

@@ -42,6 +42,7 @@ Example:
 from framework.rag.chunking import ChunkingStrategy, RecursiveChunking
 from framework.rag.context import RagContext, StageState
 from framework.rag.embedders import Embedder, HuggingFaceEmbedder
+from framework.rag.graphdb import Edge, GraphDB, KuzuGraphDB, Node
 from framework.rag.pipeline import Pipeline, Rag
 from framework.rag.readers import Reader, TextReader
 from framework.rag.vectordb import Document, LanceDB, VectorDB
@@ -57,6 +58,11 @@ __all__ = [
     "LanceDB",
     "VectorDB",
     "Document",
+    # Graph DB
+    "GraphDB",
+    "KuzuGraphDB",
+    "Node",
+    "Edge",
     # Embedders
     "HuggingFaceEmbedder",
     "Embedder",

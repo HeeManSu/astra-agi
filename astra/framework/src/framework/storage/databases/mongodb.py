@@ -112,6 +112,10 @@ class MongoDBStorage(StorageBackend):
         await auth_collection.create_index("email", unique=True)
         await auth_collection.create_index("deleted_at")
 
+        # astra_tool_definitions indexes (for tool storage)
+        tools_collection = self._db["astra_tool_definitions"]
+        await tools_collection.create_index("is_active")
+
     async def execute(self, query: Mapping[str, Any], params: dict[str, Any] | None = None) -> Any:
         """
         Execute a write operation.

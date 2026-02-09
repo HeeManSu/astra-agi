@@ -125,6 +125,36 @@ astra_team_auth = Table(
     Column("deleted_at", DateTime(timezone=True), nullable=True),
 )
 
+astra_tool_definitions = Table(
+    "astra_tool_definitions",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("slug", String(255), nullable=False),  # Tool slug (e.g., "get_stock_price")
+    Column("name", String(255), nullable=False),  # Human-readable name
+    Column("source", String(255), nullable=False),  # Human-readable source name
+    Column("is_active", Boolean, nullable=False, server_default="1"),
+    Column("description", TEXT, nullable=False),
+    Column("input_schema", JSON, nullable=True),  # [{name, type, required, description, default}]
+    Column("output_schema", JSON, nullable=True),  # {type, description, fields, json_schema}
+    Column("required_fields", JSON, nullable=True),  # List of required field names
+    Column("example", JSON, nullable=True),  # {input, output}
+    Column("hash", String(64), nullable=True),  # Content hash for change detection
+    Column("is_improved", Boolean, nullable=False, server_default="0"),
+    Column("improved_by", String(32), nullable=True),  # "user" or "llm"
+    Column("version", String(32), nullable=False, server_default="1.0.0"),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+    Column(
+        "updated_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    ),
+    # Indexes
+    Index("idx_tool_defs_source", "source"),
+    Index("idx_tool_defs_slug_source", "slug", "source", unique=True),
+    Index("idx_tool_defs_is_active", "is_active"),
+)
+
 
 class LibSQLStorage(StorageBackend):
     """
@@ -303,6 +333,8 @@ class LibSQLStorage(StorageBackend):
         #     return astra_facts
         elif collection_name == "astra_team_auth":
             return astra_team_auth
+        elif collection_name == "astra_tool_definitions":
+            return astra_tool_definitions
         raise ValueError(f"Unknown collection: {collection_name}")
 
     def build_insert_query(self, collection: str, data: dict[str, Any]) -> Any:
@@ -357,8 +389,9 @@ class LibSQLStorage(StorageBackend):
         table = self._get_table(collection)
         stmt = select(table)
 
-        # Soft-deleted records are filtered out
-        stmt = stmt.where(table.c.deleted_at.is_(None))
+        # Soft-deleted records are filtered out (only for tables with deleted_at)
+        if "deleted_at" in table.c:
+            stmt = stmt.where(table.c.deleted_at.is_(None))
 
         # Apply filters
         if filter_dict:

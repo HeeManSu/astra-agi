@@ -104,3 +104,39 @@ class TeamAuth(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     deleted_at: datetime | None = None
+
+
+class ToolDefinition(BaseModel):
+    """
+    Individual tool definition - stored per tool, not per source.
+
+    Editable via UI, can be LLM-enriched.
+    Keyed by (name, source) for uniqueness.
+    """
+
+    id: str | None = None  # Auto-assigned by database
+
+    # Identity
+    slug: str  # Tool name (e.g., "get_stock_price")
+    name: str  # Tool name (e.g., "get_stock_price")
+    source: str  # Human-readable source name
+    is_active: bool = True
+
+    # Schema - flexible to support any tool source format
+    description: str
+    input_schema: Any = None  # Typically: list[{name, type, required, description, default}]
+    output_schema: Any = None  # Typically: {type, description, fields}
+    required_fields: list[str] = Field(default_factory=list)
+    example: Any = None  # Typically: {input: {...}, output: {...}}
+
+    # Content hash for change detection
+    hash: str | None = None
+
+    # Improvement tracking
+    is_improved: bool = False
+    improved_by: str | None = None  # "user" or "llm"
+    version: str = "1.0.0"
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

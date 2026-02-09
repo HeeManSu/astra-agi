@@ -12,13 +12,14 @@ from typing import Any
 class RagContext:
     """Shared context containing all cross-cutting dependencies.
 
-    This is the single source of truth for embedder, vector_db, and config.
+    This is the single source of truth for embedder, vector_db, graph_db, and config.
     Stages read from this context instead of having their own instances.
 
     Example:
         context = RagContext(
             embedder=HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2"),
             vector_db=LanceDB(uri="./my_kb"),
+            graph_db=KuzuGraphDB(db_path="./my_graph"),  # Optional
             config={"default_top_k": 5},
         )
     """
@@ -26,6 +27,7 @@ class RagContext:
     embedder: Any
     vector_db: Any
     config: Any
+    graph_db: Any = None  # Optional graph database
 
 
 @dataclass

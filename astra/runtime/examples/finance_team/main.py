@@ -55,10 +55,10 @@ finance_team = Team(
     description="A team of elite financial analysts and strategists working together to outperform the market.",
     instructions="\n".join(
         [
-            "Collaborate to provide comprehensive investment reports.",
-            "The Market Analyst provides the broad context.",
-            "The Earnings Researcher provides company-specific data.",
-            "The Investment Strategist synthesizes everything into a recommendation.",
+            "Phase 1: Ask the Market Analyst to research current conditions.",
+            "Phase 2: Ask the Earnings Researcher to find recent financials.",
+            "Phase 3: Ask the Investment Strategist to synthesize all data into a final recommendation and save it to Notion.",
+            "Ensure all reports are saved to the Notion page 2ffbd5030ea680b791e1ca41a59c1765.",
         ]
     ),
 )
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
 # example_queries = [
 #     # 1. Single Stock Analysis - Comprehensive
-#     "Should I invest in Apple (AAPL)? Provide a complete analysis including current market conditions, recent earnings, and a risk-adjusted recommendation.",
+#     "Should I invest in Apple (AAPL)? Provide a complete analysis including current market conditions, recent earnings, and a risk-adjusted recommendation. Use the brave to get the real time data and store in in the Market Research page of Notion.",
 #     # 2. Sector Analysis with Multiple Stocks
 #     "Analyze the technology sector and recommend the best investment opportunity. Compare at least 3 tech stocks and provide a detailed investment thesis for your top pick.",
 #     # 3. Portfolio Risk Assessment

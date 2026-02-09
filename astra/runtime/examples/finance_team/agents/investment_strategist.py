@@ -9,29 +9,34 @@ load_dotenv(env_path, override=True)
 
 from framework.agents import Agent
 from framework.models import Gemini
-from tools import strategy_tools
+from framework.tool.mcp import presets
 
 
 model = Gemini("gemini-2.5-flash")
+
+# MCP Toolkits from presets
+brave_mcp = presets.brave_search(os.getenv("BRAVE_API_KEY", ""))
+# Accept either NOTION_TOKEN or NOTION_API_KEY
+notion_token = os.getenv("NOTION_TOKEN") or os.getenv("NOTION_API_KEY", "")
+notion_mcp = presets.notion(notion_token)
 
 
 investment_agent = Agent(
     name="Investment Strategist",
     model=model,
-    description="Develops investment strategies based on analysis. Provides risk-adjusted recommendations (Buy, Sell, Hold).",
+    description="Provides risk-adjusted recommendations (Buy, Sell, Hold).",
     instructions="\n".join(
         [
             "You are a senior investment strategist.",
-            "Combine market analysis and earnings research to form actionable strategies.",
-            "Use 'calculate_risk_score' to assess portfolio risk.",
-            "Use 'backtest_strategy' to validate your strategy before recommending.",
-            "Use 'generate_investment_thesis' to write your final recommendation.",
-            "Provide risk-adjusted recommendations (Buy, Sell, Hold).",
+            "Review the market conditions and earnings data provided by your team.",
+            "If more data is needed, use 'brave_web_search' for final verification.",
+            "Finalize a risk-adjusted recommendation (Buy, Sell, Hold).",
+            "Use 'API-patch-block-children' to save the final Investment Thesis to Notion (ID: 2ffbd5030ea680b791e1ca41a59c1765).",
+            "NOTION SCHEMA: Use {'type': 'paragraph', 'paragraph': {'rich_text': [{'type': 'text', 'text': {'content': '...'}}]}}",
         ]
     ),
     tools=[
-        strategy_tools.calculate_risk_score,
-        strategy_tools.generate_investment_thesis,
-        strategy_tools.backtest_strategy,
+        brave_mcp,
+        notion_mcp,
     ],
 )

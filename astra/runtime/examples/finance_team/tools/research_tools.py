@@ -32,8 +32,8 @@ class GetEarningsReportOutput(BaseModel):
 GET_EARNINGS_REPORT_SPEC = ToolSpec(
     name="get_earnings_report",
     description="Retrieve the latest earnings report summary for a company",
-    input_model=GetEarningsReportInput,
-    output_model=GetEarningsReportOutput,
+    input_schema=GetEarningsReportInput,
+    output_schema=GetEarningsReportOutput,
     examples=[
         {
             "input": {"symbol": "AAPL", "quarter": "Q4"},
@@ -96,8 +96,8 @@ class SearchSecFilingsOutput(BaseModel):
 SEARCH_SEC_FILINGS_SPEC = ToolSpec(
     name="search_sec_filings",
     description="Search for SEC filings for a specific company",
-    input_model=SearchSecFilingsInput,
-    output_model=SearchSecFilingsOutput,
+    input_schema=SearchSecFilingsInput,
+    output_schema=SearchSecFilingsOutput,
     examples=[
         {
             "input": {"symbol": "AAPL", "doc_type": "10-K"},
@@ -145,8 +145,8 @@ class GetCompetitorAnalysisOutput(BaseModel):
 GET_COMPETITOR_ANALYSIS_SPEC = ToolSpec(
     name="get_competitor_analysis",
     description="Identify key competitors and compare basic metrics",
-    input_model=GetCompetitorAnalysisInput,
-    output_model=GetCompetitorAnalysisOutput,
+    input_schema=GetCompetitorAnalysisInput,
+    output_schema=GetCompetitorAnalysisOutput,
     examples=[
         {
             "input": {"symbol": "AAPL"},

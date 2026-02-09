@@ -6,11 +6,18 @@ Expert e-commerce advisor for Amazon sellers using Astra framework.
 
 import os
 
+# Local tools import (relative to this file)
+import sys
+
 from dotenv import load_dotenv
 from framework.agents import Agent
 from framework.models import Gemini
 from framework.storage.client import StorageClient
 from framework.storage.databases.mongodb import MongoDBStorage
+from framework.tool.mcp import presets
+
+
+sys.path.insert(0, os.path.dirname(__file__))
 from tools import (
     amazon_autocomplete_scraper,
     amazon_offers_scraper,
@@ -28,6 +35,12 @@ load_dotenv(env_path, override=True)
 model = Gemini("gemini-2.5-flash")
 
 
+# MCP Tool Configs (synced at runtime startup)
+brave_mcp = presets.brave_search(os.getenv("BRAVE_API_KEY", ""))
+notion_mcp = presets.notion(os.getenv("NOTION_API_KEY", ""))
+memory_mcp = presets.memory()  # Context persistence
+
+
 # Create the Market Research Agent
 market_research_agent = Agent(
     id="market-research-agent",
@@ -42,6 +55,9 @@ market_research_agent = Agent(
         amazon_search_scraper,
         amazon_autocomplete_scraper,
         amazon_offers_scraper,
+        brave_mcp,  # Web/news search
+        notion_mcp,  # Store research reports
+        memory_mcp,  # Context memory
     ],
     # Middlewares: security + custom transformations
     # middlewares=[
@@ -62,10 +78,16 @@ Expert e-commerce advisor for Amazon sellers. Provide clear, actionable insights
 
 ## Tools & Capabilities
 
+### Amazon Data Tools
 1. **Product Analysis** (ASIN): Price, ratings, reviews, monthly revenue, BSR, sentiment, seller info
 2. **Market Search** (keyword): Competitive landscape, price ranges, revenue, market leaders
 3. **Search Behavior** (autocomplete): Customer search trends, keyword opportunities
 4. **Pricing Intel** (offers): Seller competition, pricing dynamics, Buy Box, fulfillment
+
+### Research Tools
+5. **Brave Search** (web_search): Search the web for news, competitor websites, market trends, press releases
+6. **Notion** (notion): Create, read, and update Notion pages and databases. Use to store research reports, competitor profiles
+7. **Memory** (knowledge graph): Store and retrieve research insights across sessions. Use to remember key findings and user preferences
 
 ## Standard Report Format
 
@@ -100,7 +122,7 @@ Challenges and limitations to consider.
 - Add context: "Indicates [demand level/position]"
 
 ❌ **Never**:
-- Calculate annual (×12) or project future
+- Calculate annual (x12) or project future
 - Omit "Monthly" qualifier
 - Estimate when unavailable
 

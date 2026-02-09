@@ -9,29 +9,33 @@ load_dotenv(env_path, override=True)
 
 from framework.agents import Agent
 from framework.models import Gemini
-from tools import research_tools
+from framework.tool.mcp import presets
 
 
 model = Gemini("gemini-2.5-flash")
+
+# MCP Toolkits from presets
+brave_mcp = presets.brave_search(os.getenv("BRAVE_API_KEY", ""))
+# Accept either NOTION_TOKEN or NOTION_API_KEY
+notion_token = os.getenv("NOTION_TOKEN") or os.getenv("NOTION_API_KEY", "")
+notion_mcp = presets.notion(notion_token)
 
 
 earning_agent = Agent(
     name="Earnings Researcher",
     model=model,
-    description="Research company earnings and financial reports. Extracts key metrics like EPS, Revenue, and Guidance.",
+    description="Research company earnings and financial reports.",
     instructions="\n".join(
         [
             "You are a meticulous financial researcher.",
-            "Focus on analyzing quarterly earnings reports and 10-K filings.",
-            "Use 'get_earnings_report' to find specific financial data.",
-            "Use 'search_sec_filings' to find official documents.",
-            "Use 'get_competitor_analysis' to benchmark against peers.",
-            "Extract key metrics like EPS, Revenue, and Guidance.",
+            "Use 'brave_web_search' to find the most recent quarterly earnings and financial insights for the company.",
+            "Summarize the findings and use 'API-patch-block-children' to save them to the 'Market Research' page (ID: 2ffbd5030ea680b791e1ca41a59c1765).",
+            "CRITICAL: Notion character limit 2,000. Summarize outputs.",
+            "NOTION SCHEMA: Use {'type': 'paragraph', 'paragraph': {'rich_text': [{'type': 'text', 'text': {'content': '...'}}]}}",
         ]
     ),
     tools=[
-        research_tools.get_earnings_report,
-        research_tools.search_sec_filings,
-        research_tools.get_competitor_analysis,
+        brave_mcp,
+        notion_mcp,
     ],
 )

@@ -11,18 +11,114 @@ import {
   setInputValue,
   selectCurrentMessages,
 } from "@/store/slices/chatSlice";
-import { streamAgent, streamTeam, runAgent, runTeam } from "@/api/client";
+import {
+  streamAgent,
+  streamTeam,
+  runAgent,
+  runTeam,
+  createThread,
+} from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Send, Bot, User, Loader2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import mermaid from "mermaid";
+
+// Initialize Mermaid with dark theme
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "dark",
+  securityLevel: "loose",
+});
+
+// Mermaid diagram component
+function MermaidDiagram({ code }) {
+  const containerRef = useRef(null);
+  const [svg, setSvg] = useState("");
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const renderDiagram = async () => {
+      try {
+        const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
+        const { svg } = await mermaid.render(id, code);
+        setSvg(svg);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    if (code) renderDiagram();
+  }, [code]);
+
+  if (error) {
+    return (
+      <div className="p-3 bg-destructive/10 border border-destructive/30 rounded text-sm text-destructive">
+        Mermaid Error: {error}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="my-4 p-4 bg-muted/50 rounded-lg overflow-x-auto"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
+
+// Code block with syntax highlighting
+function CodeBlock({ className, children, ...props }) {
+  const match = /language-(\w+)/.exec(className || "");
+  const language = match ? match[1] : "";
+  const code = String(children).replace(/\n$/, "");
+
+  // Handle Mermaid diagrams
+  if (language === "mermaid") {
+    return <MermaidDiagram code={code} />;
+  }
+
+  // Syntax highlighted code block
+  if (match) {
+    return (
+      <SyntaxHighlighter
+        style={oneDark}
+        language={language}
+        PreTag="div"
+        className="rounded-lg !my-3 text-sm"
+        {...props}
+      >
+        {code}
+      </SyntaxHighlighter>
+    );
+  }
+
+  // Inline code
+  return (
+    <code
+      className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
+      {...props}
+    >
+      {children}
+    </code>
+  );
+}
+
+// Markdown components config
+const markdownComponents = {
+  code: CodeBlock,
+  pre: ({ children }) => <>{children}</>,
+};
 
 function ChatArea() {
   const dispatch = useAppDispatch();
   const { serverUrl, apiKey, selectedItem } = useAppSelector(
-    (state) => state.app
+    (state) => state.app,
   );
   const { currentSession, isStreaming, streamingContent, inputValue } =
     useAppSelector((state) => state.chat);
@@ -57,7 +153,7 @@ function ChatArea() {
       addMessage({
         sessionKey: currentSession,
         message: { role: "user", content: userMessage },
-      })
+      }),
     );
 
     // Add placeholder assistant message
@@ -65,7 +161,7 @@ function ChatArea() {
       addMessage({
         sessionKey: currentSession,
         message: { role: "assistant", content: "" },
-      })
+      }),
     );
 
     dispatch(setStreaming(true));
@@ -89,7 +185,7 @@ function ChatArea() {
               ...event.data,
               status: "running",
             },
-          })
+          }),
         );
       } else if (event.event_type === "tool_result") {
         // Handle tool result
@@ -100,7 +196,7 @@ function ChatArea() {
               ...event.data,
               status: "complete",
             },
-          })
+          }),
         );
       } else if (event.event_type === "synthesize" && event.data?.message) {
         content = event.data.message;
@@ -120,7 +216,7 @@ function ChatArea() {
           updateLastMessage({
             sessionKey: currentSession,
             content: fullContent,
-          })
+          }),
         );
       }
     };
@@ -136,17 +232,34 @@ function ChatArea() {
         updateLastMessage({
           sessionKey: currentSession,
           content: `Error: ${error.message}`,
-        })
+        }),
       );
       dispatch(setStreaming(false));
       dispatch(clearStreamingContent());
     };
 
     try {
-      // Extract thread_id from session key (format: "thread:threadId")
-      const threadId = currentSession?.startsWith("thread:")
-        ? currentSession.replace("thread:", "")
-        : null;
+      // Get or create thread for this conversation
+      let threadId = null;
+      if (currentSession?.startsWith("thread:")) {
+        threadId = currentSession.replace("thread:", "");
+      } else {
+        // Create new thread on first message
+        try {
+          const thread = await createThread(serverUrl, apiKey, {
+            resource_type: selectedItem.type,
+            resource_id: selectedItem.id,
+            resource_name: selectedItem.name || selectedItem.id,
+            title:
+              userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : ""),
+          });
+          threadId = thread.id;
+          dispatch(setCurrentSession(`thread:${threadId}`));
+        } catch (err) {
+          console.error("Failed to create thread:", err);
+          // Continue without thread_id - messages won't be persisted
+        }
+      }
 
       if (streamMode) {
         // Streaming mode
@@ -159,7 +272,7 @@ function ChatArea() {
             onChunk,
             onDone,
             onError,
-            threadId
+            threadId,
           );
         } else if (selectedItem.type === "team") {
           await streamTeam(
@@ -170,7 +283,7 @@ function ChatArea() {
             onChunk,
             onDone,
             onError,
-            threadId
+            threadId,
           );
         }
       } else {
@@ -182,7 +295,7 @@ function ChatArea() {
             apiKey,
             selectedItem.id,
             userMessage,
-            threadId
+            threadId,
           );
         } else if (selectedItem.type === "team") {
           response = await runTeam(
@@ -190,7 +303,7 @@ function ChatArea() {
             apiKey,
             selectedItem.id,
             userMessage,
-            threadId
+            threadId,
           );
         }
 
@@ -201,7 +314,7 @@ function ChatArea() {
           updateLastMessage({
             sessionKey: currentSession,
             content: content,
-          })
+          }),
         );
         dispatch(setStreaming(false));
       }
@@ -269,7 +382,7 @@ function ChatArea() {
                 key={message.id || index}
                 className={cn(
                   "flex gap-3 message-fade-in",
-                  message.role === "user" ? "justify-end" : "justify-start"
+                  message.role === "user" ? "justify-end" : "justify-start",
                 )}
               >
                 {message.role === "assistant" && (
@@ -283,7 +396,7 @@ function ChatArea() {
                     "max-w-[80%] rounded-lg px-4 py-2 text-sm",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                      : "bg-muted",
                   )}
                 >
                   {/* Tool Calls Rendering */}
@@ -317,8 +430,10 @@ function ChatArea() {
                   )}
 
                   {message.content ? (
-                    <div className="prose">
-                      <Markdown>{message.content}</Markdown>
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      <Markdown components={markdownComponents}>
+                        {message.content}
+                      </Markdown>
                     </div>
                   ) : (
                     <span className="text-muted-foreground">Thinking...</span>

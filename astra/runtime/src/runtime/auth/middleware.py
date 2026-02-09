@@ -14,6 +14,7 @@ PUBLIC_PATHS = {
     "/docs",
     "/openapi.json",
     "/redoc",
+    "/favicon.ico",
 }
 
 

@@ -8,6 +8,7 @@ import ChatArea from "@/components/chat/ChatArea";
 import SettingsPage from "@/components/layout/SettingsPage";
 import TelemetryPage from "@/components/telemetry/TelemetryPage";
 import ToolsPage from "@/components/tools/ToolsPage";
+import { WikiPage } from "@/components/wiki";
 import "./index.css";
 
 function Header() {
@@ -34,13 +35,16 @@ function AppContent() {
         {selectedItem &&
           activeTab !== "settings" &&
           activeTab !== "telemetry" &&
-          activeTab !== "tools" && <ThreadSidebar />}
+          activeTab !== "tools" &&
+          activeTab !== "wiki" && <ThreadSidebar />}
         {activeTab === "settings" ? (
           <SettingsPage />
         ) : activeTab === "telemetry" ? (
           <TelemetryPage />
         ) : activeTab === "tools" ? (
           <ToolsPage />
+        ) : activeTab === "wiki" ? (
+          <WikiPage />
         ) : (
           <ChatArea />
         )}

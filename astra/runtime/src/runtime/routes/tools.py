@@ -208,5 +208,10 @@ async def sync_tools(request: Request) -> dict[str, Any]:
     if not storage:
         raise HTTPException(status_code=503, detail="Storage not configured")
 
+    # Sync tools to DB
     report = await runtime.sync_tools()
-    return {"message": "Tools synced", "report": report}
+
+    return {
+        "message": "Tools synced",
+        "report": report,
+    }

@@ -12,8 +12,8 @@ By capturing tool metadata in a structured format, we enable the LLM to make bet
 Current Implementation:
     - name: Tool identifier
     - description: High-level description
-    - input_model: Pydantic model for input validation
-    - output_model: Pydantic model for output structure
+    - input_schema: Pydantic model for input validation
+    - output_schema: Pydantic model for output structure
     - examples: Example input/output pairs for few-shot learning
 
 Future Extensions (to be implemented): @TODO HeeManSu
@@ -95,8 +95,8 @@ Current Usage:
     MY_TOOL_SPEC = ToolSpec(
         name="search",
         description="Search for information",
-        input_model=MyInput,
-        output_model=MyOutput,
+        input_schema=MyInput,
+        output_schema=MyOutput,
         examples=[{"input": {"query": "python"}, "output": {"results": [...]}}],
     )
 
@@ -132,8 +132,8 @@ class ToolSpec(BaseModel):
 
     name: str = Field(description="Tool name (snake_case)")
     description: str = Field(description="High-level tool description")
-    input_model: type[BaseModel] = Field(description="Pydantic input schema")
-    output_model: type[BaseModel] = Field(description="Pydantic output schema")
+    input_schema: type[BaseModel] = Field(description="Pydantic input schema")
+    output_schema: type[BaseModel] = Field(description="Pydantic output schema")
     examples: list[dict] = Field(
         default_factory=list, description="Example input/output pairs for few-shot learning"
     )

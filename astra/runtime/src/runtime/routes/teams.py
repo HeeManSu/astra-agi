@@ -55,6 +55,20 @@ async def get_team(team_id: str) -> TeamResponse:
     )
 
 
+async def _build_team_context(team_id: str, user_context: dict[str, Any] | None) -> dict[str, Any]:
+    """Build context with tool_definitions for team execution."""
+    from runtime.sync.tool_cache import get_team_tool_definitions
+
+    # Fetch tool definitions (lazy-cached)
+    tool_definitions = await get_team_tool_definitions(team_id)
+
+    # Merge with user context
+    context = dict(user_context or {})
+    context["tool_definitions"] = tool_definitions
+
+    return context
+
+
 @router.post("/{team_id}/invoke")
 async def run_team(team_id: str, request: TeamRunRequest):
     """Run a team synchronously."""
@@ -65,19 +79,15 @@ async def run_team(team_id: str, request: TeamRunRequest):
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
 
     start_time = time.time()
-    sys.stdout.write(f"[TIMING] Team '{team_id}' invoke started at {time.strftime('%H:%M:%S')}")
+    sys.stdout.write(f"[TIMING] Team '{team_id}' invoke started\n")
 
-    # Run the team with optional thread_id for message persistence
-    response = await team.invoke(
-        request.message, thread_id=request.thread_id, context=request.context
-    )
+    # Build context with tool_definitions
+    context = await _build_team_context(team_id, request.context)
 
-    end_time = time.time()
-    duration_ms = (end_time - start_time) * 1000
-    sys.stdout.write(f"[TIMING] Team '{team_id}' invoke completed at {time.strftime('%H:%M:%S')}")
-    sys.stdout.write(
-        f"[TIMING] Team '{team_id}' total time: {duration_ms:.2f}ms ({duration_ms / 1000:.2f}s)"
-    )
+    response = await team.invoke(request.message, thread_id=request.thread_id, context=context)
+
+    duration_ms = (time.time() - start_time) * 1000
+    sys.stdout.write(f"[TIMING] Team '{team_id}' invoke completed in {duration_ms:.2f}ms\n")
 
     return {"response": response, "timing_ms": round(duration_ms, 2)}
 
@@ -94,11 +104,13 @@ async def stream_team(team_id: str, request: TeamRunRequest, http_request: Reque
     if not team:
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
 
+    # Build context with tool_definitions (before generator to fail fast)
+    context = await _build_team_context(team_id, request.context)
+
     async def generate():
         start_time = time.time()
-        sys.stdout.write(f"[TIMING] Team '{team_id}' stream started at {time.strftime('%H:%M:%S')}")
+        sys.stdout.write(f"[TIMING] Team '{team_id}' stream started\n")
 
-        # Use ContextVar-based trace (works even if observability not initialized)
         async with trace(
             f"team.{team_id}.stream",
             attributes={
@@ -107,31 +119,24 @@ async def stream_team(team_id: str, request: TeamRunRequest, http_request: Reque
                 "thread_id": request.thread_id or "new",
                 "user_query": request.message[:100] if request.message else "",
                 "operation": "stream",
-                **(request.context or {}),
             },
         ):
-            # Log trace-level events
             async with span("request.init"):
                 await log(LogLevel.INFO, "Stream started")
-                if request.context:
-                    await log(LogLevel.INFO, f"Request received with context: {request.context}")
+                await log(
+                    LogLevel.DEBUG,
+                    f"Tool definitions loaded: {len(context.get('tool_definitions', {}))}",
+                )
 
-            # Execute the streaming logic
             async for event in team.stream(
                 request.message,
                 thread_id=request.thread_id,
-                context=request.context,
+                context=context,
             ):
                 yield f"data: {event.model_dump_json()}\n\n"
 
-        end_time = time.time()
-        duration_ms = (end_time - start_time) * 1000
-        sys.stdout.write(
-            f"[TIMING] Team '{team_id}' stream completed at {time.strftime('%H:%M:%S')}"
-        )
-        sys.stdout.write(
-            f"[TIMING] Team '{team_id}' total time: {duration_ms:.2f}ms ({duration_ms / 1000:.2f}s)"
-        )
+        duration_ms = (time.time() - start_time) * 1000
+        sys.stdout.write(f"[TIMING] Team '{team_id}' stream completed in {duration_ms:.2f}ms\n")
 
         yield f'data: {{"timing_ms": {round(duration_ms, 2)}}}\n\n'
         yield "data: [DONE]\n\n"

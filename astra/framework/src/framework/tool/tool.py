@@ -57,6 +57,7 @@ class Tool:
         input_schema: type[BaseModel],
         output_schema: type[BaseModel],
         example: dict | None = None,
+        source: str = "local",
     ):
         """
         Initialize a Tool.
@@ -68,6 +69,7 @@ class Tool:
             input_schema: Pydantic model defining expected input
             output_schema: Pydantic model defining expected output
             example: Optional example showing input/output pair
+            source: Tool source (default: "local")
         """
         self.name = name
         self.description = description
@@ -75,23 +77,16 @@ class Tool:
         self.input_schema = input_schema
         self.output_schema = output_schema
         self.example = example
-        self._schema_cache: dict[str, Any] | None = None
+        self.source = source
 
     @property
     def parameters(self) -> dict[str, Any]:
         """
         Get JSON schema representation of input parameters.
 
-        This is used by:
-        - LLMs to understand what parameters to pass
-        - Validation systems to check inputs
-        - Documentation generators
-
-        The schema is cached after first generation for performance.
+        Used by LLMs, validation systems, and documentation generators.
         """
-        if self._schema_cache is None:
-            self._schema_cache = self.input_schema.model_json_schema()
-        return self._schema_cache
+        return self.input_schema.model_json_schema()
 
     def __call__(self, *args, **kwargs):
         """
@@ -151,8 +146,8 @@ def bind_tool(spec):
         GET_PRICE_SPEC = ToolSpec(
             name="get_price",
             description="Get stock price for a symbol",
-            input_model=PriceInput,
-            output_model=PriceOutput,
+            input_schema=PriceInput,
+            output_schema=PriceOutput,
             examples=[{"input": {"symbol": "AAPL"}, "output": {...}}]
         )
 
@@ -215,7 +210,7 @@ def bind_tool(spec):
             raise ValueError(
                 f"Tool '{spec.name}' must have exactly one parameter. "
                 f"Got {len(params)}: {[p.name for p in params]}\n"
-                f"Expected signature: def {func.__name__}(input: {spec.input_model.__name__}) -> {spec.output_model.__name__}"
+                f"Expected signature: def {func.__name__}(input: {spec.input_schema.__name__}) -> {spec.output_schema.__name__}"
             )
 
         # === STEP 4: Validate parameter type ===
@@ -223,24 +218,24 @@ def bind_tool(spec):
         param = params[0]
         param_type = hints.get(param.name)
 
-        if param_type != spec.input_model:
+        if param_type != spec.input_schema:
             raise TypeError(
                 f"Tool '{spec.name}' parameter type mismatch.\n"
-                f"Expected: {spec.input_model.__name__}\n"
+                f"Expected: {spec.input_schema.__name__}\n"
                 f"Got: {param_type.__name__ if param_type else 'missing type hint'}\n"
-                f"Fix: Add type hint: def {func.__name__}(input: {spec.input_model.__name__})"
+                f"Fix: Add type hint: def {func.__name__}(input: {spec.input_schema.__name__})"
             )
 
         # === STEP 5: Validate return type ===
         # The return type must match the spec's output model
         return_type = hints.get("return")
 
-        if return_type != spec.output_model:
+        if return_type != spec.output_schema:
             raise TypeError(
                 f"Tool '{spec.name}' return type mismatch.\n"
-                f"Expected: {spec.output_model.__name__}\n"
+                f"Expected: {spec.output_schema.__name__}\n"
                 f"Got: {return_type.__name__ if return_type else 'missing type hint'}\n"
-                f"Fix: Add return type: def {func.__name__}(...) -> {spec.output_model.__name__}"
+                f"Fix: Add return type: def {func.__name__}(...) -> {spec.output_schema.__name__}"
             )
 
         # === STEP 6: Create error-handling wrappers ===
@@ -277,8 +272,8 @@ def bind_tool(spec):
             name=spec.name,
             description=spec.description,
             func=wrapper,  # Use wrapped version for error handling
-            input_schema=spec.input_model,
-            output_schema=spec.output_model,
+            input_schema=spec.input_schema,
+            output_schema=spec.output_schema,
             example=spec.examples[0] if spec.examples else None,
         )
 

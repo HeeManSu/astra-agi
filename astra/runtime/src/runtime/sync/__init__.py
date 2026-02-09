@@ -5,6 +5,7 @@ Provides tool synchronization functions.
 """
 
 from runtime.sync.tool_sync import (
+    SyncReport,
     bump_version,
     compute_tool_hash,
     sync_local_tools,
@@ -13,6 +14,7 @@ from runtime.sync.tool_sync import (
 
 
 __all__ = [
+    "SyncReport",
     "bump_version",
     "compute_tool_hash",
     "sync_local_tools",

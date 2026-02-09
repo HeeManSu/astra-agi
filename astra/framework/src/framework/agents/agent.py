@@ -11,6 +11,7 @@ The Agent class is the core abstraction for creating AI agents. It supports:
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+import json
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -28,7 +29,6 @@ from framework.storage.client import StorageClient
 
 if TYPE_CHECKING:
     from framework.code_mode.semantic import EntitySemanticLayer
-    from framework.code_mode.tool_registry import ToolRegistry
 
 
 class Agent:
@@ -60,9 +60,7 @@ class Agent:
         tools: list[Any] | None = None,
         code_mode: bool = True,
         storage: StorageClient | None = None,
-        # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
-        # rag_pipeline: Any | None = None,
-        # rag_pipelines: dict[str, Any] | None = None,
+        rag_pipeline: Any | None = None,
         memory: Memory | None = None,
         max_retries: int = 3,
         temperature: float = 0.7,
@@ -79,9 +77,10 @@ class Agent:
             name: Agent name (required)
             id: Optional agent ID (auto-generated if not provided)
             description: Optional agent description
-            tools: Optional list of tools
+            tools: Optional list of tools (local functions or MCPToolSource instances)
             code_mode: Whether to enable code mode (default: True)
             storage: Optional storage backend
+            rag_pipeline: Optional Rag instance for RAG capabilities
             memory: Optional memory configuration
             max_retries: Maximum retry attempts for failed requests (default: 3)
             temperature: Sampling temperature for model responses (default: 0.7)
@@ -100,17 +99,12 @@ class Agent:
         self.tools = tools
         self.code_mode = code_mode
 
-        # Lazy-initialized (cached after first access)
-        self._semantic_layer: EntitySemanticLayer | None = None
-        self._tool_registry: ToolRegistry | None = None
-
         # Memory & Storage
         self.memory = memory or Memory()
         self.storage = storage
 
-        # @TODO: Himanshu. RAG support disabled for V1 release. Will be enabled later.
-        # self.rag_pipeline = rag_pipeline
-        # self.rag_pipelines = rag_pipelines or {}
+        # RAG Support
+        self.rag_pipeline = rag_pipeline
 
         # Execution config
         self.timeout = 60.0
@@ -185,63 +179,68 @@ class Agent:
     def provider_type(self) -> str:
         return "AGENT"
 
-    @property
-    def semantic_layer(self) -> EntitySemanticLayer:
+    def build_semantic_layer(
+        self, tool_definitions: dict[str, Any] | None = None
+    ) -> EntitySemanticLayer:
         """
-        Get the semantic layer for this agent. Lazily initialized.
+        Build the semantic layer for this agent.
 
-        The semantic layer is a structured representation of all tools
-        available for this agent. It's used to generate Python stubs.
+        This builds a structured representation of all tools (local + MCP)
+        available for this agent. It's used to:
+        1. Generate Python stubs for the LLM
+        2. Build the tool map for sandbox execution
+
+        Args:
+            tool_definitions: Optional dict of ToolDefinition objects from DB.
+                              If provided, MCP tools are included from DB.
+                              Keys are slugs, values are ToolDefinition objects.
+
+        Returns:
+            EntitySemanticLayer with all tools
         """
-        if self._semantic_layer is None:
-            from framework.code_mode.semantic import (
-                build_domain_schema,
-                build_entity_semantic_layer,
-            )
+        from framework.code_mode.semantic import (
+            build_domain_schema,
+            build_entity_semantic_layer,
+            build_mcp_domain_schema,
+        )
+        from framework.tool import Tool
+        from framework.tool.mcp.toolkit import MCPToolkit
 
-            # Build single domain for the agent
-            domain = build_domain_schema(
-                id=self.name.lower().replace(" ", "_").replace("-", "_"),
-                name=self.name,
-                description=self.description,
-                tools=self.tools or [],
-            )
+        # Separate local tools and MCP toolkits
+        local_tools: list[Tool] = []
+        mcp_toolkits: list[MCPToolkit] = []
 
-            self._semantic_layer = build_entity_semantic_layer(
-                provider_id=self.id,
-                provider_name=self.name,
-                provider_description=self.description or f"Agent: {self.name}",
-                provider_instructions=self.instructions,
-                domains=[domain],
-                metadata={"is_agent": True},
-            )
-            with open("semantic_agent_layer.json", "w") as f:
-                import json
+        for t in self.tools or []:
+            if isinstance(t, Tool):
+                local_tools.append(t)
+            elif isinstance(t, MCPToolkit):
+                mcp_toolkits.append(t)
 
-                f.write(json.dumps(self._semantic_layer.to_dict(), indent=2, ensure_ascii=False))
-            print("Semantic layer generated in the file semantic_agent_layer.json")
-        return self._semantic_layer
+        # Build domain for the agent with local tools
+        domain = build_domain_schema(
+            id=self.name.lower().replace(" ", "_").replace("-", "_"),
+            name=self.name,
+            description=self.description,
+            tools=local_tools,
+        )
 
-    @property
-    def tool_registry(self) -> ToolRegistry:
-        """
-        Get the tool registry for this agent. Lazily initialized.
+        # Add MCP tools as additional domains (using shared builder)
+        mcp_domains = []
+        for mcp in mcp_toolkits:
+            mcp_domain = build_mcp_domain_schema(mcp.name, tool_definitions)
+            if mcp_domain:
+                mcp_domains.append(mcp_domain)
 
-        Maps "agent_id.tool_name" to Tool objects for lookup and execution.
-        """
-        if self._tool_registry is None:
-            from framework.code_mode.tool_registry import ToolRegistry
+        all_domains = [domain, *mcp_domains]
 
-            self._tool_registry = ToolRegistry()
-
-            # Generate agent_id matching semantic layer's class_id
-            agent_id = self.name.lower().replace(" ", "_").replace("-", "_")
-            agent_tools = self.tools or []
-
-            for tool in agent_tools:
-                self._tool_registry.register(agent_id, tool)
-
-        return self._tool_registry
+        return build_entity_semantic_layer(
+            provider_id=self.id,
+            provider_name=self.name,
+            provider_description=self.description or f"Agent: {self.name}",
+            provider_instructions=self.instructions,
+            domains=all_domains,
+            metadata={"is_agent": True, "mcp_count": len(mcp_toolkits)},
+        )
 
     async def get_history(self, thread_id: str) -> list[dict[str, Any]]:
         """
@@ -251,6 +250,182 @@ class Agent:
             return await self.memory.get_context(thread_id, self.storage)
         return []
 
+    # RAG Support Methods
+    def _create_retrieve_evidence_tool(self, name_suffix: str = "") -> Any | None:
+        """Create retrieve_evidence tool for RAG.
+
+        When an agent is created with rag_pipeline, this method auto-generates
+        a `retrieve_evidence` tool that queries the knowledge base.
+
+        Args:
+            name_suffix: Optional suffix for tool name (used for multi-RAG)
+
+        Returns:
+            A Tool instance or None if no RAG pipeline configured
+        """
+        from pydantic import BaseModel, Field
+
+        from framework.tool import Tool
+
+        rag_pipeline = self.rag_pipeline
+        if not rag_pipeline:
+            return None
+
+        max_results = getattr(rag_pipeline, "max_results", 10)
+        tool_name = f"retrieve_evidence{f'_{name_suffix}' if name_suffix else ''}"
+        tool_description = f"Retrieve evidence from {'the ' + name_suffix + ' ' if name_suffix else ''}knowledge base to support your reasoning."
+
+        # Define Pydantic schemas
+        class RetrieveEvidenceInput(BaseModel):
+            """Input for retrieve_evidence tool."""
+
+            query: str = Field(..., description="What evidence do you need?")
+            limit: int = Field(default=10, description="Maximum number of results to return")
+
+        class RetrieveEvidenceOutput(BaseModel):
+            """Output for retrieve_evidence tool."""
+
+            result: str = Field(..., description="JSON string of evidence or error")
+
+        async def retrieve_evidence_fn(input_data: RetrieveEvidenceInput) -> RetrieveEvidenceOutput:
+            """Retrieve evidence to support reasoning."""
+            try:
+                effective_limit = min(input_data.limit, max_results)
+
+                # Use query() for Rag
+                results = await rag_pipeline.query(
+                    query=input_data.query,
+                    top_k=effective_limit,
+                )
+
+                if not results:
+                    return RetrieveEvidenceOutput(result="No relevant evidence found.")
+
+                # Format as evidence
+                evidence = [
+                    {
+                        "content": getattr(doc, "content", str(doc)),
+                        "source": getattr(doc, "source", None) or getattr(doc, "name", "unknown"),
+                        "metadata": getattr(doc, "metadata", {}),
+                    }
+                    for doc in results
+                ]
+
+                return RetrieveEvidenceOutput(result=json.dumps(evidence, indent=2))
+            except Exception as e:
+                return RetrieveEvidenceOutput(result=f"Error retrieving evidence: {e!s}")
+
+        return Tool(
+            name=tool_name,
+            description=tool_description,
+            func=retrieve_evidence_fn,
+            input_schema=RetrieveEvidenceInput,
+            output_schema=RetrieveEvidenceOutput,
+        )
+
+    async def ingest(
+        self,
+        path: str | None = None,
+        url: str | None = None,
+        text: str | None = None,
+        name: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        """Ingest content into the agent's RAG knowledge base.
+
+        This is a convenience passthrough to rag_pipeline.ingest().
+        Allows ingestion without needing a separate reference to the pipeline.
+
+        Args:
+            path: File path to ingest
+            url: URL to fetch and ingest
+            text: Raw text to ingest
+            name: Name for the content
+            metadata: Additional metadata
+
+        Returns:
+            Content ID
+
+        Raises:
+            ValueError: If no rag_pipeline is configured
+
+        Example:
+            agent = Agent(..., rag_pipeline=rag)
+            await agent.ingest(text="Python is...", name="Python Guide")
+            response = await agent.invoke("What is Python?")
+        """
+        if not self.rag_pipeline:
+            raise ValueError("No rag_pipeline configured. Cannot ingest.")
+
+        return await self.rag_pipeline.ingest(
+            path=path,
+            url=url,
+            text=text,
+            name=name,
+            metadata=metadata,
+        )
+
+    async def ingest_batch(self, items: list[dict[str, Any]]) -> list[str]:
+        """Ingest multiple documents in batch.
+
+        This is a convenience passthrough to rag_pipeline.ingest_batch().
+
+        Args:
+            items: List of dicts with keys: path, url, text, name, metadata
+
+        Returns:
+            List of content IDs
+
+        Raises:
+            ValueError: If no rag_pipeline is configured
+
+        Example:
+            agent = Agent(..., rag_pipeline=rag)
+            ids = await agent.ingest_batch([
+                {"text": "Python is...", "name": "Python Guide"},
+                {"path": "./doc.txt", "name": "Documentation"},
+            ])
+        """
+        if not self.rag_pipeline:
+            raise ValueError("No rag_pipeline configured. Cannot ingest.")
+
+        return await self.rag_pipeline.ingest_batch(items)
+
+    async def ingest_directory(
+        self,
+        directory: str,
+        pattern: str = "*.txt",
+        recursive: bool = False,
+    ) -> list[str]:
+        """Ingest all files from a directory.
+
+        This is a convenience passthrough to rag_pipeline.ingest_directory().
+
+        Args:
+            directory: Directory path
+            pattern: Glob pattern for file matching
+            recursive: Whether to search recursively
+
+        Returns:
+            List of content IDs
+
+        Raises:
+            ValueError: If no rag_pipeline is configured
+
+        Example:
+            agent = Agent(..., rag_pipeline=rag)
+            ids = await agent.ingest_directory("./docs", pattern="*.md", recursive=True)
+        """
+        if not self.rag_pipeline:
+            raise ValueError("No rag_pipeline configured. Cannot ingest.")
+
+        return await self.rag_pipeline.ingest_directory(
+            directory=directory,
+            pattern=pattern,
+            recursive=recursive,
+        )
+
+    # Code Mode Methods
     def get_stubs(self) -> str:
         """
         Generate Python stubs for this agent's tools.
@@ -274,11 +449,7 @@ class Agent:
         """
         from framework.code_mode.stub_generator import generate_stubs
 
-        generated_stubs = generate_stubs(self.semantic_layer)
-        with open("stubs.txt", "w") as f:
-            f.write(generated_stubs)
-        print("Generated stubs saved in the file stubs.txt")
-        return generated_stubs
+        return generate_stubs(self.build_semantic_layer())
 
     async def generate_code(self, user_query: str) -> str:
         """
@@ -469,9 +640,6 @@ class Agent:
         # Generate code first
         try:
             code = await sandbox.generate_code(query, context=context)
-            with open("generated_code.txt", "w") as f:
-                f.write(code)
-            print("Generated code saved in the file generated_code.py")
             yield StreamEvent(
                 event_type="code_generated",
                 data={
@@ -533,7 +701,6 @@ class Agent:
             import traceback
 
             tb = traceback.format_exc()
-            print(f"Execution error: {e}\n{tb}")
             yield StreamEvent(
                 event_type="error", data={"message": f"Execution error: {e}", "traceback": tb}
             )

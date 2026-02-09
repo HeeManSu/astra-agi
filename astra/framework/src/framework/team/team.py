@@ -30,7 +30,6 @@ from framework.storage.client import StorageClient
 
 if TYPE_CHECKING:
     from framework.code_mode.semantic import EntitySemanticLayer
-    from framework.code_mode.tool_registry import ToolRegistry
 
 
 # EXCEPTIONS
@@ -166,9 +165,6 @@ class Team:
         # Middlewares (unified list - stages determine when they run)
         self.middlewares = middlewares or []
 
-        # Lazy-initialized semantic layer (cached after first access)
-        self._semantic_layer: EntitySemanticLayer | None = None
-
         _init_end = time.perf_counter()
         _init_end = time.perf_counter()
 
@@ -235,56 +231,88 @@ class Team:
     def provider_type(self) -> str:
         return "TEAM"
 
-    @property
-    def semantic_layer(self) -> EntitySemanticLayer:
+    def build_semantic_layer(
+        self, tool_definitions: dict[str, Any] | None = None
+    ) -> EntitySemanticLayer:
         """
-        Get the semantic layer for this team. Lazily initialized.
+        Build the semantic layer for this team.
 
-        The semantic layer is a structured representation of all tools
+        This builds a structured representation of all tools (local + MCP)
         available across team members. It's used to:
         1. Generate Python stubs for the LLM
         2. Build the tool map for sandbox execution
+
+        Args:
+            tool_definitions: Optional dict of ToolDefinition objects from DB.
+                              If provided, MCP tools are included from DB.
+                              Keys are slugs, values are ToolDefinition objects.
+
+        Returns:
+            EntitySemanticLayer with all tools from all members
         """
-        if self._semantic_layer is None:
-            from framework.code_mode.semantic import build_entity_semantic_layer
+        from framework.code_mode.semantic import build_entity_semantic_layer
 
-            _sem_start = time.perf_counter()
+        # Build domains from members (including MCP tools)
+        domains = self._build_semantic_domains(tool_definitions)
 
-            # Build domains from members
-            domains = self._build_semantic_domains()
+        return build_entity_semantic_layer(
+            provider_id=self.id,
+            provider_name=self.name,
+            provider_description=self.description,
+            provider_instructions=self.instructions,
+            domains=domains,
+            metadata={"is_team": True, "member_count": len(self.members)},
+        )
 
-            self._semantic_layer = build_entity_semantic_layer(
-                provider_id=self.id,
-                provider_name=self.name,
-                provider_description=self.description,
-                provider_instructions=self.instructions,
-                domains=domains,
-            )
-
-            _sem_end = time.perf_counter()
-        return self._semantic_layer
-
-    def _build_semantic_domains(self) -> list[Any]:
+    def _build_semantic_domains(self, tool_definitions: dict[str, Any] | None = None) -> list[Any]:
         """
         Recursively build domain schemas from team members.
+
+        Args:
+            tool_definitions: Optional dict of ToolDefinition objects from DB.
         """
-        from framework.code_mode.semantic import build_domain_schema
+        from framework.code_mode.semantic import (
+            build_domain_schema,
+            build_mcp_domain_schema,
+        )
+        from framework.tool import Tool
+        from framework.tool.mcp.toolkit import MCPToolkit
 
         domains = []
         for member in self.members:
             agent_or_team = member.agent
             if isinstance(agent_or_team, Agent):
-                # Agent becomes a domain
+                # Separate local tools and MCP toolkits
+                local_tools: list[Tool] = []
+                mcp_toolkits: list[MCPToolkit] = []
+
+                for t in agent_or_team.tools or []:
+                    if isinstance(t, Tool):
+                        local_tools.append(t)
+                    elif isinstance(t, MCPToolkit):
+                        mcp_toolkits.append(t)
+
+                # Agent becomes a domain with local tools
                 domain = build_domain_schema(
                     id=member.name.lower().replace(" ", "_").replace("-", "_"),
                     name=member.name,
                     description=member.description or agent_or_team.description,
-                    tools=agent_or_team.tools or [],
+                    tools=local_tools,
                 )
                 domains.append(domain)
+
+                # Add MCP tools as additional domains
+                for mcp in mcp_toolkits:
+                    mcp_tool_definitions = mcp.get_tool_definitions(tool_definitions)
+                    if not mcp_tool_definitions:
+                        continue
+                    mcp_domain = build_mcp_domain_schema(mcp.name, mcp_tool_definitions)
+                    if mcp_domain:
+                        domains.append(mcp_domain)
+
             elif isinstance(agent_or_team, Team):
                 # Nested team: recursively build and merge domains
-                nested_domains = agent_or_team._build_semantic_domains()
+                nested_domains = agent_or_team._build_semantic_domains(tool_definitions)
                 domains.extend(nested_domains)
 
         return domains
@@ -319,30 +347,6 @@ class Team:
 
         _recurse(self.members)
         return flat
-
-    @property
-    def tool_registry(self) -> ToolRegistry:
-        """Get the tool registry for this team. Lazily initialized.
-
-        Maps "agent_id.tool_name" to Tool objects for lookup and execution.
-
-        Returns:
-            ToolRegistry with all tools from flat_members
-        """
-        if not hasattr(self, "_tool_registry") or self._tool_registry is None:
-            from framework.code_mode.tool_registry import ToolRegistry
-
-            self._tool_registry = ToolRegistry()
-
-            for member in self.flat_members:
-                # Generate agent_id matching semantic layer's class_id
-                agent_id = member.name.lower().replace(" ", "_").replace("-", "_")
-                agent_tools = getattr(member.agent, "tools", []) or []
-
-                for tool in agent_tools:
-                    self._tool_registry.register(agent_id, tool)
-
-        return self._tool_registry
 
     async def get_history(self, thread_id: str) -> list[dict[str, Any]]:
         """
@@ -505,6 +509,9 @@ class Team:
                 },
             )
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()  # Always print full traceback for debugging
             yield StreamEvent(event_type="error", data={"message": f"Error generating code: {e}"})
             return
 

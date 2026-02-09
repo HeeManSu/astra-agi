@@ -30,8 +30,8 @@ class GetStockPriceOutput(BaseModel):
 GET_STOCK_PRICE_SPEC = ToolSpec(
     name="get_stock_price",
     description="Get the current stock price for a given symbol",
-    input_model=GetStockPriceInput,
-    output_model=GetStockPriceOutput,
+    input_schema=GetStockPriceInput,
+    output_schema=GetStockPriceOutput,
     examples=[
         {
             "input": {"symbol": "AAPL"},
@@ -87,8 +87,8 @@ class GetMarketNewsOutput(BaseModel):
 GET_MARKET_NEWS_SPEC = ToolSpec(
     name="get_market_news",
     description="Get the latest market news headlines for a specific sector",
-    input_model=GetMarketNewsInput,
-    output_model=GetMarketNewsOutput,
+    input_schema=GetMarketNewsInput,
+    output_schema=GetMarketNewsOutput,
     examples=[
         {
             "input": {"sector": "technology"},

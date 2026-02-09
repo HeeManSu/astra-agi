@@ -95,8 +95,8 @@ PRODUCT_SPEC = ToolSpec(
         "Use this when you need detailed information about a specific product by ASIN. "
         "Ideal for competitive analysis, product research, and pricing intelligence."
     ),
-    input_model=ProductInput,
-    output_model=DictOutput,
+    input_schema=ProductInput,
+    output_schema=DictOutput,
     examples=[
         {
             "input": {"asin": "B00AP877FS", "domain": "com"},
@@ -161,8 +161,8 @@ SEARCH_SPEC = ToolSpec(
         "analyzing market landscape, identifying top competitors, and finding trending products. "
         "Returns paginated results for thorough market exploration."
     ),
-    input_model=SearchInput,
-    output_model=ListOutput,
+    input_schema=SearchInput,
+    output_schema=ListOutput,
     examples=[
         {
             "input": {"query": "spoon", "domain": "com", "page": 1},
@@ -251,8 +251,8 @@ AUTOCOMPLETE_SPEC = ToolSpec(
         "discovering long-tail keywords, identifying seasonal trends, optimizing product listings, "
         "and uncovering untapped market opportunities."
     ),
-    input_model=AutocompleteInput,
-    output_model=ListOutput,
+    input_schema=AutocompleteInput,
+    output_schema=ListOutput,
     examples=[
         {
             "input": {"prefix": "spoon"},
@@ -304,8 +304,8 @@ OFFERS_SPEC = ToolSpec(
         "Crucial for competitive pricing strategy, identifying Buy Box opportunities, monitoring competitor pricing, "
         "and supplier discovery."
     ),
-    input_model=OffersInput,
-    output_model=DictOutput,
+    input_schema=OffersInput,
+    output_schema=DictOutput,
     examples=[
         {
             "input": {"asin": "B0CHX3QBCH", "domain": "in"},

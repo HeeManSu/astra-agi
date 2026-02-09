@@ -28,8 +28,8 @@ class CalculateRiskScoreOutput(BaseModel):
 CALCULATE_RISK_SCORE_SPEC = ToolSpec(
     name="calculate_risk_score",
     description="Calculate the risk score of a given portfolio allocation",
-    input_model=CalculateRiskScoreInput,
-    output_model=CalculateRiskScoreOutput,
+    input_schema=CalculateRiskScoreInput,
+    output_schema=CalculateRiskScoreOutput,
     examples=[
         {
             "input": {"portfolio_allocation": '{"AAPL": 0.5, "GOOGL": 0.5}'},
@@ -78,8 +78,8 @@ class GenerateInvestmentThesisOutput(BaseModel):
 GENERATE_INVESTMENT_THESIS_SPEC = ToolSpec(
     name="generate_investment_thesis",
     description="Generate a formatted investment thesis document",
-    input_model=GenerateInvestmentThesisInput,
-    output_model=GenerateInvestmentThesisOutput,
+    input_schema=GenerateInvestmentThesisInput,
+    output_schema=GenerateInvestmentThesisOutput,
     examples=[
         {
             "input": {"symbol": "AAPL", "recommendation": "Buy"},
@@ -134,8 +134,8 @@ class BacktestStrategyOutput(BaseModel):
 BACKTEST_STRATEGY_SPEC = ToolSpec(
     name="backtest_strategy",
     description="Run a simulation backtest for a given investment strategy",
-    input_model=BacktestStrategyInput,
-    output_model=BacktestStrategyOutput,
+    input_schema=BacktestStrategyInput,
+    output_schema=BacktestStrategyOutput,
     examples=[
         {
             "input": {"strategy_name": "Momentum", "duration_months": 12},

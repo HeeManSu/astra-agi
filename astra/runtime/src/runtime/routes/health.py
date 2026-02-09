@@ -1,9 +1,16 @@
 """Health check routes."""
 
 from fastapi import APIRouter
+from fastapi.responses import Response
 
 
 router = APIRouter(tags=["health"])
+
+
+@router.options("/health")
+async def health_options():
+    """CORS preflight for health check."""
+    return Response(status_code=200)
 
 
 @router.get("/health")

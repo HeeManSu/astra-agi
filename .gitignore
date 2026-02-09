@@ -31,6 +31,10 @@ dist/
 astra_landing_page/
 astra-cloud/
 astra/runtime/.debug/
-
+limca_db/
 
 projects/
+
+astra/benchmarks/
+
+.claude/

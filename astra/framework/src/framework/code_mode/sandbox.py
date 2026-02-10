@@ -109,6 +109,7 @@ def synthesize_response(message):   # (message:str -> message)
     print(json.dumps(request), flush=True)
     sys.exit(0)
 
+
 '''
 
 
@@ -173,7 +174,70 @@ class Sandbox:
         """
         self.provider = provider
         self.model = provider.model
-        # Tool registry is accessed via team.tool_registry (lazily built)
+        self._tool_map: dict[str, Any] | None = None  # Lazy-built tool lookup
+        self._semantic_layer: Any = (
+            None  # Stored after build_semantic_layer() with tool_definitions
+        )
+
+    def _build_tool_map(self) -> dict[str, Any]:
+        """Build a tool lookup map from provider's tools.
+
+        Maps "agent_id.tool_name" to Tool objects for local tools.
+        Stores MCPToolkit objects separately in _mcp_toolkits dict.
+
+        For Agents: uses provider.tools directly
+        For Teams: iterates through flat_members to get each agent's tools
+        """
+        from framework.tool import Tool
+        from framework.tool.mcp.toolkit import MCPToolkit
+
+        tool_map: dict[str, Any] = {}
+
+        def register_tools(tools: list, agent_id: str) -> None:
+            """Register tools from a list (local or MCP)."""
+            nonlocal tool_map
+            for tool in tools:
+                if isinstance(tool, Tool):
+                    # Local tool
+                    qualified_name = f"{agent_id}.{tool.name}"
+                    tool_map[qualified_name] = tool
+                elif isinstance(tool, MCPToolkit):
+                    # MCP toolkit - store with SANITIZED name to match call_tool routing
+                    # e.g., "brave-search" -> "brave_search"
+                    mcp_id = tool.name.lower().replace("-", "_").replace(" ", "_")
+                    if mcp_id not in tool_map:
+                        # Store as ("MCP", toolkit) tuple to distinguish from local tools
+                        tool_map[mcp_id] = ("MCP", tool)
+
+        if self.provider.provider_type == "AGENT":
+            # Agent: use provider's tools directly
+            semantic = self._semantic_layer or self.provider.build_semantic_layer()
+            agent_id = semantic.provider_name.lower().replace(" ", "_").replace("-", "_")
+            tools = getattr(self.provider, "tools", None) or []
+            register_tools(tools, agent_id)
+        else:
+            # Team: iterate through member agents
+            flat_members = getattr(self.provider, "flat_members", [])
+            for member in flat_members:
+                agent = member.agent
+                agent_id = member.name.lower().replace(" ", "_").replace("-", "_")
+                tools = getattr(agent, "tools", None) or []
+                register_tools(tools, agent_id)
+
+        return tool_map
+
+    def _get_tool(self, qualified_name: str) -> Any | None:
+        """Look up a tool by qualified name.
+
+        Args:
+            qualified_name: Full tool name (e.g., "market_analyst.get_stock_price")
+
+        Returns:
+            Tool if found, None otherwise
+        """
+        if self._tool_map is None:
+            self._tool_map = self._build_tool_map()
+        return self._tool_map.get(qualified_name)
 
     # PUBLIC API
     # The Sandbox has 3 public methods:
@@ -193,20 +257,17 @@ class Sandbox:
     ) -> SandboxResult:
         """Generate code from a user query, execute it, and format the response.
 
-        This is the simplest way to use the sandbox - just pass a query and get results.
-        Under the hood, it does three things:
-            1. Asks the LLM to generate Python code based on the query
-            2. Runs that code in an isolated subprocess
-            3. Formats the raw JSON output into a human-readable response
+        This is a single-shot execution: the LLM generates code once, executes it,
+        and returns the result via synthesize_response().
 
         Example:
             >>> sandbox = Sandbox(team)
-            >>> result = await sandbox.run("What is Apple's stock price?")
-            >>> print(result.formatted_output)  # "Apple (AAPL) is trading at $150.25..."
+            >>> result = await sandbox.run("Get Apple stock price")
+            >>> print(result.formatted_output)
 
         Args:
-            user_query: What the user wants to do (e.g., "Get stock price for AAPL")
-            timeout: How long to wait before killing the subprocess (default: 60 seconds)
+            user_query: What the user wants to do (e.g., "Get stock price")
+            timeout: How long to wait for execution (default: 60 seconds)
             thread_id: Optional thread ID for loading conversation history
             context: Optional runtime context (e.g., store_id, user_tier) to pass to the LLM
 
@@ -215,21 +276,30 @@ class Sandbox:
                 - output: Raw JSON result
                 - formatted_output: Human-readable response
                 - success: True if code ran without errors
-                - tool_calls: List of tools that were called
-                - stderr: Any error messages (for debugging)
+                - tool_calls: List of tools called during execution
         """
-        # Step 1: Ask LLM to generate Python code
-        code = await self.generate_code(user_query, thread_id=thread_id, context=context)
+        from observability import LogLevel, log, span
 
-        # Step 2: Run the generated code in an isolated subprocess
-        result = await self.execute(code, timeout=timeout)
-        result.generated_code = code
+        async with span("sandbox.run"):
+            # Step 1: Generate code from user query
+            await log(LogLevel.INFO, "Generating code from user query")
+            code = await self.generate_code(
+                user_query,
+                thread_id=thread_id,
+                context=context,
+            )
+            save_debug_artifact("generated_code.py", code)
 
-        # Step 3: Format the response into human-readable text
-        if result.success and result.output:
-            result.formatted_output = await self.format_response(user_query, result.output)
+            # Step 2: Execute the generated code
+            await log(LogLevel.INFO, "Executing generated code")
+            result = await self.execute(code, timeout=timeout)
+            result.generated_code = code
 
-        return result
+            # Step 3: Format the response into human-readable text
+            if result.success and result.output:
+                result.formatted_output = await self.format_response(user_query, result.output)
+
+            return result
 
     async def format_response(self, user_query: str, raw_output: str) -> str:
         """Convert raw JSON tool results into a human-readable response.
@@ -249,7 +319,7 @@ class Sandbox:
             Human-readable formatted response
         """
         # Use semantic layer for metadata
-        semantic = self.provider.semantic_layer
+        semantic = self._semantic_layer or self.provider.build_semantic_layer()
 
         # Escape curly braces in JSON to prevent .format() from interpreting them as placeholders
         # JSON uses {} for objects, but .format() uses {} for variable substitution. @TODO: review it properly
@@ -289,7 +359,10 @@ class Sandbox:
             return content.strip()
 
     async def generate_code(
-        self, user_query: str, thread_id: str | None = None, context: dict[str, Any] | None = None
+        self,
+        user_query: str,
+        thread_id: str | None = None,
+        context: dict[str, Any] | None = None,
     ) -> str:
         """Ask the LLM to generate Python code based on a user query.
 
@@ -316,10 +389,17 @@ class Sandbox:
         from observability import LogLevel, log, span, update_span
 
         async with span("code_generation"):
-            # Step 1: Get the semantic layer
+            # Step 1: Get the semantic layer (with tool_definitions from context if available)
             async with span("semantic_layer.build"):
                 await log(LogLevel.INFO, "Building semantic layer")
-                semantic_layer = self.provider.semantic_layer
+                # Use build_semantic_layer with tool_definitions for MCP tool support
+                tool_definitions = context.get("tool_definitions") if context else None
+                if hasattr(self.provider, "build_semantic_layer"):
+                    semantic_layer = self.provider.build_semantic_layer(tool_definitions)
+                    self._semantic_layer = semantic_layer  # Store for use in _build_full_code()
+                # else:
+                #     # Fallback for providers that don't have build_semantic_layer
+                #     semantic_layer = self.provider.semantic_layer
                 agent_count = len(semantic_layer.domains)
                 total_tools = sum(len(d.tools) for d in semantic_layer.domains)
                 await log(
@@ -383,11 +463,21 @@ class Sandbox:
             ):
                 await log(LogLevel.INFO, "Building prompt")
 
-                # Format runtime context
+                # Format runtime context (exclude tool_definitions - stubs already provide that)
                 runtime_context_str = ""
                 if context:
-                    runtime_context_str = "\n".join([f"- {k}: {v}" for k, v in context.items()])
-                    await log(LogLevel.DEBUG, f"Runtime context keys: {list(context.keys())}")
+                    filtered_context = {
+                        key: value for key, value in context.items() if key != "tool_definitions"
+                    }
+                    if filtered_context:
+                        runtime_context_str = "\n".join(
+                            [f"- {key}: {value}" for key, value in filtered_context.items()]
+                        )
+                        await log(
+                            LogLevel.DEBUG, f"Runtime context keys: {list(filtered_context.keys())}"
+                        )
+                    else:
+                        runtime_context_str = "No additional runtime context provided."
                 else:
                     runtime_context_str = "No additional runtime context provided."
 
@@ -597,7 +687,9 @@ class Sandbox:
         # These make agent.tool() calls work by routing them to call_tool()
         # Example: market_analyst.get_stock_price('AAPL')
         #          -> call_tool("market_analyst.get_stock_price", symbol="AAPL")
-        runtime_stubs = generate_runtime_stubs(self.provider.semantic_layer)
+        # Use stored semantic layer (with tool_definitions) if available, else build fresh
+        semantic_layer = self._semantic_layer or self.provider.build_semantic_layer()
+        runtime_stubs = generate_runtime_stubs(semantic_layer)
         parts.append(runtime_stubs)
 
         # Part 3: LLM Generated Code
@@ -635,6 +727,7 @@ class Sandbox:
         """
         output_lines: list[str] = []
         tool_calls: list[dict[str, Any]] = []
+        tool_results_for_debug: list[dict[str, Any]] = []
         final_response: str | None = None
 
         assert proc.stdout is not None
@@ -669,8 +762,30 @@ class Sandbox:
                         else:
                             request["result"] = response.get("data")
 
-                        response_json = json.dumps(response) + "\n"
-                        proc.stdin.write(response_json.encode())
+                        # Collect for .debug/tool_results.json
+                        tool_results_for_debug.append(
+                            {
+                                "tool": request.get("name"),
+                                "args": request.get("args"),
+                                "result": response.get("data")
+                                if response.get("type") == "result"
+                                else None,
+                                "error": response.get("message")
+                                if response.get("type") == "error"
+                                else None,
+                            }
+                        )
+
+                        # Save tool results for debugging
+                        try:
+                            os.makedirs(".debug", exist_ok=True)
+                            with open(".debug/tool_results.json", "w") as f:
+                                json.dump(tool_results_for_debug, f, indent=2, default=str)
+                        except Exception:
+                            pass
+
+                        # Send response back to subprocess
+                        proc.stdin.write((json.dumps(response) + "\n").encode("utf-8"))
                         await proc.stdin.drain()
 
                     elif msg_type == "synthesize":
@@ -708,6 +823,10 @@ class Sandbox:
             )
         else:
             await log(LogLevel.ERROR, f"Sandbox execution failed with exit code: {proc.returncode}")
+            if stderr:
+                await log(LogLevel.ERROR, f"Subprocess stderr:\n{stderr}")
+            if output_lines:
+                await log(LogLevel.ERROR, f"Subprocess stdout:\n{chr(10).join(output_lines)}")
 
         # Emit completion event span as requested
         async with span(
@@ -732,6 +851,7 @@ class Sandbox:
         """Execute a tool call and return the result.
 
         Looks up the tool in _tool_map and executes it.
+        Supports both local tools (Tool objects) and MCP tools (MCPToolkit).
 
         Args:
             request: Tool call request with "name" and "args"
@@ -751,9 +871,84 @@ class Sandbox:
 
         module_name, tool_name = parts
 
-        # Look up tool in registry by qualified name (agent_id.tool_name)
+        # First check if module_name is an MCP toolkit
+        mcp_entry = self._get_tool(module_name)
+        is_mcp = isinstance(mcp_entry, tuple) and len(mcp_entry) == 2 and mcp_entry[0] == "MCP"
+
+        if is_mcp:
+            # MCP tool execution
+            assert mcp_entry is not None  # Guaranteed by is_mcp check above
+            _, mcp_toolkit = mcp_entry
+            # Use tool_name as-is - runtime stubs already provide original names
+
+            async with span(
+                f"tool.{tool_name}",
+                kind=SpanKind.TOOL,
+                attributes={
+                    "tool_name": tool_name,
+                    "tool_qualified_name": f"{module_name}.{tool_name}",
+                    "mcp_toolkit": mcp_toolkit.name,
+                    "args": args,
+                    "execution_type": "mcp",
+                },
+            ):
+                await log(LogLevel.INFO, f"Executing MCP tool: {mcp_toolkit.name}.{tool_name}")
+                await log(LogLevel.DEBUG, f"Tool args: {json.dumps(args)}")
+
+                async with span(
+                    "event.tool_call",
+                    attributes={
+                        "event_type": "tool_call",
+                        "tool": tool_name,
+                        "args": args,
+                        "mcp": True,
+                    },
+                ):
+                    await log(LogLevel.DEBUG, "Emitting SSE event: tool_call")
+
+                try:
+                    # Call MCP tool via toolkit - use tool_name as-is
+                    result = await mcp_toolkit.call_tool(tool_name, **args)
+
+                    # MCP returns string, try to parse as JSON
+                    try:
+                        data = json.loads(result)
+                    except (json.JSONDecodeError, TypeError):
+                        data = {"result": result}
+
+                    await log(LogLevel.INFO, "MCP tool execution completed successfully")
+
+                    async with span(
+                        "event.tool_result",
+                        attributes={
+                            "event_type": "tool_result",
+                            "tool": tool_name,
+                            "success": True,
+                            "mcp": True,
+                        },
+                    ):
+                        await log(LogLevel.DEBUG, "Emitting SSE event: tool_result")
+
+                    return {"type": "result", "data": data}
+
+                except Exception as e:
+                    await log(LogLevel.ERROR, f"MCP tool execution failed: {e!s}")
+                    async with span(
+                        "event.tool_result",
+                        attributes={
+                            "event_type": "tool_result",
+                            "tool": tool_name,
+                            "success": False,
+                            "error": str(e),
+                            "mcp": True,
+                        },
+                    ):
+                        await log(LogLevel.DEBUG, "Emitting SSE event: tool_result (error)")
+                    return {"type": "error", "message": str(e)}
+
+        # Local tool execution
         qualified_name = f"{module_name}.{tool_name}"
-        tool = self.provider.tool_registry.get(qualified_name)
+        tool = self._get_tool(qualified_name)
 
         # Determine execution type safely
         exec_type = "unknown"

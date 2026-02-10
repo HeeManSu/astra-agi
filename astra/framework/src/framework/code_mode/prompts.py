@@ -79,11 +79,21 @@ synthesize_response({{
 - ALWAYS pass ALL arguments marked as (required) explicitly, even if they have defaults
 - Use the default value when user doesn't specify otherwise
 - Call tools in the correct logical order based on the task
-- Store each result in a descriptive variable name
+- **ALWAYS store EVERY tool call result in a variable** - NEVER call a tool without assigning its return value
 - At the END, call synthesize_response() with a dict containing ALL results from the tools that were executed.
 - Do NOT format, summarize, or interpret the data.
   Pass raw tool output dicts to synthesize_response.
   A separate formatting layer will decide what to present to the user.
+
+### COMMON MISTAKES TO AVOID (CRITICAL)
+**WRONG - Missing variable assignment:**
+AgentClass.tool_name(param="value")  # BUG: result is lost!
+synthesize_response({{"data": data}})   # NameError: 'data' not defined
+
+
+**CORRECT - Always assign to a variable:**
+data = AgentClass.tool_name(param="value")  # Captured!
+synthesize_response({{"data": data}})          # Works correctly
 
 ## 4. Control Flow Rules (IMPORTANT)
 
@@ -146,6 +156,22 @@ Rules:
 * No nested control flow
 * No imports
 * No helper functions
+
+### F. JSON Building (CRITICAL)
+When building JSON strings or complex data structures:
+
+**NEVER use f-strings with curly braces for JSON:**
+# WRONG - Will cause SyntaxError due to brace escaping issues
+json_str = f'{{"key": "{{my_var}}"}}'  # DON'T DO THIS!
+
+
+**ALWAYS use Python dicts and json module pattern:**
+
+# CORRECT - Build as dict, the tool will handle serialization
+data = {{"key": my_var, "nested": {{"field": other_var}}}}
+result = ToolClass.some_tool(data=data)
+
+**For tools expecting JSON strings, pass Python dicts directly - they will be serialized automatically.**
 
 ## User Task
 {user_query}
@@ -231,9 +257,19 @@ synthesize_response({{
 - ALWAYS pass ALL arguments marked as (required) explicitly, even if they have defaults
 - Use the default value when user doesn't specify otherwise
 - Call tools in the correct logical order based on the task
-- Store each result in a descriptive variable name
+- **ALWAYS store EVERY tool call result in a variable** - NEVER call a tool without assigning its return value
 - At the END, call synthesize_response() with a dict containing ALL results
 - Do NOT format or interpret the data - pass raw tool outputs
+
+### COMMON MISTAKES TO AVOID (CRITICAL)
+**WRONG - Missing variable assignment:**
+{agent_class}.tool_name(param="value")  # BUG: result is lost!
+synthesize_response({{"data": data}})   # NameError: 'data' not defined
+
+**CORRECT - Always assign to a variable:**
+
+data = {agent_class}.tool_name(param="value")  # Captured!
+synthesize_response({{"data": data}})          # Works correctly
 
 ### 4. Control Flow Rules
 
@@ -258,6 +294,24 @@ synthesize_response({{"error": "<short explanation>"}})
 - No `try/except`
 - No imports
 - No helper functions
+
+### 5. JSON Building (CRITICAL)
+When building JSON strings or complex data structures:
+
+**NEVER use f-strings with curly braces for JSON:**
+
+# WRONG - Will cause SyntaxError due to brace escaping issues
+json_str = f'{{"key": "{{value}}"}}'  # DON'T DO THIS!
+
+
+**ALWAYS use Python dicts:**
+
+# CORRECT - Build as dict, the tool will handle serialization
+data = {{"key": value, "nested": {{"field": other_value}}}}
+result = {agent_class}.some_tool(data=data)
+
+
+**For tools expecting JSON strings, pass Python dicts directly - they will be serialized automatically.**
 
 ## User Task
 {user_query}

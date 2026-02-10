@@ -25,7 +25,7 @@ from astra.runtime.src.runtime.server import AstraServer, TelemetryConfig
 
 
 # Default codebase to index
-DEFAULT_CODEBASE = "https://github.com/agno-agi/agno"
+# DEFAULT_CODEBASE = "https://github.com/agno-agi/agno"
 
 
 server = AstraServer(

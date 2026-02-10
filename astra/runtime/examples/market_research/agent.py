@@ -57,7 +57,7 @@ market_research_agent = Agent(
         amazon_offers_scraper,
         brave_mcp,  # Web/news search
         notion_mcp,  # Store research reports
-        memory_mcp,  # Context memory
+        # memory_mcp,  # Context memory
     ],
     # Middlewares: security + custom transformations
     # middlewares=[

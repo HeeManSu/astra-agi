@@ -448,9 +448,15 @@ def _build_tool_schema(tool: Any) -> ToolSchema:
             output=tool.example.get("output", {}),
         )
 
+    # Defaults from code
+    description = tool.description
+
+    # Note: Tool descriptions can be enriched from cached ToolDefinitions
+    # at the route/request level using per-agent lazy caching.
+
     return ToolSchema(
         name=tool.name,
-        description=tool.description,
+        description=description,
         parameters=params,
         returns=returns,
         example=example,
@@ -524,4 +530,65 @@ def build_entity_semantic_layer(
             "total_domains": len(domains),
             "total_tools": sum(len(d.tools) for d in domains),
         },
+    )
+
+
+def build_mcp_domain_schema(
+    mcp_name: str,
+    tool_definitions: dict[str, Any] | None,
+) -> DomainSchema | None:
+    """
+    Build domain schema for an MCP toolkit from tool_definitions.
+
+    This is used by both Agent and Team to add MCP tools to their semantic layer.
+    MCP tools are fetched from tool_definitions (synced to DB at server startup).
+
+    Args:
+        mcp_name: Name of the MCP toolkit
+        tool_definitions: Dict of ToolDefinition objects from DB (slug -> ToolDef)
+
+    Returns:
+        DomainSchema for the MCP toolkit, or None if no tools found
+    """
+    if not tool_definitions:
+        return None
+
+    mcp_source = f"mcp:{mcp_name}"
+    tool_schemas: list[ToolSchema] = []
+
+    for tool_def in tool_definitions.values():
+        if hasattr(tool_def, "source") and tool_def.source == mcp_source:
+            # Build params from input_schema
+            params: list[ParamSchema] = []
+            if hasattr(tool_def, "input_schema") and tool_def.input_schema:
+                input_schema = tool_def.input_schema
+                props = input_schema.get("properties", {})
+                required = input_schema.get("required", [])
+                for name, prop in props.items():
+                    params.append(
+                        ParamSchema(
+                            name=name,
+                            type=prop.get("type", "any"),
+                            required=name in required,
+                            description=prop.get("description", ""),
+                        )
+                    )
+
+            tool_schemas.append(
+                ToolSchema(
+                    name=tool_def.name,
+                    description=tool_def.description or "",
+                    parameters=params,
+                    returns=ReturnSchema(type="Any", description="MCP tool result"),
+                )
+            )
+
+    if not tool_schemas:
+        return None
+
+    return DomainSchema(
+        id=mcp_name.lower().replace(" ", "_").replace("-", "_"),
+        name=mcp_name,
+        description=f"MCP tools from {mcp_name}",
+        tools=tool_schemas,
     )

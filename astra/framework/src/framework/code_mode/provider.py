@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from framework.code_mode.semantic import EntitySemanticLayer
-    from framework.code_mode.tool_registry import ToolRegistry
     from framework.models.base import Model
 
 
@@ -31,17 +30,18 @@ class CodeModeProvider(Protocol):
         """Type identifier (e.g., 'TEAM', 'AGENT', 'WORKFLOW')."""
         ...
 
-    @property
-    def semantic_layer(self) -> EntitySemanticLayer:
+    def build_semantic_layer(
+        self, tool_definitions: dict[str, Any] | None = None
+    ) -> EntitySemanticLayer:
         """
-        Structured representation of the entity's tools for stub generation.
-        """
-        ...
+        Build the semantic layer with optional tool_definitions enrichment.
 
-    @property
-    def tool_registry(self) -> ToolRegistry:
-        """
-        Mapping of tool names to executable Tool objects.
+        Args:
+            tool_definitions: Optional dict of ToolDefinition objects from DB.
+                              If provided, MCP tools are included from DB.
+
+        Returns:
+            EntitySemanticLayer with all tools
         """
         ...
 

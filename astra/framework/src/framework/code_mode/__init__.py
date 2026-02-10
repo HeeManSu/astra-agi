@@ -18,7 +18,6 @@ from framework.code_mode.semantic import (
     build_entity_semantic_layer,
 )
 from framework.code_mode.stub_generator import generate_stubs
-from framework.code_mode.tool_registry import ToolRegistry
 
 
 __all__ = [
@@ -30,6 +29,4 @@ __all__ = [
     "build_domain_schema",
     "generate_stubs",
     "EntitySemanticLayer",
-    # Tool Registry
-    "ToolRegistry",
 ]

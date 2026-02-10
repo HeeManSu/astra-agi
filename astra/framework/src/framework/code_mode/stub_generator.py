@@ -32,16 +32,28 @@ from framework.code_mode.semantic import (
 )
 
 
+# JSON Schema to Python type mapping
+_JSON_SCHEMA_TYPE_MAP = {
+    "string": "str",
+    "number": "float",
+    "integer": "int",
+    "boolean": "bool",
+    "array": "list",
+    "object": "dict",
+}
+
+
 # Type Normalization
 def _type_to_python(type_str: str) -> str:
     """
     Normalize type strings for Python syntax.
 
+    Handles both Python types and JSON Schema types from MCP tools.
     Pydantic model names (like ValidateOrderOutput) are converted to 'dict'
     because tools return dict objects that can be inspected.
 
     Args:
-        type_str: Type as string from Pydantic schema
+        type_str: Type as string from Pydantic schema or JSON Schema
 
     Returns:
         Normalized Python type string
@@ -49,9 +61,15 @@ def _type_to_python(type_str: str) -> str:
     Examples:
         >>> _type_to_python("str")
         'str'
+        >>> _type_to_python("string")  # JSON Schema
+        'str'
         >>> _type_to_python("ValidateOrderOutput")
         'dict'  # Pydantic models return as dict
     """
+    # JSON Schema types → Python types
+    if type_str in _JSON_SCHEMA_TYPE_MAP:
+        return _JSON_SCHEMA_TYPE_MAP[type_str]
+
     # Primitive types - keep as-is
     primitives = {"str", "int", "float", "bool", "dict", "list", "Any", "None"}
     if type_str in primitives:
@@ -67,6 +85,27 @@ def _type_to_python(type_str: str) -> str:
 
     # Pydantic model names (e.g., ValidateOrderOutput) → tools return dict
     return "dict"
+
+
+def _sanitize_identifier(name: str) -> str:
+    """
+    Sanitize a name to be a valid Python identifier.
+
+    Converts dashes to underscores (common in MCP tool names).
+
+    Args:
+        name: Original name (e.g., 'append-blocks')
+
+    Returns:
+        Valid Python identifier (e.g., 'append_blocks')
+
+    Examples:
+        >>> _sanitize_identifier("get-block")
+        'get_block'
+        >>> _sanitize_identifier("get_stock_price")
+        'get_stock_price'
+    """
+    return name.replace("-", "_")
 
 
 # Parameter Formatting
@@ -239,6 +278,9 @@ def _generate_tool_stub(domain_id: str, tool: ToolSchema) -> str:
     """
     lines = []
 
+    # Sanitize tool name for Python (e.g., 'get-block' -> 'get_block')
+    method_name = _sanitize_identifier(tool.name)
+
     # Build parameter list
     parameters = tool.parameters
     params = [_format_param_signature(param) for param in parameters]
@@ -248,11 +290,11 @@ def _generate_tool_stub(domain_id: str, tool: ToolSchema) -> str:
         # Short param list - single line
         param_str = ", ".join(params)
         signature_lines = [
-            f"    def {tool.name}({param_str}) -> {_type_to_python(tool.returns.type)}:"
+            f"    def {method_name}({param_str}) -> {_type_to_python(tool.returns.type)}:"
         ]
     else:
         # Long param list - multi-line
-        signature_lines = [f"    def {tool.name}("]
+        signature_lines = [f"    def {method_name}("]
         for param in params:
             signature_lines.append(f"        {param},")
         signature_lines.append(f"    ) -> {_type_to_python(tool.returns.type)}:")
@@ -284,8 +326,8 @@ def _generate_domain_stub(domain: DomainSchema) -> list[str]:
     """
     lines = []
 
-    # Use domain.id as-is for class name (no case conversion)
-    class_name = domain.id
+    # Sanitize domain.id for Python class name (e.g., 'brave-search' -> 'brave_search')
+    class_name = _sanitize_identifier(domain.id)
 
     # Class definition
     lines.append(f"class {class_name}:")
@@ -310,6 +352,9 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
 
     This is the main entry point. It produces a single string containing
     all class and method stubs, ready to be injected into an LLM prompt.
+
+    Handles duplicate domains by tracking seen domain IDs and skipping
+    any duplicates (e.g., when multiple agents have the same MCP toolkit).
 
     Flow:
         TeamSemanticLayer
@@ -348,8 +393,16 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     )
     lines.append("")
 
+    # Track seen domain IDs to avoid duplicate classes
+    seen_domains: set[str] = set()
+
     # Generate each domain (agent) as a class
     for domain in semantic_layer.domains:
+        # Skip if we've already generated this domain (deduplication)
+        if domain.id in seen_domains:
+            continue
+        seen_domains.add(domain.id)
+
         lines.extend(_generate_domain_stub(domain))
 
     return "\n".join(lines)
@@ -360,6 +413,9 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
 
     Unlike generate_stubs() which creates rich docstrings for LLM understanding,
     this function creates minimal stubs that route calls to call_tool().
+
+    Handles duplicate domains by tracking seen domain IDs and skipping
+    any duplicates (e.g., when multiple agents have the same MCP toolkit).
 
     Uses **kwargs pattern for maximum flexibility:
     - Accepts any combination of arguments the LLM generates
@@ -380,9 +436,20 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
     """
     lines = ["\n# ═══════ Agent Stub Classes ═══════\n"]
 
+    # Track seen domain IDs to avoid duplicate classes
+    seen_domains: set[str] = set()
+
     for domain in semantic_layer.domains:
+        # Skip if we've already generated this domain (deduplication)
+        if domain.id in seen_domains:
+            continue
+        seen_domains.add(domain.id)
+
+        # Sanitize domain ID for Python class name
+        class_name = _sanitize_identifier(domain.id)
+
         # Class definition
-        lines.append(f"class {domain.id}:")
+        lines.append(f"class {class_name}:")
         lines.append(f'    """Agent: {domain.name}"""')
 
         # Generate @staticmethod for each tool
@@ -390,13 +457,16 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
             lines.append("    pass")
 
         for tool in domain.tools:
-            # Full qualified name for call_tool routing
+            # Sanitize tool name for Python method
+            method_name = _sanitize_identifier(tool.name)
+
+            # Use domain.id (sanitized) for routing - both local and MCP
             full_name = f"{domain.id}.{tool.name}"
 
             # Use **kwargs for maximum flexibility
             # The actual tool's Pydantic model will validate inputs and apply defaults
             lines.append("    @staticmethod")
-            lines.append(f"    def {tool.name}(**kwargs):")
+            lines.append(f"    def {method_name}(**kwargs):")
             lines.append(f'        return call_tool("{full_name}", **kwargs)')
 
         lines.append("")

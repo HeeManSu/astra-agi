@@ -32,6 +32,7 @@ import asyncio
 from dataclasses import dataclass, field
 import json
 import os
+import re
 import sys
 from typing import TYPE_CHECKING, Any
 
@@ -175,6 +176,7 @@ class Sandbox:
         self.provider = provider
         self.model = provider.model
         self._tool_map: dict[str, Any] | None = None  # Lazy-built tool lookup
+        self._mcp_tool_name_map: dict[str, str] = {}  # "{mcp_slug}.{tool_slug}" -> remote MCP name
         self._semantic_layer: Any = (
             None  # Stored after build_semantic_layer() with tool_definitions
         )
@@ -182,8 +184,8 @@ class Sandbox:
     def _build_tool_map(self) -> dict[str, Any]:
         """Build a tool lookup map from provider's tools.
 
-        Maps "agent_id.tool_name" to Tool objects for local tools.
-        Stores MCPToolkit objects separately in _mcp_toolkits dict.
+        Maps "domain_id.tool_slug" to Tool objects for local tools.
+        Stores MCPToolkit objects keyed by mcp slug ("mcp_slug" -> ("MCP", toolkit)).
 
         For Agents: uses provider.tools directly
         For Teams: iterates through flat_members to get each agent's tools
@@ -192,27 +194,48 @@ class Sandbox:
         from framework.tool.mcp.toolkit import MCPToolkit
 
         tool_map: dict[str, Any] = {}
+        self._mcp_tool_name_map = {}
+        semantic = self._semantic_layer or self.provider.build_semantic_layer()
 
-        def register_tools(tools: list, agent_id: str) -> None:
+        def normalize_domain_id(value: str | None, fallback: str = "unknown-domain") -> str:
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+            return fallback
+
+        def register_tools(tools: list[Any], domain_id: str) -> None:
             """Register tools from a list (local or MCP)."""
             nonlocal tool_map
             for tool in tools:
                 if isinstance(tool, Tool):
-                    # Local tool
-                    qualified_name = f"{agent_id}.{tool.name}"
+                    tool_slug = str(getattr(tool, "slug", "")).strip()
+                    if not tool_slug:
+                        raise ValueError("Local tool is missing slug in sandbox tool map build.")
+                    qualified_name = f"{domain_id}.{tool_slug}"
+                    existing = tool_map.get(qualified_name)
+                    if existing is not None and existing is not tool:
+                        raise ValueError(
+                            f"Duplicate local tool key '{qualified_name}' detected while building tool map."
+                        )
                     tool_map[qualified_name] = tool
+
+                    # Backward compatibility alias by tool name.
+                    name_alias = f"{domain_id}.{tool.name}"
+                    if name_alias not in tool_map:
+                        tool_map[name_alias] = tool
                 elif isinstance(tool, MCPToolkit):
-                    # MCP toolkit - store with SANITIZED name to match call_tool routing
-                    # e.g., "brave-search" -> "brave_search"
-                    mcp_id = tool.name.lower().replace("-", "_").replace(" ", "_")
-                    if mcp_id not in tool_map:
-                        # Store as ("MCP", toolkit) tuple to distinguish from local tools
-                        tool_map[mcp_id] = ("MCP", tool)
+                    mcp_slug = str(getattr(tool, "slug", "")).strip()
+                    if not mcp_slug:
+                        raise ValueError("MCP toolkit is missing slug in sandbox tool map build.")
+                    existing = tool_map.get(mcp_slug)
+                    if existing is not None and existing != ("MCP", tool):
+                        raise ValueError(
+                            f"Duplicate MCP toolkit slug '{mcp_slug}' detected while building tool map."
+                        )
+                    tool_map[mcp_slug] = ("MCP", tool)
 
         if self.provider.provider_type == "AGENT":
             # Agent: use provider's tools directly
-            semantic = self._semantic_layer or self.provider.build_semantic_layer()
-            agent_id = semantic.provider_name.lower().replace(" ", "_").replace("-", "_")
+            agent_id = normalize_domain_id(getattr(self.provider, "id", None), semantic.provider_id)
             tools = getattr(self.provider, "tools", None) or []
             register_tools(tools, agent_id)
         else:
@@ -220,9 +243,24 @@ class Sandbox:
             flat_members = getattr(self.provider, "flat_members", [])
             for member in flat_members:
                 agent = member.agent
-                agent_id = member.name.lower().replace(" ", "_").replace("-", "_")
+                agent_id = normalize_domain_id(
+                    getattr(member, "id", None),
+                    normalize_domain_id(
+                        getattr(agent, "id", None), getattr(member, "name", "member")
+                    ),
+                )
                 tools = getattr(agent, "tools", None) or []
                 register_tools(tools, agent_id)
+
+        # Build mcp_slug.tool_slug -> remote MCP tool-name map from semantic layer.
+        mcp_domains = {
+            domain.id for domain in semantic.domains if isinstance(tool_map.get(domain.id), tuple)
+        }
+        for domain in semantic.domains:
+            if domain.id not in mcp_domains:
+                continue
+            for tool_schema in domain.tools:
+                self._mcp_tool_name_map[f"{domain.id}.{tool_schema.slug}"] = tool_schema.name
 
         return tool_map
 
@@ -230,7 +268,7 @@ class Sandbox:
         """Look up a tool by qualified name.
 
         Args:
-            qualified_name: Full tool name (e.g., "market_analyst.get_stock_price")
+            qualified_name: Full tool key (e.g., "agent-ops.get-stock-price")
 
         Returns:
             Tool if found, None otherwise
@@ -397,9 +435,6 @@ class Sandbox:
                 if hasattr(self.provider, "build_semantic_layer"):
                     semantic_layer = self.provider.build_semantic_layer(tool_definitions)
                     self._semantic_layer = semantic_layer  # Store for use in _build_full_code()
-                # else:
-                #     # Fallback for providers that don't have build_semantic_layer
-                #     semantic_layer = self.provider.semantic_layer
                 agent_count = len(semantic_layer.domains)
                 total_tools = sum(len(d.tools) for d in semantic_layer.domains)
                 await log(
@@ -483,9 +518,15 @@ class Sandbox:
 
                 # Build prompt based on provider type
                 if self.provider.provider_type == "AGENT":
-                    agent_class = (
-                        semantic_layer.provider_name.lower().replace(" ", "_").replace("-", "_")
-                    )
+                    agent_domain_id = semantic_layer.provider_id
+                    # Prefer provider_id domain when present; this keeps prompt and stubs aligned.
+                    if semantic_layer.domains:
+                        agent_domain_id = semantic_layer.domains[0].id
+                        for domain in semantic_layer.domains:
+                            if domain.id == semantic_layer.provider_id:
+                                agent_domain_id = domain.id
+                                break
+                    agent_class = re.sub(r"[^a-zA-Z0-9_]+", "_", agent_domain_id)
                     prompt = AGENT_CODE_MODE_PROMPT.format(
                         agent_name=semantic_layer.provider_name,
                         agent_description=semantic_layer.provider_description
@@ -864,12 +905,13 @@ class Sandbox:
         name = request.get("name", "")
         args = request.get("args", {})
 
-        # Parse "module.tool_name" format
-        parts = name.split(".")
-        if len(parts) != 2:
+        # Parse qualified tool key by splitting on the LAST dot.
+        # This supports module identifiers that may include dots.
+        if "." not in name:
             return {"type": "error", "message": f"Invalid tool name format: '{name}'"}
-
-        module_name, tool_name = parts
+        module_name, tool_name = name.rsplit(".", 1)
+        if not module_name or not tool_name:
+            return {"type": "error", "message": f"Invalid tool name format: '{name}'"}
 
         # First check if module_name is an MCP toolkit
         mcp_entry = self._get_tool(module_name)
@@ -879,20 +921,26 @@ class Sandbox:
             # MCP tool execution
             assert mcp_entry is not None  # Guaranteed by is_mcp check above
             _, mcp_toolkit = mcp_entry
-            # Use tool_name as-is - runtime stubs already provide original names
+            requested_tool = f"{module_name}.{tool_name}"
+            remote_tool_name = self._mcp_tool_name_map.get(requested_tool, tool_name)
 
             async with span(
                 f"tool.{tool_name}",
                 kind=SpanKind.TOOL,
                 attributes={
                     "tool_name": tool_name,
+                    "tool_slug": tool_name,
+                    "remote_tool_name": remote_tool_name,
                     "tool_qualified_name": f"{module_name}.{tool_name}",
                     "mcp_toolkit": mcp_toolkit.name,
                     "args": args,
                     "execution_type": "mcp",
                 },
             ):
-                await log(LogLevel.INFO, f"Executing MCP tool: {mcp_toolkit.name}.{tool_name}")
+                await log(
+                    LogLevel.INFO,
+                    f"Executing MCP tool: {mcp_toolkit.name}.{remote_tool_name}",
+                )
                 await log(LogLevel.DEBUG, f"Tool args: {json.dumps(args)}")
 
                 async with span(
@@ -907,8 +955,7 @@ class Sandbox:
                     await log(LogLevel.DEBUG, "Emitting SSE event: tool_call")
 
                 try:
-                    # Call MCP tool via toolkit - use tool_name as-is
-                    result = await mcp_toolkit.call_tool(tool_name, **args)
+                    result = await mcp_toolkit.call_tool(remote_tool_name, **args)
 
                     # MCP returns string, try to parse as JSON
                     try:

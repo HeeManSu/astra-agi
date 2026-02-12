@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import dataclasses
-import time
+import re
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -64,7 +64,7 @@ class TeamMember:
     """
 
     agent: Agent | Team
-    name: str  # Required - used as agent identifier
+    name: str
     id: str | None = None
     description: str | None = None
 
@@ -121,7 +121,7 @@ class Team:
 
     def __init__(
         self,
-        id: str,
+        id: str | None,
         name: str,
         description: str,
         model: Model,
@@ -135,8 +135,15 @@ class Team:
         middlewares: list[Middleware] | None = None,
         metadata: dict[str, Any] | None = None,
     ):
-        _init_start = time.perf_counter()
-        self.id = id
+        provided_id = str(id).strip() if id is not None else ""
+        if provided_id:
+            self.id = provided_id
+        else:
+            normalized_name = re.sub(r"[^a-z0-9]+", "-", name.lower())
+            normalized_name = re.sub(r"-+", "-", normalized_name).strip("-")
+            if not normalized_name:
+                normalized_name = "unknown"
+            self.id = f"team-{normalized_name}"
         self.name = name
         self.description = description
 
@@ -149,10 +156,30 @@ class Team:
         self.members: list[TeamMember] = []
         for m in members:
             if isinstance(m, TeamMember):
-                self.members.append(m)
+                member = m
             else:
                 # Wrap raw Agent/Team in TeamMember, using agent's name
-                self.members.append(TeamMember(agent=m, name=m.name))
+                member = TeamMember(agent=m, name=m.name, id=getattr(m, "id", None))
+
+            # Use stable member id if not explicitly provided.
+            if not member.id:
+                raw_member_id = getattr(member.agent, "id", None)
+                if isinstance(raw_member_id, str) and raw_member_id.strip():
+                    member.id = raw_member_id.strip()
+
+            self.members.append(member)
+
+        # Ensure member IDs are unique where provided.
+        seen_member_ids: set[str] = set()
+        for member in self.members:
+            if not member.id:
+                continue
+            if member.id in seen_member_ids:
+                raise ValueError(
+                    f"Duplicate TeamMember id '{member.id}' detected in team '{self.id}'. "
+                    "Team member IDs must be unique."
+                )
+            seen_member_ids.add(member.id)
 
         # Execution control
         self.timeout = timeout
@@ -164,9 +191,6 @@ class Team:
 
         # Middlewares (unified list - stages determine when they run)
         self.middlewares = middlewares or []
-
-        _init_end = time.perf_counter()
-        _init_end = time.perf_counter()
 
     async def _run_input_middleware(self, data: Any) -> tuple[Any, str | None]:
         """
@@ -279,6 +303,8 @@ class Team:
         from framework.tool.mcp.toolkit import MCPToolkit
 
         domains = []
+        seen_domain_ids: set[str] = set()
+        seen_mcp_domains: set[str] = set()
         for member in self.members:
             agent_or_team = member.agent
             if isinstance(agent_or_team, Agent):
@@ -293,27 +319,50 @@ class Team:
                         mcp_toolkits.append(t)
 
                 # Agent becomes a domain with local tools
+                member_domain_id = member.id or getattr(agent_or_team, "id", "") or member.name
                 domain = build_domain_schema(
-                    id=member.name.lower().replace(" ", "_").replace("-", "_"),
+                    id=member_domain_id,
                     name=member.name,
                     description=member.description or agent_or_team.description,
                     tools=local_tools,
                 )
+                if domain.id in seen_domain_ids:
+                    raise ValueError(
+                        f"Duplicate semantic domain id '{domain.id}' in team '{self.id}'. "
+                        "Use unique member ids/agent ids."
+                    )
+                seen_domain_ids.add(domain.id)
                 domains.append(domain)
 
                 # Add MCP tools as additional domains
                 for mcp in mcp_toolkits:
+                    if mcp.slug in seen_mcp_domains:
+                        continue
                     mcp_tool_definitions = mcp.get_tool_definitions(tool_definitions)
                     if not mcp_tool_definitions:
                         continue
-                    mcp_domain = build_mcp_domain_schema(mcp.name, mcp_tool_definitions)
+                    mcp_domain = build_mcp_domain_schema(mcp.slug, mcp.name, mcp_tool_definitions)
                     if mcp_domain:
+                        seen_mcp_domains.add(mcp.slug)
+                        if mcp_domain.id in seen_domain_ids:
+                            raise ValueError(
+                                f"Duplicate semantic domain id '{mcp_domain.id}' in team '{self.id}'. "
+                                "MCP slugs must be unique."
+                            )
+                        seen_domain_ids.add(mcp_domain.id)
                         domains.append(mcp_domain)
 
             elif isinstance(agent_or_team, Team):
                 # Nested team: recursively build and merge domains
                 nested_domains = agent_or_team._build_semantic_domains(tool_definitions)
-                domains.extend(nested_domains)
+                for nested_domain in nested_domains:
+                    if nested_domain.id in seen_domain_ids:
+                        raise ValueError(
+                            f"Duplicate nested semantic domain id '{nested_domain.id}' in team '{self.id}'. "
+                            "Ensure nested team/member IDs are unique."
+                        )
+                    seen_domain_ids.add(nested_domain.id)
+                    domains.append(nested_domain)
 
         return domains
 
@@ -401,7 +450,7 @@ class Team:
             thread_id,
             query,
             resource_type="team",
-            resource_id=self.id or self.name,
+            resource_id=self.id,
             resource_name=self.name,
         )
 
@@ -412,7 +461,7 @@ class Team:
         exec_timeout = timeout or self.timeout
 
         # Run the sandbox: generate code → execute → return result
-        result = await sandbox.run(query, timeout=exec_timeout, context=context)
+        result = await sandbox.run(query, timeout=exec_timeout, thread_id=thread_id, context=context)
 
         # Check for execution errors
         if not result.success:
@@ -486,7 +535,7 @@ class Team:
                 thread_id,
                 query,
                 resource_type="team",
-                resource_id=self.id or self.name,
+                resource_id=self.id,
                 resource_name=self.name,
             )
             await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
@@ -500,7 +549,7 @@ class Team:
 
         # Generate code first
         try:
-            code = await sandbox.generate_code(query, context=context)
+            code = await sandbox.generate_code(query, thread_id=thread_id, context=context)
             yield StreamEvent(
                 event_type="code_generated",
                 data={
@@ -543,6 +592,12 @@ class Team:
             # Format and yield final output
             if result.success:
                 formatted_output = await sandbox.format_response(query, result.output)
+
+                # Run OUTPUT middlewares
+                formatted_output, error = await self._run_output_middleware(formatted_output)
+                if error:
+                    yield StreamEvent(event_type="error", data={"message": error})
+                    return
 
                 # Save assistant response
                 await save_assistant_message(self.storage, thread_id, formatted_output)

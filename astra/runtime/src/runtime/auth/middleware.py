@@ -10,6 +10,11 @@ from runtime.auth.jwt import verify_token
 PUBLIC_PATHS = {
     "/",
     "/health",
+    "/health/liveness",
+    "/health/readiness",
+    "/health/startup",
+    "/readiness",
+    "/startup",
     "/auth/token",
     "/docs",
     "/openapi.json",

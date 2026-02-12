@@ -177,6 +177,12 @@ async def update_tool(request: Request, slug: str, body: ToolUpdateRequest) -> T
     if not updated:
         raise HTTPException(status_code=500, detail="Failed to update tool")
 
+    from runtime.sync.tool_cache import invalidate_agent_cache, invalidate_team_cache
+
+    # Tool definitions feed prompt-time tool schema; clear in-process caches immediately.
+    invalidate_agent_cache()
+    invalidate_team_cache()
+
     return _tool_to_response(updated)
 
 
@@ -194,6 +200,12 @@ async def delete_tool(request: Request, slug: str) -> dict[str, str]:
         raise HTTPException(status_code=404, detail=f"Tool '{slug}' not found")
 
     await store.delete(tool.id)  # type: ignore
+
+    from runtime.sync.tool_cache import invalidate_agent_cache, invalidate_team_cache
+
+    invalidate_agent_cache()
+    invalidate_team_cache()
+
     return {"message": f"Tool '{slug}' deleted"}
 
 
@@ -208,8 +220,21 @@ async def sync_tools(request: Request) -> dict[str, Any]:
     if not storage:
         raise HTTPException(status_code=503, detail="Storage not configured")
 
+    startup_sync_config = getattr(request.app.state, "startup_sync_config", None)
+
     # Sync tools to DB
-    report = await runtime.sync_tools()
+    report = await runtime.sync_tools(
+        mcp_list_timeout_seconds=float(getattr(startup_sync_config, "mcp_list_timeout_seconds", 10.0)),
+        mcp_retries=int(getattr(startup_sync_config, "mcp_retries", 2)),
+        mcp_retry_backoff_seconds=float(
+            getattr(startup_sync_config, "mcp_retry_backoff_seconds", 0.5)
+        ),
+    )
+
+    from runtime.sync.tool_cache import invalidate_agent_cache, invalidate_team_cache
+
+    invalidate_agent_cache()
+    invalidate_team_cache()
 
     return {
         "message": "Tools synced",

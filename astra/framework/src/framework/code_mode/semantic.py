@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 from typing import Any
 
 
@@ -139,6 +140,7 @@ class ToolSchema:
     Contains all information needed to generate a Python stub.
 
     Attributes:
+        slug: Stable tool identifier (preferred execution identifier)
         name: Tool function name (e.g., "validate_order")
         description: Tool description
         parameters: List of parameter schemas
@@ -147,6 +149,7 @@ class ToolSchema:
 
     Example:
         ToolSchema(
+            slug="validate-order",
             name="validate_order",
             description="Validate order details",
             parameters=[ParamSchema(name="order_id", type="str", ...)],
@@ -155,6 +158,7 @@ class ToolSchema:
         )
     """
 
+    slug: str
     name: str
     description: str
     parameters: list[ParamSchema]
@@ -166,12 +170,12 @@ class ToolSchema:
 @dataclass
 class DomainSchema:
     """
-    Schema for a domain (Agent or nested Team).
+    Schema for a domain (Agent, MCP toolkit, or nested Team).
 
     Each domain becomes a Python class in the generated stubs.
 
     Attributes:
-        id: Unique identifier (agent.id converted to snake_case)
+        id: Unique identifier (stable ID/slug)
         name: Display name (agent.name)
         description: Domain description (agent.description)
         tools: List of tools in this domain
@@ -241,6 +245,7 @@ class EntitySemanticLayer:
                     "tools": [
                         {
                             "name": t.name,
+                            "slug": t.slug,
                             "description": t.description,
                             "parameters": [
                                 {
@@ -454,7 +459,11 @@ def _build_tool_schema(tool: Any) -> ToolSchema:
     # Note: Tool descriptions can be enriched from cached ToolDefinitions
     # at the route/request level using per-agent lazy caching.
 
+    raw_tool_slug = getattr(tool, "slug", None)
+    tool_slug = _normalize_slug(raw_tool_slug) if raw_tool_slug else _normalize_slug(tool.name)
+
     return ToolSchema(
+        slug=tool_slug,
         name=tool.name,
         description=description,
         parameters=params,
@@ -492,6 +501,13 @@ def build_domain_schema(
         description=description or f"Domain: {name}",
         tools=tool_schemas,
     )
+
+
+def _normalize_slug(value: str) -> str:
+    """Normalize any identifier into a stable slug."""
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.lower())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    return normalized or "unknown"
 
 
 def build_entity_semantic_layer(
@@ -534,6 +550,7 @@ def build_entity_semantic_layer(
 
 
 def build_mcp_domain_schema(
+    mcp_slug: str,
     mcp_name: str,
     tool_definitions: dict[str, Any] | None,
 ) -> DomainSchema | None:
@@ -544,7 +561,8 @@ def build_mcp_domain_schema(
     MCP tools are fetched from tool_definitions (synced to DB at server startup).
 
     Args:
-        mcp_name: Name of the MCP toolkit
+        mcp_slug: Stable MCP slug identifier
+        mcp_name: Display name of the MCP toolkit
         tool_definitions: Dict of ToolDefinition objects from DB (slug -> ToolDef)
 
     Returns:
@@ -553,7 +571,8 @@ def build_mcp_domain_schema(
     if not tool_definitions:
         return None
 
-    mcp_source = f"mcp:{mcp_name}"
+    mcp_source = f"mcp:{mcp_slug}"
+    slug_prefix = f"{mcp_source}-"
     tool_schemas: list[ToolSchema] = []
 
     for tool_def in tool_definitions.values():
@@ -574,12 +593,25 @@ def build_mcp_domain_schema(
                         )
                     )
 
+            raw_tool_slug = getattr(tool_def, "slug", "")
+            parsed_slug = ""
+            if isinstance(raw_tool_slug, str) and raw_tool_slug.startswith(slug_prefix):
+                parsed_slug = raw_tool_slug[len(slug_prefix) :]
+            tool_slug = _normalize_slug(parsed_slug or tool_def.name)
+
+            return_type = "Any"
+            if hasattr(tool_def, "output_schema") and isinstance(tool_def.output_schema, dict):
+                output_schema_type = tool_def.output_schema.get("type")
+                if isinstance(output_schema_type, str) and output_schema_type:
+                    return_type = output_schema_type
+
             tool_schemas.append(
                 ToolSchema(
+                    slug=tool_slug,
                     name=tool_def.name,
                     description=tool_def.description or "",
                     parameters=params,
-                    returns=ReturnSchema(type="Any", description="MCP tool result"),
+                    returns=ReturnSchema(type=return_type, description="MCP tool result"),
                 )
             )
 
@@ -587,7 +619,7 @@ def build_mcp_domain_schema(
         return None
 
     return DomainSchema(
-        id=mcp_name.lower().replace(" ", "_").replace("-", "_"),
+        id=mcp_slug,
         name=mcp_name,
         description=f"MCP tools from {mcp_name}",
         tools=tool_schemas,

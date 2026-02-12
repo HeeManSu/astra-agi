@@ -304,20 +304,13 @@ class ToolDefinitionStore(BaseStore[ToolDefinition]):
         if not slugs:
             return {}
 
-        # For MongoDB, use $in operator
-        if isinstance(self._storage, MongoDBStorage):
-            query = self.storage.build_select_query(
-                collection=self.collection_name,
-                filter_dict={"slug": {"$in": slugs}},
-            )
-        else:
-            # For SQL, use IN clause
-            placeholders = ", ".join(["?" for _ in slugs])
-            query = f"SELECT * FROM {self.collection_name} WHERE slug IN ({placeholders})"
-            # This is a simplified approach - may need adjustment for specific backends
-
+        query = self.storage.build_select_query(
+            collection=self.collection_name,
+            filter_dict={"slug": {"$in": slugs}},
+        )
         rows = await self.storage.fetch_all(query)
-        return {self._row_to_model(row).slug: self._row_to_model(row) for row in rows}
+        definitions = [self._row_to_model(row) for row in rows]
+        return {definition.slug: definition for definition in definitions}
 
     async def get_by_sources(self, sources: list[str]) -> list[ToolDefinition]:
         """
@@ -332,16 +325,11 @@ class ToolDefinitionStore(BaseStore[ToolDefinition]):
         if not sources:
             return []
 
-        if isinstance(self._storage, MongoDBStorage):
-            query = self.storage.build_select_query(
-                collection=self.collection_name,
-                filter_dict={"source": {"$in": sources}},
-                sort=[("slug", 1)],
-            )
-        else:
-            placeholders = ", ".join(["?" for _ in sources])
-            query = f"SELECT * FROM {self.collection_name} WHERE source IN ({placeholders})"
-
+        query = self.storage.build_select_query(
+            collection=self.collection_name,
+            filter_dict={"source": {"$in": sources}},
+            sort=[("slug", 1)],
+        )
         rows = await self.storage.fetch_all(query)
         return [self._row_to_model(row) for row in rows]
 
@@ -355,11 +343,65 @@ class ToolDefinitionStore(BaseStore[ToolDefinition]):
         Returns:
             List of saved ToolDefinitions
         """
-        results = []
+        if not definitions:
+            return []
+
+        # Use slug as identity for batch upsert behavior.
+        by_slug: dict[str, ToolDefinition] = {}
         for definition in definitions:
-            saved = await self.save(definition)
-            results.append(saved)
-        return results
+            by_slug[definition.slug] = definition
+
+        unique_definitions = list(by_slug.values())
+        slugs = [definition.slug for definition in unique_definitions]
+        existing_by_slug = await self.get_by_slugs(slugs)
+
+        saved_by_slug: dict[str, ToolDefinition] = {}
+        insert_rows: list[dict[str, Any]] = []
+        insert_slugs: list[str] = []
+
+        for definition in unique_definitions:
+            existing = existing_by_slug.get(definition.slug)
+            if existing:
+                updated = await self.update(
+                    existing.id,  # type: ignore[arg-type]
+                    name=definition.name,
+                    description=definition.description,
+                    input_schema=definition.input_schema,
+                    output_schema=definition.output_schema,
+                    required_fields=definition.required_fields,
+                    example=definition.example,
+                    hash=definition.hash,
+                    is_improved=definition.is_improved,
+                    improved_by=definition.improved_by,
+                    version=definition.version,
+                    is_active=definition.is_active,
+                )
+                if updated is not None:
+                    saved_by_slug[definition.slug] = updated
+                continue
+
+            data = definition.model_dump(exclude_unset=True)
+            if not isinstance(self._storage, MongoDBStorage):
+                if "id" not in data or data.get("id") is None:
+                    data["id"] = f"tool-{uuid4().hex[:10]}"
+
+            insert_rows.append(data)
+            insert_slugs.append(definition.slug)
+
+        if insert_rows:
+            prepared_rows = [self._prepare_document(row) for row in insert_rows]
+            result = await self.storage.execute(
+                self.storage.build_insert_many_query(self.collection_name, prepared_rows)
+            )
+
+            if isinstance(self._storage, MongoDBStorage) and result:
+                for idx, inserted_id in enumerate(result.inserted_ids):
+                    insert_rows[idx]["id"] = str(inserted_id)
+
+            for slug, row in zip(insert_slugs, insert_rows, strict=False):
+                saved_by_slug[slug] = ToolDefinition(**row)
+
+        return [saved_by_slug[definition.slug] for definition in definitions if definition.slug in saved_by_slug]
 
     async def get_hashes_by_slugs(self, slugs: list[str]) -> dict[str, str]:
         """
@@ -374,16 +416,10 @@ class ToolDefinitionStore(BaseStore[ToolDefinition]):
         if not slugs:
             return {}
 
-        if isinstance(self._storage, MongoDBStorage):
-            query = self.storage.build_select_query(
-                collection=self.collection_name,
-                filter_dict={"slug": {"$in": slugs}},
-            )
-        else:
-            # SQL optimization
-            placeholders = ", ".join(["?" for _ in slugs])
-            query = f"SELECT slug, hash, version FROM {self.collection_name} WHERE slug IN ({placeholders})"
-
+        query = self.storage.build_select_query(
+            collection=self.collection_name,
+            filter_dict={"slug": {"$in": slugs}},
+        )
         rows = await self.storage.fetch_all(query)
         # Return object with minimal fields needed for sync check
         results = {}

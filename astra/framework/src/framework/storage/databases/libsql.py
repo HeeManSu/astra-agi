@@ -396,6 +396,14 @@ class LibSQLStorage(StorageBackend):
         # Apply filters
         if filter_dict:
             for key, value in filter_dict.items():
+                if isinstance(value, dict):
+                    # Support Mongo-like operators for cross-backend store methods.
+                    # Currently used for {"$in": [...]} in tool definition lookups.
+                    if "$in" in value:
+                        in_values = value.get("$in") or []
+                        stmt = stmt.where(table.c[key].in_(in_values))
+                        continue
+                    raise ValueError(f"Unsupported filter operator for SQL backend: {value}")
                 stmt = stmt.where(table.c[key] == value)
 
         if sort:

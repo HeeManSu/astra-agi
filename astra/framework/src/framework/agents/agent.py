@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import json
+import re
 from typing import TYPE_CHECKING, Any
-import uuid
 
 from framework.memory import Memory
 from framework.middleware import (
@@ -90,7 +90,15 @@ class Agent:
         """
         # Basic identifiers & metadata
         self.name = name
-        self.id = id if id else f"agent-{self.name}-{uuid.uuid4().hex[:5]}"
+        provided_id = str(id).strip() if id is not None else ""
+        if provided_id:
+            self.id = provided_id
+        else:
+            normalized_name = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
+            normalized_name = re.sub(r"-+", "-", normalized_name).strip("-")
+            if not normalized_name:
+                normalized_name = "unknown"
+            self.id = f"agent-{normalized_name}"
         self.description = description
 
         # Core behavior config
@@ -218,7 +226,7 @@ class Agent:
 
         # Build domain for the agent with local tools
         domain = build_domain_schema(
-            id=self.name.lower().replace(" ", "_").replace("-", "_"),
+            id=self.id,
             name=self.name,
             description=self.description,
             tools=local_tools,
@@ -226,8 +234,12 @@ class Agent:
 
         # Add MCP tools as additional domains (using shared builder)
         mcp_domains = []
+        seen_mcp_domains: set[str] = set()
         for mcp in mcp_toolkits:
-            mcp_domain = build_mcp_domain_schema(mcp.name, tool_definitions)
+            if mcp.slug in seen_mcp_domains:
+                continue
+            seen_mcp_domains.add(mcp.slug)
+            mcp_domain = build_mcp_domain_schema(mcp.slug, mcp.name, tool_definitions)
             if mcp_domain:
                 mcp_domains.append(mcp_domain)
 
@@ -548,7 +560,7 @@ class Agent:
             thread_id,
             query,
             resource_type="agent",
-            resource_id=self.id or self.name,
+            resource_id=self.id,
             resource_name=self.name,
         )
 
@@ -625,7 +637,7 @@ class Agent:
                 thread_id,
                 query,
                 resource_type="agent",
-                resource_id=self.id or self.name,
+                resource_id=self.id,
                 resource_name=self.name,
             )
             await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
@@ -639,7 +651,7 @@ class Agent:
 
         # Generate code first
         try:
-            code = await sandbox.generate_code(query, context=context)
+            code = await sandbox.generate_code(query, thread_id=thread_id, context=context)
             yield StreamEvent(
                 event_type="code_generated",
                 data={

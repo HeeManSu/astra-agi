@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from functools import wraps
 import inspect
+import re
 from typing import Any, get_type_hints
 
 from pydantic import BaseModel
@@ -58,6 +59,7 @@ class Tool:
         output_schema: type[BaseModel],
         example: dict | None = None,
         source: str = "local",
+        slug: str | None = None,
     ):
         """
         Initialize a Tool.
@@ -70,7 +72,17 @@ class Tool:
             output_schema: Pydantic model defining expected output
             example: Optional example showing input/output pair
             source: Tool source (default: "local")
+            slug: Optional tool slug (derived from name if not provided)
         """
+        provided_slug = str(slug).strip() if slug is not None else ""
+        if provided_slug:
+            self.slug = provided_slug
+        else:
+            normalized_name = re.sub(r"[^a-z0-9]+", "-", name.lower())
+            normalized_name = re.sub(r"-+", "-", normalized_name).strip("-")
+            if not normalized_name:
+                normalized_name = "unknown"
+            self.slug = normalized_name
         self.name = name
         self.description = description
         self.func = func

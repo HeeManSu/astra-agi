@@ -9,6 +9,8 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import Any
 
 
@@ -37,6 +39,7 @@ class MCPToolkit:
         command: str,
         args: list[str] | None = None,
         env: dict[str, str] | None = None,
+        slug: str | None = None,
     ):
         """
         Initialize MCP toolkit.
@@ -46,11 +49,23 @@ class MCPToolkit:
             command: Command to run (e.g., "npx")
             args: Command arguments
             env: Additional environment variables
+            slug: Optional stable MCP slug (derived from name+command+args if not provided)
         """
         self.name = name
         self.command = command
         self.args = args or []
         self.env = {**get_default_environment(), **(env or {})}
+        provided_slug = str(slug).strip() if slug is not None else ""
+        if provided_slug:
+            self.slug = provided_slug
+        else:
+            normalized_name = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
+            normalized_name = re.sub(r"-+", "-", normalized_name).strip("-")
+            if not normalized_name:
+                normalized_name = "unknown"
+            signature = f"{self.command}|{'|'.join(str(a) for a in self.args)}"
+            suffix = hashlib.sha1(signature.encode("utf-8")).hexdigest()[:8]
+            self.slug = f"{normalized_name}-{suffix}"
 
         self._session: ClientSession | None = None
         self._context: Any = None
@@ -150,7 +165,7 @@ class MCPToolkit:
         if not tool_definitions:
             return {}
 
-        expected_source = f"mcp:{self.name}"
+        expected_source = f"mcp:{self.slug}"
 
         def matches_source(tool_def: Any) -> bool:
             """Check if tool definition source matches this MCP."""

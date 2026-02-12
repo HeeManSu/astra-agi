@@ -26,14 +26,28 @@ _team_cache: dict[str, dict[str, ToolDefinition]] = {}
 
 def _build_tool_slugs(tools: list[Any]) -> list[str]:
     """Build slugs for local tools."""
-    return [
-        f"local-{t.name}".lower().replace("_", "-") for t in (tools or []) if isinstance(t, Tool)
-    ]
+    slugs: list[str] = []
+    for tool in tools or []:
+        if not isinstance(tool, Tool):
+            continue
+        raw_tool_slug = getattr(tool, "slug", None)
+        if not isinstance(raw_tool_slug, str) or not raw_tool_slug.strip():
+            raise ValueError("Local tool is missing slug while loading tool cache.")
+        slugs.append(f"local-{raw_tool_slug.strip()}".lower().replace("_", "-"))
+    return slugs
 
 
 def _get_mcp_sources(tools: list[Any]) -> list[str]:
     """Get MCP source names from tools."""
-    return [f"mcp:{t.name}" for t in (tools or []) if isinstance(t, MCPToolkit)]
+    sources: list[str] = []
+    for tool in tools or []:
+        if not isinstance(tool, MCPToolkit):
+            continue
+        raw_mcp_slug = getattr(tool, "slug", None)
+        if not isinstance(raw_mcp_slug, str) or not raw_mcp_slug.strip():
+            raise ValueError("MCP toolkit is missing slug while loading tool cache.")
+        sources.append(f"mcp:{raw_mcp_slug.strip()}")
+    return sources
 
 
 async def get_agent_tool_definitions(agent_id: str) -> dict[str, ToolDefinition]:
@@ -99,9 +113,9 @@ async def get_team_tool_definitions(team_id: str) -> dict[str, ToolDefinition]:
     if not team:
         return {}
 
-    # Collect tools from all team members
+    # Collect tools from all flattened team members (supports nested teams)
     all_tools: list[Any] = []
-    for member in team.members or []:
+    for member in getattr(team, "flat_members", []) or []:
         agent = getattr(member, "agent", member)
         all_tools.extend(getattr(agent, "tools", []) or [])
 

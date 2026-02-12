@@ -163,6 +163,35 @@ class ConsoleDebugger:
                     val = f"{c.CYAN}{val}{c.RESET}"
                 self._write(f"{prefix}  {c.DIM}{key}{c.RESET}: {val}")
 
+    def log(self, level: str, message: str, data: dict[str, Any] | None = None) -> None:
+        """Print a standalone log event (no span context).
+
+        Used for startup/shutdown lifecycle logs that occur outside of any span.
+
+        Args:
+            level: Log level (DEBUG, INFO, WARN, ERROR)
+            message: Log message
+            data: Additional structured data
+        """
+        if not self.enabled:
+            return
+
+        c = Colors
+        color = c.DIM if level == "DEBUG" else c.GREEN if level == "INFO" else c.YELLOW
+        prefix = f"{c.MAGENTA}DEBUG{c.RESET} "
+        self._write(f"{prefix}{color}{message}{c.RESET}")
+
+        if data:
+            for key, value in data.items():
+                if isinstance(value, (int, float)):
+                    val = f"{c.YELLOW}{value}{c.RESET}"
+                else:
+                    val = str(value)
+                    if len(val) > 100:
+                        val = val[:100] + "..."
+                    val = f"{c.CYAN}{val}{c.RESET}"
+                self._write(f"{prefix}  {c.DIM}{key}{c.RESET}: {val}")
+
     def span_end(
         self, span_id: str, name: str, status: str, duration_ms: float, attributes: dict[str, Any]
     ) -> None:

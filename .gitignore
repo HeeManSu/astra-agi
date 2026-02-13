@@ -36,6 +36,7 @@ limca_db/
 projects/
 
 astra/benchmarks/
+astra/evals/
 
 .claude/
 

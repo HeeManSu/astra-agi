@@ -22,8 +22,8 @@ Example Output:
             ...
 """
 
-import json
 from collections import Counter
+import json
 import re
 
 from framework.code_mode.semantic import (
@@ -143,6 +143,9 @@ def _format_param_signature(param: ParamSchema) -> str:
     else:
         # Optional: check if default is None or has a value
         if param.default is None:
+            # Avoid double `| None` if type already includes None (e.g. `str | None`)
+            if "None" in type_str:
+                return f"{param.name}: {type_str} = None"
             return f"{param.name}: {type_str} | None = None"
         else:
             # Use repr() to properly quote strings
@@ -399,7 +402,9 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     lines.append("")
 
     domain_ids = [domain.id for domain in semantic_layer.domains]
-    duplicate_ids = sorted([domain_id for domain_id, count in Counter(domain_ids).items() if count > 1])
+    duplicate_ids = sorted(
+        [domain_id for domain_id, count in Counter(domain_ids).items() if count > 1]
+    )
     if duplicate_ids:
         raise ValueError(
             "Duplicate domain IDs detected in semantic layer: "
@@ -442,7 +447,9 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
     lines = ["\n# ═══════ Agent Stub Classes ═══════\n"]
 
     domain_ids = [domain.id for domain in semantic_layer.domains]
-    duplicate_ids = sorted([domain_id for domain_id, count in Counter(domain_ids).items() if count > 1])
+    duplicate_ids = sorted(
+        [domain_id for domain_id, count in Counter(domain_ids).items() if count > 1]
+    )
     if duplicate_ids:
         raise ValueError(
             "Duplicate domain IDs detected in semantic layer: "

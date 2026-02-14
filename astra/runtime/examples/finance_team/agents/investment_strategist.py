@@ -1,4 +1,5 @@
 import os
+import sys
 
 from dotenv import load_dotenv
 
@@ -7,18 +8,18 @@ from dotenv import load_dotenv
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../.env"))
 load_dotenv(env_path, override=True)
 
+# Ensure tools package is importable
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from framework.agents import Agent
 from framework.models import Gemini
-from framework.tool.mcp import presets
+
+# Import SHARED MCP toolkit instances (avoids duplicate slug errors)
+from tools import brave_mcp, notion_mcp
+from tools.strategy_tools import backtest_strategy, calculate_risk_score, generate_investment_thesis
 
 
 model = Gemini("gemini-2.5-flash")
-
-# MCP Toolkits from presets
-brave_mcp = presets.brave_search(os.getenv("BRAVE_API_KEY", ""))
-# Accept either NOTION_TOKEN or NOTION_API_KEY
-notion_token = os.getenv("NOTION_TOKEN") or os.getenv("NOTION_API_KEY", "")
-notion_mcp = presets.notion(notion_token)
 
 
 investment_agent = Agent(
@@ -38,5 +39,8 @@ investment_agent = Agent(
     tools=[
         brave_mcp,
         notion_mcp,
+        calculate_risk_score,
+        generate_investment_thesis,
+        backtest_strategy,
     ],
 )

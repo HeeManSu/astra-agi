@@ -76,7 +76,11 @@ class Tool:
         """
         provided_slug = str(slug).strip() if slug is not None else ""
         if provided_slug:
-            self.slug = provided_slug
+            # Normalize custom slugs the same way auto-generated ones are,
+            # so semantic layer and sandbox tool map keys always agree.
+            normalized = re.sub(r"[^a-z0-9]+", "-", provided_slug.lower())
+            normalized = re.sub(r"-+", "-", normalized).strip("-")
+            self.slug = normalized or "unknown"
         else:
             normalized_name = re.sub(r"[^a-z0-9]+", "-", name.lower())
             normalized_name = re.sub(r"-+", "-", normalized_name).strip("-")

@@ -41,3 +41,5 @@ astra/evals/
 .claude/
 
 **/.debug/
+
+test/

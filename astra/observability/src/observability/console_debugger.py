@@ -98,7 +98,7 @@ class ConsoleDebugger:
         Args:
             span_id: Unique span identifier
             trace_id: Parent trace identifier
-            name: Span name (e.g., "code_generation", "llm.generate_code")
+            name: Span name (e.g., "code_generation", "llm.generate_parse_validate_code")
             kind: Span kind (STEP, GENERATION, TOOL)
             parent_span_id: Parent span ID if nested
             attributes: Span metadata

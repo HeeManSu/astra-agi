@@ -166,3 +166,24 @@ def fetch() -> MCPToolkit:
         command="npx",
         args=["-y", "@anthropics/mcp-fetch"],
     )
+
+
+def exa(api_key: str) -> MCPToolkit:
+    """
+    Exa MCP server for AI-native web search.
+    Used by the Market Analyst agent for real-time news and market research.
+
+    Provides: web_search_exa — semantic web search optimised for LLMs.
+
+    Note: Agno uses Exa via an HTTP URL (mcp.exa.ai). Astra uses the
+    stdio-based npm package which is functionally identical.
+
+    Args:
+        api_key: Exa API key (from https://dashboard.exa.ai)
+    """
+    return MCPToolkit(
+        name="exa",
+        command="npx",
+        args=["-y", "exa-mcp", "--tools=web_search_exa"],
+        env={"EXA_API_KEY": api_key.strip()},
+    )

@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import json
+import re
 from typing import TYPE_CHECKING, Any
-import uuid
 
 from framework.memory import Memory
 from framework.middleware import (
@@ -90,7 +90,15 @@ class Agent:
         """
         # Basic identifiers & metadata
         self.name = name
-        self.id = id if id else f"agent-{self.name}-{uuid.uuid4().hex[:5]}"
+        provided_id = str(id).strip() if id is not None else ""
+        if provided_id:
+            self.id = provided_id
+        else:
+            normalized_name = re.sub(r"[^a-z0-9]+", "-", self.name.lower())
+            normalized_name = re.sub(r"-+", "-", normalized_name).strip("-")
+            if not normalized_name:
+                normalized_name = "unknown"
+            self.id = f"agent-{normalized_name}"
         self.description = description
 
         # Core behavior config
@@ -218,7 +226,7 @@ class Agent:
 
         # Build domain for the agent with local tools
         domain = build_domain_schema(
-            id=self.name.lower().replace(" ", "_").replace("-", "_"),
+            id=self.id,
             name=self.name,
             description=self.description,
             tools=local_tools,
@@ -226,8 +234,12 @@ class Agent:
 
         # Add MCP tools as additional domains (using shared builder)
         mcp_domains = []
+        seen_mcp_domains: set[str] = set()
         for mcp in mcp_toolkits:
-            mcp_domain = build_mcp_domain_schema(mcp.name, tool_definitions)
+            if mcp.slug in seen_mcp_domains:
+                continue
+            seen_mcp_domains.add(mcp.slug)
+            mcp_domain = build_mcp_domain_schema(mcp.slug, mcp.name, tool_definitions)
             if mcp_domain:
                 mcp_domains.append(mcp_domain)
 
@@ -451,7 +463,7 @@ class Agent:
 
         return generate_stubs(self.build_semantic_layer())
 
-    async def generate_code(self, user_query: str) -> str:
+    async def generate_parse_validate_code(self, user_query: str) -> str:
         """
         Generate Python code from a user query.
 
@@ -465,7 +477,7 @@ class Agent:
             Python code string ready for sandbox execution
 
         Example:
-            >>> code = await agent.generate_code("Get Apple stock price")
+            >>> code = await agent.generate_parse_validate_code("Get Apple stock price")
             >>> print(code)
             price = market_analyst.get_stock_price('AAPL')
             synthesize_response({"price": price})
@@ -548,7 +560,7 @@ class Agent:
             thread_id,
             query,
             resource_type="agent",
-            resource_id=self.id or self.name,
+            resource_id=self.id,
             resource_name=self.name,
         )
 
@@ -625,7 +637,7 @@ class Agent:
                 thread_id,
                 query,
                 resource_type="agent",
-                resource_id=self.id or self.name,
+                resource_id=self.id,
                 resource_name=self.name,
             )
             await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
@@ -639,7 +651,19 @@ class Agent:
 
         # Generate code first
         try:
-            code = await sandbox.generate_code(query, context=context)
+            code = await sandbox.generate_parse_validate_code(
+                query, thread_id=thread_id, context=context
+            )
+
+            # Check for clarification (missing data)
+            clarification = sandbox._extract_clarification(code)
+            if clarification:
+                question = clarification.get("question", "Could you provide more details?")
+                await save_assistant_message(self.storage, thread_id, question)
+                yield StreamEvent(event_type="content", data={"text": question})
+                yield StreamEvent(event_type="done", data={"status": "needs_clarification"})
+                return
+
             yield StreamEvent(
                 event_type="code_generated",
                 data={
@@ -651,9 +675,25 @@ class Agent:
             yield StreamEvent(event_type="error", data={"message": f"Error generating code: {e}"})
             return
 
+        # Build + validate DSL workflow from generated code
+        try:
+            await sandbox.build_dsl_workflow(code)
+            dsl_workflow = getattr(sandbox, "_dsl_workflow", None)
+            if dsl_workflow:
+                yield StreamEvent(
+                    event_type="status",
+                    data={
+                        "message": "DSL workflow built and validated.",
+                        "dsl_summary": dsl_workflow.summary(),
+                    },
+                )
+        except Exception as e:
+            yield StreamEvent(event_type="error", data={"message": f"DSL build failed: {e}"})
+            return
+
         # Execute and stream results
         try:
-            result = await sandbox.execute(code, timeout=exec_timeout)
+            result = await sandbox.execute_dsl(timeout=exec_timeout)
 
             # Report tool calls
             if result.tool_calls:

@@ -2,15 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Backend: Finance Team Server",
+      "name": "Backend: Enterprise Teams Server",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/astra/runtime/examples/finance_team/main.py",
+      "program": "${workspaceFolder}/astra/runtime/examples/enterprise_teams/main.py",
       "console": "integratedTerminal",
       "justMyCode": false,
-      "cwd": "${workspaceFolder}/astra/runtime",
+      "cwd": "${workspaceFolder}/astra/runtime/examples/enterprise_teams",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/astra/framework/src:${workspaceFolder}/astra/runtime/src:${workspaceFolder}/astra/runtime:${workspaceFolder}/astra/runtime/examples",
+        "PYTHONPATH": "${workspaceFolder}/astra/framework/src:${workspaceFolder}/astra/runtime/src:${workspaceFolder}/astra/runtime/examples/enterprise_teams",
         "HOST": "127.0.0.1",
         "PORT": "8000",
         "ASTRA_JWT_SECRET": "dev-secret-for-testing",
@@ -22,7 +22,7 @@
         "action": "openExternally"
       },
       "presentation": {
-        "group": "finance-team",
+        "group": "enterprise-teams",
         "order": 1
       }
     },
@@ -76,10 +76,43 @@
       }
     },
     {
+      "name": "Backend: Investment Team Server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "examples.investment_team.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}/astra/runtime",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/astra/framework/src:${workspaceFolder}/astra/runtime/src:${workspaceFolder}/astra/observability/src:${workspaceFolder}/astra/runtime",
+        "HOST": "127.0.0.1",
+        "PORT": "8000",
+        "ASTRA_JWT_SECRET": "dev-secret-for-testing",
+        "MONGODB_URL": "mongodb://localhost:27017"
+      },
+      "serverReadyAction": {
+        "pattern": "Uvicorn running on (https?://.*)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      },
+      "presentation": {
+        "group": "investment-team",
+        "order": 1
+      }
+    },
+    {
       "name": "Frontend: Playground Dev Server",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "yarn",
+      "runtimeExecutable": "/opt/homebrew/bin/yarn",
       "runtimeArgs": [
         "run",
         "dev"
@@ -91,21 +124,21 @@
         "action": "openExternally"
       },
       "presentation": {
-        "group": "finance-team",
+        "group": "enterprise-teams",
         "order": 2
       }
     }
   ],
   "compounds": [
     {
-      "name": "Finance Team: Server + Frontend",
+      "name": "Enterprise Teams: Server + Frontend",
       "configurations": [
-        "Backend: Finance Team Server",
+        "Backend: Enterprise Teams Server",
         "Frontend: Playground Dev Server"
       ],
       "stopAll": true,
       "presentation": {
-        "group": "finance-team",
+        "group": "enterprise-teams",
         "order": 0
       }
     },
@@ -130,6 +163,18 @@
       "stopAll": true,
       "presentation": {
         "group": "limca",
+        "order": 0
+      }
+    },
+    {
+      "name": "Investment Team: Server + Frontend",
+      "configurations": [
+        "Backend: Investment Team Server",
+        "Frontend: Playground Dev Server"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "group": "investment-team",
         "order": 0
       }
     }

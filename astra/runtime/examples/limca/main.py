@@ -33,7 +33,7 @@ server = AstraServer(
     agents=[limca_agent],
     description="A server hosting Limca - the codebase Q/A agent.",
     storage=StorageClient(storage=MongoDBStorage("mongodb://localhost:27017", "limca_db")),
-    cors_allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    cors_allowed_origins=["http://localhost:3010", "http://127.0.0.1:3010"],
     auth_enabled=False,  # Disable auth for local development
     telemetry=TelemetryConfig(
         enabled=True,

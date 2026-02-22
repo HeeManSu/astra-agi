@@ -271,11 +271,13 @@ class ObservabilityEngine:
         if log.level == LogLevel.DEBUG and not self._debug_mode:
             return
 
-        # Notify console debugger (real-time) - only if span_id is set
+        # Notify console debugger (real-time) - route to appropriate method
         if log.span_id:
             self._console_debugger.span_log(
                 log.span_id, log.level.value, log.message, log.attributes
             )
+        else:
+            self._console_debugger.log(log.level.value, log.message, log.attributes)
 
         # Persist log to database
         await self._storage.save_log(log)

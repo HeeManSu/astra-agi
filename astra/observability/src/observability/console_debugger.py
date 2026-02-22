@@ -98,7 +98,7 @@ class ConsoleDebugger:
         Args:
             span_id: Unique span identifier
             trace_id: Parent trace identifier
-            name: Span name (e.g., "code_generation", "llm.generate_code")
+            name: Span name (e.g., "code_generation", "llm.generate_parse_validate_code")
             kind: Span kind (STEP, GENERATION, TOOL)
             parent_span_id: Parent span ID if nested
             attributes: Span metadata
@@ -152,6 +152,35 @@ class ConsoleDebugger:
         self._write(f"{prefix}{color}{message}{c.RESET}")
 
         # Print data if present
+        if data:
+            for key, value in data.items():
+                if isinstance(value, (int, float)):
+                    val = f"{c.YELLOW}{value}{c.RESET}"
+                else:
+                    val = str(value)
+                    if len(val) > 100:
+                        val = val[:100] + "..."
+                    val = f"{c.CYAN}{val}{c.RESET}"
+                self._write(f"{prefix}  {c.DIM}{key}{c.RESET}: {val}")
+
+    def log(self, level: str, message: str, data: dict[str, Any] | None = None) -> None:
+        """Print a standalone log event (no span context).
+
+        Used for startup/shutdown lifecycle logs that occur outside of any span.
+
+        Args:
+            level: Log level (DEBUG, INFO, WARN, ERROR)
+            message: Log message
+            data: Additional structured data
+        """
+        if not self.enabled:
+            return
+
+        c = Colors
+        color = c.DIM if level == "DEBUG" else c.GREEN if level == "INFO" else c.YELLOW
+        prefix = f"{c.MAGENTA}DEBUG{c.RESET} "
+        self._write(f"{prefix}{color}{message}{c.RESET}")
+
         if data:
             for key, value in data.items():
                 if isinstance(value, (int, float)):

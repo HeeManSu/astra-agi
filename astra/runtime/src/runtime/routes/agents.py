@@ -34,7 +34,7 @@ async def list_agents() -> list[AgentResponse]:
     agents = agent_registry.list_all()
     return [
         AgentResponse(
-            id=agent.id or agent.name,
+            id=agent.id,
             name=agent.name,
             description=agent.description,
         )
@@ -49,7 +49,7 @@ async def get_agent(agent_id: str) -> AgentResponse:
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return AgentResponse(
-        id=agent.id or agent.name,
+        id=agent.id,
         name=agent.name,
         description=agent.description,
     )

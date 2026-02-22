@@ -33,6 +33,13 @@ class Registry(Generic[T]):
     def register(self, item: T) -> None:
         """Register an item in the registry."""
         item_id = self._get_id(item)
+        existing = self._items.get(item_id)
+        if existing is not None and existing is not item:
+            item_type = item.__class__.__name__
+            raise ValueError(
+                f"Duplicate {item_type} identifier '{item_id}' detected in registry. "
+                "Identifiers must be globally unique."
+            )
         self._items[item_id] = item
 
     def get(self, item_id: str) -> T | None:
@@ -52,14 +59,14 @@ class AgentRegistry(Registry["Agent"]):
     """Registry for Agent instances."""
 
     def _get_id(self, agent: Agent) -> str:
-        return agent.id or agent.name
+        return agent.id
 
 
 class TeamRegistry(Registry["Team"]):
     """Registry for Team instances."""
 
     def _get_id(self, team: Team) -> str:
-        return team.id or team.name
+        return team.id
 
 
 class StorageRegistry:

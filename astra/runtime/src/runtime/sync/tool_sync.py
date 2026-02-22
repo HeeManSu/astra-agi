@@ -10,9 +10,11 @@ Syncs tools to DB at server startup:
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 import hashlib
 import json
+import sys
 from typing import TYPE_CHECKING, Any
 
 from framework.storage.models import ToolDefinition
@@ -32,21 +34,39 @@ class SyncReport:
     local_unchanged: int = 0
     mcp_synced: dict[str, int] = field(default_factory=dict)
     mcp_unchanged: dict[str, int] = field(default_factory=dict)
+    mcp_failed: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API response."""
+        mcp_servers = sorted(set(self.mcp_synced) | set(self.mcp_unchanged) | set(self.mcp_failed))
         return {
             "local": {
                 "synced": self.local_synced,
                 "unchanged": self.local_unchanged,
             },
             "mcp": {
-                server: {"synced": count, "unchanged": self.mcp_unchanged.get(server, 0)}
-                for server, count in self.mcp_synced.items()
+                server: {
+                    "synced": self.mcp_synced.get(server, 0),
+                    "unchanged": self.mcp_unchanged.get(server, 0),
+                    "status": "failed" if server in self.mcp_failed else "ok",
+                    "error": self.mcp_failed.get(server),
+                }
+                for server in mcp_servers
             },
             "total_synced": self.local_synced + sum(self.mcp_synced.values()),
             "total_unchanged": self.local_unchanged + sum(self.mcp_unchanged.values()),
+            "total_failed_mcp_servers": len(self.mcp_failed),
         }
+
+
+@dataclass
+class MCPSyncResult:
+    """Per-server MCP sync result."""
+
+    server: str
+    synced: int = 0
+    unchanged: int = 0
+    error: str | None = None
 
 
 def compute_tool_hash(definition: dict[str, Any]) -> str:
@@ -98,11 +118,23 @@ async def sync_local_tools(
     to_save: list[ToolDefinition] = []
 
     # Batch get existing tool hashes
-    tool_slugs = [f"{source}-{t.name}".lower().replace("_", "-") for t in tools]
-    existing_hashes = await definition_storage.get_hashes_by_slugs(tool_slugs)
-
+    tool_slugs: list[str] = []
+    seen_local_slugs: dict[str, int] = {}
     for tool in tools:
-        tool_slug = f"{source}-{tool.name}".lower().replace("_", "-")
+        raw_tool_slug = getattr(tool, "slug", None)
+        if not isinstance(raw_tool_slug, str) or not raw_tool_slug.strip():
+            raise ValueError("Local tool is missing slug during sync. Ensure tool.slug is set.")
+        tool_slug = f"{source}-{raw_tool_slug.strip()}".lower().replace("_", "-")
+        existing_obj_id = seen_local_slugs.get(tool_slug)
+        if existing_obj_id is not None and existing_obj_id != id(tool):
+            raise ValueError(f"Duplicate local tool slug '{tool_slug}' detected during sync.")
+        seen_local_slugs[tool_slug] = id(tool)
+        tool_slugs.append(tool_slug)
+
+    existing_hashes = await definition_storage.get_hashes_by_slugs(tool_slugs)
+    existing_tools = await definition_storage.get_by_slugs(tool_slugs)
+
+    for tool, tool_slug in zip(tools, tool_slugs, strict=False):
         required_fields = list(tool.parameters.get("required", [])) if tool.parameters else []
 
         definition_dict = {
@@ -123,7 +155,7 @@ async def sync_local_tools(
             unchanged += 1
             continue
 
-        existing = await definition_storage.get_by_name(tool_slug)
+        existing = existing_tools.get(tool_slug)
 
         if existing:
             new_version = bump_version(existing.version)
@@ -149,7 +181,11 @@ async def _sync_single_mcp(
     mcp: MCPToolkit,
     definition_storage: Any,
     source: str = "mcp",
-) -> tuple[str, int, int]:
+    *,
+    list_timeout_seconds: float = 10.0,
+    retries: int = 2,
+    retry_backoff_seconds: float = 0.5,
+) -> MCPSyncResult:
     """
     Sync a single MCP server.
 
@@ -157,17 +193,39 @@ async def _sync_single_mcp(
 
     Returns: (name, synced, unchanged)
     """
-    mcp_source = f"{source}:{mcp.name}"
+    raw_mcp_slug = getattr(mcp, "slug", None)
+    if not isinstance(raw_mcp_slug, str) or not raw_mcp_slug.strip():
+        return MCPSyncResult(server=mcp.name, error="MCP toolkit missing slug")
+    mcp_source = f"{source}:{raw_mcp_slug.strip()}"
     synced = 0
     unchanged = 0
     to_save: list[ToolDefinition] = []
 
-    # Use existing connection (already connected in lifespan)
-    tools = await mcp.list_tools()
+    # Use existing connection (already connected in lifespan), with bounded retries.
+    attempts = max(retries, 0) + 1
+    tools: list[dict[str, Any]] | None = None
+    for attempt in range(attempts):
+        try:
+            tools = await asyncio.wait_for(mcp.list_tools(), timeout=list_timeout_seconds)
+            break
+        except Exception as e:  # noqa: PERF203
+            if attempt < attempts - 1:
+                await asyncio.sleep(retry_backoff_seconds * (2**attempt))
+                continue
+            return MCPSyncResult(
+                server=mcp.name,
+                error=f"list_tools failed after {attempts} attempts: {e}",
+            )
+
+    if tools is None:
+        return MCPSyncResult(server=mcp.name, error="list_tools returned no tools")
 
     # Batch get existing tool hashes
     tool_slugs = [f"{mcp_source}-{t['name']}".lower().replace("_", "-") for t in tools]
+    if len(tool_slugs) != len(set(tool_slugs)):
+        return MCPSyncResult(server=mcp.name, error="MCP list_tools returned duplicate tool names")
     existing_hashes = await definition_storage.get_hashes_by_slugs(tool_slugs)
+    existing_tools = await definition_storage.get_by_slugs(tool_slugs)
 
     for tool_info in tools:
         input_schema = tool_info.get("inputSchema", {})
@@ -181,7 +239,7 @@ async def _sync_single_mcp(
             "source": mcp_source,
             "description": tool_info.get("description", ""),
             "input_schema": input_schema,
-            "output_schema": None,
+            "output_schema": tool_info.get("outputSchema"),
             "required_fields": required_fields,
             "example": None,
         }
@@ -193,7 +251,7 @@ async def _sync_single_mcp(
             unchanged += 1
             continue
 
-        existing = await definition_storage.get_by_name(tool_slug)
+        existing = existing_tools.get(tool_slug)
 
         if existing:
             new_version = bump_version(existing.version)
@@ -211,14 +269,18 @@ async def _sync_single_mcp(
     if to_save:
         await definition_storage.save_many(to_save)
 
-    return (mcp.name, synced, unchanged)
+    return MCPSyncResult(server=mcp.name, synced=synced, unchanged=unchanged)
 
 
 async def sync_mcp_tools(
     storage: StorageClient,
     mcp_tools: list[MCPToolkit],
     source: str = "mcp",
-) -> dict[str, tuple[int, int]]:
+    *,
+    list_timeout_seconds: float = 10.0,
+    retries: int = 2,
+    retry_backoff_seconds: float = 0.5,
+) -> list[MCPSyncResult]:
     """
     Sync MCP tools to DB using already-connected servers.
 
@@ -230,11 +292,8 @@ async def sync_mcp_tools(
         source: Source identifier (default: "mcp")
 
     Returns:
-        Dict of {server_name: (synced_count, unchanged_count)}
+        List of per-server MCP sync results.
     """
-    import asyncio
-    import sys
-
     from framework.storage.stores.tool_definition import ToolDefinitionStore
 
     definition_storage = ToolDefinitionStore(storage.storage)
@@ -242,15 +301,26 @@ async def sync_mcp_tools(
     # Only sync connected MCP toolkits
     connected_mcps = [mcp for mcp in mcp_tools if mcp._session is not None]
 
-    tasks = [_sync_single_mcp(mcp, definition_storage, source) for mcp in connected_mcps]
-    results_list = await asyncio.gather(*tasks, return_exceptions=True)
+    tasks = [
+        _sync_single_mcp(
+            mcp,
+            definition_storage,
+            source,
+            list_timeout_seconds=list_timeout_seconds,
+            retries=retries,
+            retry_backoff_seconds=retry_backoff_seconds,
+        )
+        for mcp in connected_mcps
+    ]
+    raw_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    results: dict[str, tuple[int, int]] = {}
-    for result in results_list:
-        if isinstance(result, BaseException):
-            sys.stdout.write(f"MCP sync error: {result}\n")
+    results: list[MCPSyncResult] = []
+    for mcp, raw_result in zip(connected_mcps, raw_results, strict=False):
+        if isinstance(raw_result, BaseException):
+            err = f"sync failed unexpectedly: {raw_result}"
+            sys.stdout.write(f"MCP sync error ({mcp.name}): {err}\n")
+            results.append(MCPSyncResult(server=mcp.name, error=err))
             continue
-        name, synced, unchanged = result
-        results[name] = (synced, unchanged)
+        results.append(raw_result)
 
     return results

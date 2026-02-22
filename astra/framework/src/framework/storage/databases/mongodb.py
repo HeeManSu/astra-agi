@@ -116,6 +116,15 @@ class MongoDBStorage(StorageBackend):
         tools_collection = self._db["astra_tool_definitions"]
         await tools_collection.create_index("is_active")
 
+        # astra_workflow_instances indexes (for DSL execution tracking)
+        wfi_collection = self._db["astra_workflow_instances"]
+        await wfi_collection.create_index("agent_id")
+        await wfi_collection.create_index("status")
+        await wfi_collection.create_index("conversation_id")
+        await wfi_collection.create_index([("agent_id", 1), ("created_at", -1)])
+        await wfi_collection.create_index([("plan_id", 1), ("plan_version", 1)])
+        await wfi_collection.create_index("created_at")
+
     async def execute(self, query: Mapping[str, Any], params: dict[str, Any] | None = None) -> Any:
         """
         Execute a write operation.

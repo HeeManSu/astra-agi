@@ -9,7 +9,7 @@ Architecture:
     ┌─────────────────────────────────────────────────────────────┐
     │                    PARENT PROCESS                           │
     │  Sandbox.run(query)                                         │
-    │    ├── generate_code() → LLM → Python code                  │
+    │    ├── generate_parse_validate_code() → LLM → Python code                  │
     │    └── execute() → subprocess                               │
     │          ├── Monitor stdout for tool calls                  │
     │          ├── Execute tool, send result via stdin            │
@@ -115,10 +115,75 @@ def synthesize_response(message):   # (message:str -> message)
 
 
 def save_debug_artifact(filename: str, content: str) -> None:
-    """Save a debug artifact to the .debug directory."""
+    """Save a debug artifact to .debug/ (overwrite) and astra/evals/ (numbered).
+
+    The .debug/ copy is always overwritten for quick access.
+    The evals/ copy uses incrementing numbers (code_1.py, code_2.py, ...) to
+    preserve history across runs for evaluation purposes.
+    """
+    # 1. Always overwrite the .debug/ copy
     os.makedirs(".debug", exist_ok=True)
     with open(f".debug/{filename}", "w") as f:
         f.write(content)
+
+    # 2. Save numbered copy to evals/
+    # Map debug filenames to eval folders + base names
+    eval_map: dict[str, tuple[str, str]] = {
+        "generated_code.py": ("generated_code", "code"),
+        "stubs.py": ("generated_stubs", "stubs"),
+        "prompt.txt": ("generated_prompt", "prompt"),
+        "semantic_layer.json": ("generated_semantic_layer", "semantic_layer"),
+        "dsl.json": ("generated_DSL", "dsl"),
+    }
+
+    entry = eval_map.get(filename)
+    if not entry:
+        return
+
+    folder_name, base_name = entry
+    # Walk up from CWD to find the astra/evals directory
+    evals_dir = _find_evals_dir()
+    if not evals_dir:
+        return
+
+    target_dir = os.path.join(evals_dir, folder_name)
+    os.makedirs(target_dir, exist_ok=True)
+
+    # Determine file extension
+    ext = os.path.splitext(filename)[1]  # .py, .txt, .json
+
+    # Find the next number by checking existing files
+    existing = [
+        f for f in os.listdir(target_dir) if f.startswith(base_name + "_") and f.endswith(ext)
+    ]
+    max_num = 0
+    for f in existing:
+        raw = f[len(base_name) + 1 : -len(ext)]
+        if raw.isdigit():
+            max_num = max(max_num, int(raw))
+
+    next_num = max_num + 1
+    numbered_filename = f"{base_name}_{next_num}{ext}"
+    with open(os.path.join(target_dir, numbered_filename), "w") as f:
+        f.write(content)
+
+
+def _find_evals_dir() -> str | None:
+    """Find the astra/evals directory by walking up from CWD."""
+    current = os.path.abspath(".")
+    for _ in range(10):  # max 10 levels up
+        candidate = os.path.join(current, "astra", "evals")
+        if os.path.isdir(candidate):
+            return candidate
+        # Also check if we're inside astra/ already
+        candidate2 = os.path.join(current, "evals")
+        if os.path.isdir(candidate2) and os.path.basename(current) == "astra":
+            return candidate2
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    return None
 
 
 # RESULT DATACLASS
@@ -150,7 +215,7 @@ class Sandbox:
     """Sandbox for Team code mode.
 
     Handles both code generation and execution:
-    1. generate_code(): LLM generates Python code from user query
+    1. generate_parse_validate_code(): LLM generates Python code from user query
     2. execute(): Run code in isolated subprocess with tool routing
     3. run(): Convenience method that does both
 
@@ -277,13 +342,105 @@ class Sandbox:
             self._tool_map = self._build_tool_map()
         return self._tool_map.get(qualified_name)
 
+    # CLARIFICATION DETECTION
+    def _extract_clarification(self, code: str) -> dict | None:
+        """Check if generated code is a clarification request, not executable logic.
+
+        When the LLM detects missing user data, it generates a single
+        synthesize_response({"status": "needs_clarification", ...}) call.
+        This method detects that pattern so we can skip subprocess execution
+        and return the question directly.
+
+        Returns:
+            The clarification dict if detected, None otherwise.
+        """
+        import ast as _ast
+
+        try:
+            tree = _ast.parse(code)
+            if len(tree.body) != 1:
+                return None
+            stmt = tree.body[0]
+            if not isinstance(stmt, _ast.Expr) or not isinstance(stmt.value, _ast.Call):
+                return None
+            func = stmt.value
+            if not (isinstance(func.func, _ast.Name) and func.func.id == "synthesize_response"):
+                return None
+            if func.args:
+                arg = _ast.literal_eval(func.args[0])
+                if isinstance(arg, dict) and arg.get("status") == "needs_clarification":
+                    return arg
+        except Exception:
+            pass
+        return None
+
+    @staticmethod
+    def _extract_code(raw: str) -> str:
+        """Strip markdown fences, leading prose, and trailing explanations.
+
+        LLMs sometimes wrap output in ```python ... ``` blocks or prepend
+        a sentence like "Here is the code:" despite being told not to.
+        This method aggressively extracts the pure Python code.
+
+        Priority:
+          1. If a fenced code block exists, use its content.
+          2. Otherwise strip any leading non-code lines (lines that
+             don't look like Python) and trailing prose.
+
+        Returns:
+            Clean Python source string.
+        """
+        text = raw.strip()
+
+        # ── 1. Extract from fenced code blocks (```python ... ``` or ``` ... ```)
+        fence_pattern = re.compile(r"```(?:python|py)?\s*\n(.*?)```", re.DOTALL)
+        match = fence_pattern.search(text)
+        if match:
+            return match.group(1).strip()
+
+        # ── 2. Strip leading prose lines (before first Python-looking line)
+        lines = text.split("\n")
+        start_idx = 0
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Heuristic: a Python line starts with a keyword, identifier,
+            # comment, or string literal — not with markdown or prose.
+            if (
+                stripped.startswith(("#", "import ", "from ", "if ", "for ", "synthesize_response"))
+                or "=" in stripped
+                or (stripped[0].isalpha() and "(" in stripped)
+            ):
+                start_idx = i
+                break
+        else:
+            # No Python-looking line found — return original
+            return text
+
+        # ── 3. Strip trailing prose (after last synthesize_response or assignment)
+        end_idx = len(lines)
+        for i in range(len(lines) - 1, start_idx - 1, -1):
+            stripped = lines[i].strip()
+            if not stripped:
+                continue
+            if (
+                "synthesize_response" in stripped
+                or "=" in stripped
+                or stripped.startswith(("#", ")", "}", "]"))
+            ):
+                end_idx = i + 1
+                break
+
+        return "\n".join(lines[start_idx:end_idx]).strip()
+
     # PUBLIC API
     # The Sandbox has 3 public methods:
     #   - run(): All-in-one method (generate + execute)
-    #   - generate_code(): Just generate code from user query
+    #   - generate_parse_validate_code(): Just generate code from user query
     #   - execute(): Just execute code in subprocess
     #
-    # Use run() for simple cases. Use generate_code() + execute() separately
+    # Use run() for simple cases. Use generate_parse_validate_code() + execute() separately
     # when you need to yield events between steps (e.g., for streaming).
 
     async def run(
@@ -321,16 +478,31 @@ class Sandbox:
         async with span("sandbox.run"):
             # Step 1: Generate code from user query
             await log(LogLevel.INFO, "Generating code from user query")
-            code = await self.generate_code(
+            code = await self.generate_parse_validate_code(
                 user_query,
                 thread_id=thread_id,
                 context=context,
             )
             save_debug_artifact("generated_code.py", code)
 
-            # Step 2: Execute the generated code
-            await log(LogLevel.INFO, "Executing generated code")
-            result = await self.execute(code, timeout=timeout)
+            # Step 1.5: Check for clarification (missing data)
+            clarification = self._extract_clarification(code)
+            if clarification:
+                await log(LogLevel.INFO, "Clarification needed — returning question to user")
+                question = clarification.get("question", "Could you provide more details?")
+                return SandboxResult(
+                    output=json.dumps(clarification, ensure_ascii=False),
+                    formatted_output=question,
+                    success=True,
+                    exit_code=0,
+                    generated_code=code,
+                )
+
+            # Step 2: Build DSL workflow, then execute via the DSL engine
+            await log(LogLevel.INFO, "Building DSL workflow from generated code")
+            await self.build_dsl_workflow(code)
+            await log(LogLevel.INFO, "Executing via DSL execution engine")
+            result = await self.execute_dsl(timeout=timeout)
             result.generated_code = code
 
             # Step 3: Format the response into human-readable text
@@ -396,7 +568,7 @@ class Sandbox:
 
             return content.strip()
 
-    async def generate_code(
+    async def generate_parse_validate_code(
         self,
         user_query: str,
         thread_id: str | None = None,
@@ -435,6 +607,15 @@ class Sandbox:
                 if hasattr(self.provider, "build_semantic_layer"):
                     semantic_layer = self.provider.build_semantic_layer(tool_definitions)
                     self._semantic_layer = semantic_layer  # Store for use in _build_full_code()
+
+                # Extract tool whitelist from semantic layer for AST validation
+                # and DSL building.  Only domain.tool_slug patterns are valid tool calls.
+                allowed_tools = {
+                    f"{domain.id}.{tool.slug}"
+                    for domain in semantic_layer.domains
+                    for tool in domain.tools
+                }
+
                 agent_count = len(semantic_layer.domains)
                 total_tools = sum(len(d.tools) for d in semantic_layer.domains)
                 await log(
@@ -474,6 +655,20 @@ class Sandbox:
                 messages: list[dict[str, Any]] = []
                 if thread_id:
                     history = await self.provider.get_history(thread_id)
+                    # If memory is disabled (empty history), check if the previous
+                    # turn was a clarification. If so, load 4 turns so the LLM
+                    # can see the original question + clarification + user's reply.
+                    if not history:
+                        storage = getattr(self.provider, "storage", None)
+                        if storage:
+                            recent = await storage.get_history_as_messages(thread_id, limit=2)
+                            has_prior_clarification = any(
+                                "needs_clarification" in m.get("content", "")
+                                for m in recent
+                                if m.get("role") == "assistant"
+                            )
+                            if has_prior_clarification:
+                                history = await storage.get_history_as_messages(thread_id, limit=8)
                     messages.extend(history)
                 await log(
                     LogLevel.DEBUG,
@@ -553,40 +748,217 @@ class Sandbox:
                 save_debug_artifact("prompt.txt", prompt)
                 await log(LogLevel.DEBUG, "Saved to: .debug/prompt.txt")
 
-            # Step 5: Call the LLM
-            async with span(
-                "llm.generate_code",
-                attributes={"model": getattr(self.model, "model_id", "unknown")},
-            ):
-                await log(LogLevel.INFO, "Invoking LLM for code generation")
-                await log(LogLevel.DEBUG, f"Model: {getattr(self.model, 'name', 'unknown')}")
+            # Step 5 + 6: Generate code, extract, parse, validate — with retry
+            #
+            # On syntax/validation failure, we feed the error back to the LLM
+            # and ask it to correct the code.  This handles:
+            #   - Markdown fencing (```python ... ```) despite prompt instructions
+            #   - Leading prose / trailing explanation
+            #   - Genuine syntax bugs (mismatched brackets, unterminated strings)
+            #
+            # Max 2 attempts total (1 original + 1 retry).  The retry prompt is
+            # appended as a user message so the LLM sees its own broken output.
 
-                response = await self.model.invoke(messages)
-                content = response.content if hasattr(response, "content") else str(response)
+            max_code_gen_attempts = 2
+            code = ""
+            last_error: str | None = None
 
-                # Update span attributes so engine can track tokens
-                # The attributes will be automatically logged on span end
-                usage = response.usage
-                if usage:
-                    update_span(
-                        {
-                            "input_tokens": usage.get("input_tokens", 0),
-                            "output_tokens": usage.get("output_tokens", 0),
-                            "thoughts_tokens": usage.get("thoughts_tokens", 0),
-                            "total_tokens": usage.get("total_tokens", 0),
-                        }
+            for attempt_idx in range(max_code_gen_attempts):
+                async with span(
+                    "llm.generate_code",
+                    attributes={
+                        "model": getattr(self.model, "model_id", "unknown"),
+                        "attempt": attempt_idx + 1,
+                    },
+                ):
+                    if attempt_idx == 0:
+                        await log(LogLevel.INFO, "Invoking LLM for code generation")
+                    else:
+                        await log(
+                            LogLevel.INFO,
+                            f"Retrying code generation (attempt {attempt_idx + 1}): "
+                            f"previous error → {last_error}",
+                        )
+                        # Append correction prompt so the LLM sees its own mistake
+                        messages.append(
+                            {
+                                "role": "user",
+                                "content": (
+                                    "Your previous output was not valid Python.\n"
+                                    f"Error: {last_error}\n\n"
+                                    "Fix the code and output ONLY raw Python — "
+                                    "no markdown fences, no prose, no explanation.\n"
+                                    "Start directly with executable Python statements."
+                                ),
+                            }
+                        )
+
+                    response = await self.model.invoke(messages)
+                    content = response.content if hasattr(response, "content") else str(response)
+
+                    # ── Extract clean Python from LLM output
+                    code = self._extract_code(content)
+                    await log(LogLevel.DEBUG, f"Extracted code ({len(code)} chars)")
+
+                    # Track token usage
+                    usage = response.usage
+                    if usage:
+                        update_span(
+                            {
+                                "input_tokens": usage.get("input_tokens", 0),
+                                "output_tokens": usage.get("output_tokens", 0),
+                                "thoughts_tokens": usage.get("thoughts_tokens", 0),
+                                "total_tokens": usage.get("total_tokens", 0),
+                            }
+                        )
+
+                    save_debug_artifact(f"generated_code_attempt_{attempt_idx + 1}.py", content)
+                    save_debug_artifact("generated_code.py", code)
+
+                # ── Parse and validate
+                async with span(
+                    "ast.parse_and_validate",
+                    attributes={"attempt": attempt_idx + 1},
+                ):
+                    from framework.code_mode.compiler.ast_parser import parse_code, validate
+
+                    await log(LogLevel.INFO, "Parsing generated code into AST")
+                    parsed_ast = parse_code(code)
+
+                    if parsed_ast.error:
+                        last_error = str(parsed_ast.error)
+                        await log(
+                            LogLevel.WARN,
+                            f"AST parse failed (attempt {attempt_idx + 1}): {last_error}",
+                        )
+                        if attempt_idx < max_code_gen_attempts - 1:
+                            continue  # retry
+                        raise SyntaxError(f"Generated code has syntax errors: {parsed_ast.error}")
+
+                    assert parsed_ast.module is not None and parsed_ast.ast_dump is not None
+
+                    await log(
+                        LogLevel.DEBUG,
+                        f"AST parsed: {len(parsed_ast.module.body)} top-level statements",
                     )
 
-                await log(
-                    LogLevel.DEBUG,
-                    f"Generated code: {len(content)} chars",
-                    {"code_length": len(content)},
-                )
-                save_debug_artifact("generated_code.py", content)
-                await log(LogLevel.DEBUG, "Saved to: .debug/generated_code.py")
-                await log(LogLevel.INFO, "Code generation complete")
+                    # Validate against restricted subset
+                    await log(LogLevel.INFO, "Validating AST against code-mode rules")
+                    errors = validate(parsed_ast.module, allowed_tools=allowed_tools)
 
-            return content.strip()
+                    if errors:
+                        error_msgs = [f"  L{e.line}: {e.message}" for e in errors]
+                        error_summary = "\n".join(error_msgs)
+                        last_error = error_summary
+                        await log(
+                            LogLevel.WARN,
+                            f"Validation failed (attempt {attempt_idx + 1}, "
+                            f"{len(errors)} errors):\n{error_summary}",
+                        )
+                        if attempt_idx < max_code_gen_attempts - 1:
+                            continue  # retry
+                        raise ValueError(
+                            f"Generated code failed validation ({len(errors)} errors):\n"
+                            f"{error_summary}"
+                        )
+
+                    await log(LogLevel.INFO, "Validation passed")
+                    break  # success — exit retry loop
+
+            return code
+
+    async def build_dsl_workflow(self, code: str) -> None:
+        """Lower generated code into a DSL workflow graph, validate, and save artifact.
+
+        Steps:
+            1. Parse the code into an AST via ast_parser.parse_code()
+            2. Build the DSL graph from the AST via dsl_builder.build()
+            3. Validate the workflow via dsl_validator.validate_workflow()
+            4. Save the full workflow as .debug/dsl.json (+ numbered eval copy)
+            5. Store the workflow on self._dsl_workflow for downstream use
+
+        Args:
+            code: Generated Python code string.
+
+        Raises:
+            ValueError: If DSL build or validation fails.
+        """
+        from dataclasses import asdict
+
+        from observability import LogLevel, log, span
+
+        from framework.code_mode.compiler.ast_parser import parse_code
+        from framework.code_mode.compiler.dsl_builder import build as _build_dsl
+        from framework.code_mode.compiler.dsl_validator import validate_workflow
+
+        async with span("dsl.build"):
+            result = parse_code(code)
+            if result.error or result.module is None:
+                await log(LogLevel.ERROR, f"DSL parse failed: {result.error}")
+                raise ValueError(f"DSL parse failed: {result.error}")
+
+            # Extract tool whitelist from semantic layer so the builder
+            # only classifies known domain.tool calls as ActionNodes.
+            semantic = self._semantic_layer or self.provider.build_semantic_layer()
+            allowed_tools = {
+                f"{domain.id}.{tool.slug}" for domain in semantic.domains for tool in domain.tools
+            }
+
+            await log(LogLevel.INFO, "Lowering AST to DSL workflow graph")
+            build_result = _build_dsl(result.module, name="workflow", allowed_tools=allowed_tools)
+
+            if not build_result.ok:
+                error_summary = "\n".join(f"  - {e}" for e in build_result.errors)
+                await log(
+                    LogLevel.ERROR,
+                    f"DSL build failed ({len(build_result.errors)} errors):\n{error_summary}",
+                )
+                raise ValueError(
+                    f"DSL lowering failed ({len(build_result.errors)} errors):\n{error_summary}"
+                )
+
+            workflow = build_result.workflow
+            assert workflow is not None  # guaranteed by ok
+
+            await log(
+                LogLevel.DEBUG,
+                f"DSL built: {workflow.summary()}",
+                {
+                    "nodes": len(workflow.nodes),
+                    "edges": len(workflow.edges),
+                    "entry": workflow.entry,
+                },
+            )
+
+            # Validate the DSL workflow
+            await log(LogLevel.INFO, "Validating DSL workflow")
+            validation = validate_workflow(workflow)
+
+            if validation.warnings:
+                for w in validation.warnings:
+                    await log(LogLevel.WARN, f"DSL warning: {w}")
+
+            if not validation.ok:
+                error_summary = "\n".join(f"  - {e}" for e in validation.errors)
+                await log(
+                    LogLevel.ERROR,
+                    f"DSL validation failed ({len(validation.errors)} errors):\n{error_summary}",
+                )
+                raise ValueError(
+                    f"DSL validation failed ({len(validation.errors)} errors):\n{error_summary}"
+                )
+
+            await log(LogLevel.INFO, "DSL validation passed")
+
+            # Save full DSL artifact using dataclasses.asdict for complete dump
+            save_debug_artifact(
+                "dsl.json",
+                json.dumps(asdict(workflow), indent=2, ensure_ascii=False, default=str),
+            )
+            await log(LogLevel.DEBUG, "Saved to: .debug/dsl.json")
+
+            # Store workflow on sandbox for downstream use
+            self._dsl_workflow = workflow
 
     async def execute(self, code: str, timeout: float = 60.0) -> SandboxResult:
         """Run Python code in an isolated subprocess.
@@ -611,7 +983,7 @@ class Sandbox:
               5. Subprocess receives result and continues
 
         Args:
-            code: Python code to run (usually from generate_code())
+            code: Python code to run (usually from generate_parse_validate_code())
             timeout: Maximum time to wait (default: 60 seconds)
 
         Returns:
@@ -682,6 +1054,169 @@ class Sandbox:
                     exit_code=-1,
                     stderr="TimeoutError: Execution exceeded time limit",
                 )
+
+    def _build_dsl_tool_map(self) -> dict[str, Any]:
+        """Build {qualified_tool_name: async_callable} for the DSL executor.
+
+        Wraps every entry in self._tool_map into an async callable with the
+        signature  async def tool(**kwargs) -> dict  that the DSL runner expects.
+
+        Returns:
+            dict mapping "domain_id.tool_slug" → async callable for each tool.
+        """
+        import asyncio as _asyncio
+        import inspect as _inspect
+
+        if self._tool_map is None:
+            self._tool_map = self._build_tool_map()
+
+        dsl_tools: dict[str, Any] = {}
+
+        for key, value in (self._tool_map or {}).items():
+            # ── Skip MCP toolkit entries (keyed by mcp_slug, value = ("MCP", toolkit)).
+            # Individual MCP tools are registered below via _mcp_tool_name_map.
+            if not hasattr(value, "func"):
+                continue  # not a local Tool — skip (MCP toolkits handled below)
+
+            # ── Local Tool entry: key = "domain_id.tool_slug", value = Tool
+            # hasattr guard above lets Pyright narrow `value` away from tuple.
+            _tool = value
+
+            async def _local_call(_t=_tool, **kwargs: Any) -> Any:
+                func = _t.func
+                input_schema = getattr(_t, "input_schema", None)
+                if input_schema:
+                    input_model = input_schema(**kwargs)
+                    sig = _inspect.signature(func)
+                    param_name = next(iter(sig.parameters.keys()))
+                    call_args = {param_name: input_model}
+                else:
+                    call_args = kwargs
+
+                if _asyncio.iscoroutinefunction(func):
+                    result = await func(**call_args)
+                else:
+                    result = func(**call_args)
+
+                if hasattr(result, "model_dump"):
+                    return result.model_dump()
+                return result
+
+            dsl_tools[key] = _local_call
+
+        # ── MCP tools: each "mcp_slug.tool_slug" → remote_name mapping
+        for qualified_key, remote_name in self._mcp_tool_name_map.items():
+            mcp_slug = qualified_key.rsplit(".", 1)[0]
+            toolkit_entry = (self._tool_map or {}).get(mcp_slug)
+            if not (isinstance(toolkit_entry, tuple) and toolkit_entry[0] == "MCP"):
+                continue
+            _, toolkit = toolkit_entry
+            _remote = remote_name
+            _tk = toolkit
+
+            async def _mcp_call(_r=_remote, _toolkit=_tk, **kwargs: Any) -> Any:
+                result = await _toolkit.call_tool(_r, **kwargs)
+                try:
+                    import json as _j
+
+                    return _j.loads(result)
+                except (TypeError, ValueError):
+                    return {"result": result}
+
+            dsl_tools[qualified_key] = _mcp_call
+
+        return dsl_tools
+
+    async def execute_dsl(self, timeout: float = 60.0) -> SandboxResult:
+        """Execute the compiled DslWorkflow via the DSL execution engine.
+
+        Replaces the subprocess-based execute() for structured, reproducible
+        execution. Requires build_dsl_workflow() to have been called first
+        (sets self._dsl_workflow).
+
+        Flow:
+            1. Build callable tool map from self._tool_map
+            2. Call run_workflow(workflow, initial_state={}, tools=dsl_tools)
+            3. Convert ExecutionResult → SandboxResult for caller compatibility
+
+        Args:
+            timeout: Maximum seconds for workflow execution.
+
+        Returns:
+            SandboxResult with output, tool_calls, and success flag.
+        """
+        import asyncio as _asyncio
+
+        from observability import LogLevel, log, span
+
+        from framework.code_mode.executor import run_workflow
+
+        async with span("dsl.execute", attributes={"timeout": timeout}):
+            if not getattr(self, "_dsl_workflow", None):
+                await log(LogLevel.ERROR, "execute_dsl called before build_dsl_workflow()")
+                return SandboxResult(
+                    output="",
+                    success=False,
+                    stderr="execute_dsl() called before build_dsl_workflow(). "
+                    "Call build_dsl_workflow(code) first.",
+                )
+
+            await log(LogLevel.INFO, "Building DSL tool map")
+            dsl_tools = self._build_dsl_tool_map()
+            await log(LogLevel.DEBUG, f"DSL tool map: {list(dsl_tools.keys())}")
+
+            await log(LogLevel.INFO, "Running workflow via DSL execution engine")
+            try:
+                exec_result = await _asyncio.wait_for(
+                    run_workflow(
+                        self._dsl_workflow,
+                        initial_state={},
+                        tools=dsl_tools,
+                    ),
+                    timeout=timeout,
+                )
+            except _asyncio.TimeoutError:
+                await log(LogLevel.ERROR, f"DSL execution timed out after {timeout}s")
+                return SandboxResult(
+                    output="",
+                    success=False,
+                    exit_code=-1,
+                    stderr=f"TimeoutError: DSL execution exceeded {timeout}s",
+                )
+            except Exception as exc:
+                await log(LogLevel.ERROR, f"DSL execution error: {exc}")
+                return SandboxResult(
+                    output="",
+                    success=False,
+                    stderr=str(exc),
+                )
+
+            # ── Convert ExecutionResult → SandboxResult
+            # Collect action node tool calls from the journal for SSE streaming
+            tool_calls: list[dict[str, Any]] = [
+                {"name": entry.node_id, "args": entry.inputs, "result": entry.outputs}
+                for entry in exec_result.journal
+                if entry.node_type == "action"
+            ]
+
+            # Prefer __response__ (set by RespondNode) over raw state JSON
+            raw_output = exec_result.response or json.dumps(
+                exec_result.state, default=str, ensure_ascii=False
+            )
+
+            await log(
+                LogLevel.INFO,
+                f"DSL execution complete — status={exec_result.status.value}, "
+                f"nodes={len(exec_result.journal)}, tokens={exec_result.total_token_usage}",
+            )
+
+            return SandboxResult(
+                output=raw_output,
+                success=exec_result.ok,
+                exit_code=0 if exec_result.ok else 1,
+                tool_calls=tool_calls,
+                stderr=exec_result.error or "",
+            )
 
     # PRIVATE: Code Assembly
     # These methods build the code that runs in the subprocess.
@@ -820,8 +1355,11 @@ class Sandbox:
                         # Save tool results for debugging
                         try:
                             os.makedirs(".debug", exist_ok=True)
-                            with open(".debug/tool_results.json", "w") as f:
-                                json.dump(tool_results_for_debug, f, indent=2, default=str)
+                            import pathlib as _pathlib
+
+                            _pathlib.Path(".debug/tool_results.json").write_text(
+                                json.dumps(tool_results_for_debug, indent=2, default=str)
+                            )
                         except Exception:
                             pass
 

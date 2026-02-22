@@ -463,7 +463,7 @@ class Agent:
 
         return generate_stubs(self.build_semantic_layer())
 
-    async def generate_code(self, user_query: str) -> str:
+    async def generate_parse_validate_code(self, user_query: str) -> str:
         """
         Generate Python code from a user query.
 
@@ -477,7 +477,7 @@ class Agent:
             Python code string ready for sandbox execution
 
         Example:
-            >>> code = await agent.generate_code("Get Apple stock price")
+            >>> code = await agent.generate_parse_validate_code("Get Apple stock price")
             >>> print(code)
             price = market_analyst.get_stock_price('AAPL')
             synthesize_response({"price": price})
@@ -651,7 +651,19 @@ class Agent:
 
         # Generate code first
         try:
-            code = await sandbox.generate_code(query, thread_id=thread_id, context=context)
+            code = await sandbox.generate_parse_validate_code(
+                query, thread_id=thread_id, context=context
+            )
+
+            # Check for clarification (missing data)
+            clarification = sandbox._extract_clarification(code)
+            if clarification:
+                question = clarification.get("question", "Could you provide more details?")
+                await save_assistant_message(self.storage, thread_id, question)
+                yield StreamEvent(event_type="content", data={"text": question})
+                yield StreamEvent(event_type="done", data={"status": "needs_clarification"})
+                return
+
             yield StreamEvent(
                 event_type="code_generated",
                 data={
@@ -663,9 +675,25 @@ class Agent:
             yield StreamEvent(event_type="error", data={"message": f"Error generating code: {e}"})
             return
 
+        # Build + validate DSL workflow from generated code
+        try:
+            await sandbox.build_dsl_workflow(code)
+            dsl_workflow = getattr(sandbox, "_dsl_workflow", None)
+            if dsl_workflow:
+                yield StreamEvent(
+                    event_type="status",
+                    data={
+                        "message": "DSL workflow built and validated.",
+                        "dsl_summary": dsl_workflow.summary(),
+                    },
+                )
+        except Exception as e:
+            yield StreamEvent(event_type="error", data={"message": f"DSL build failed: {e}"})
+            return
+
         # Execute and stream results
         try:
-            result = await sandbox.execute(code, timeout=exec_timeout)
+            result = await sandbox.execute_dsl(timeout=exec_timeout)
 
             # Report tool calls
             if result.tool_calls:

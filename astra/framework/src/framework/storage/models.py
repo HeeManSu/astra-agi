@@ -140,3 +140,56 @@ class ToolDefinition(BaseModel):
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class NodeExecution(BaseModel):
+    """Execution state of a single node within a workflow run."""
+
+    node_id: str
+    node_type: str  # "action" | "transform" | "branch" | "loop" | "respond" | ...
+    label: str = ""
+    status: str = "pending"  # pending | running | ok | error | skipped | waiting
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_ms: int | None = None
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    outputs: dict[str, Any] = Field(default_factory=dict)
+    error: str | None = None
+    retry_attempt: int = 0
+
+
+class WorkflowInstance(BaseModel):
+    """Represents a single execution run of a DSL workflow.
+
+    Persisted per-run for observability, debugging, crash recovery, and audit.
+    Node-level tracking is embedded in node_status_map (not a separate collection).
+    """
+
+    id: str | None = None  # Auto-assigned by database
+
+    # Identity
+    agent_id: str = ""  # which agent/team triggered this
+    conversation_id: str = ""  # link to conversation thread
+    plan_id: str = ""  # DslWorkflow.workflow_id
+    plan_version: str = "1.0.0"  # DslWorkflow.version
+
+    # Execution state
+    status: str = "RUNNING"  # RUNNING | FAILED | WAITING | COMPLETED | CANCELLED
+    current_node_ids: list[str] = Field(default_factory=list)  # cursor(s)
+    state_snapshot: dict[str, Any] = Field(default_factory=dict)  # workflow state
+    node_status_map: dict[str, NodeExecution] = Field(
+        default_factory=dict
+    )  # node_id → NodeExecution
+    retry_counts: dict[str, int] = Field(default_factory=dict)  # node_id → count
+
+    # Results
+    response: str | None = None  # final RespondNode output
+    error: str | None = None  # last error message
+    execution_log: list[dict[str, Any]] = Field(default_factory=list)  # journal entries
+
+    # Timing
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime | None = None  # first node started
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: datetime | None = None  # terminal time
+    duration_ms: int | None = None  # total wall-clock

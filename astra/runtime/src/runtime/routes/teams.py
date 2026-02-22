@@ -34,7 +34,7 @@ async def list_teams() -> list[TeamResponse]:
     teams = team_registry.list_all()
     return [
         TeamResponse(
-            id=team.id or team.name,
+            id=team.id,
             name=team.name,
             description=team.description,
         )
@@ -49,7 +49,7 @@ async def get_team(team_id: str) -> TeamResponse:
     if not team:
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found")
     return TeamResponse(
-        id=team.id or team.name,
+        id=team.id,
         name=team.name,
         description=team.description,
     )

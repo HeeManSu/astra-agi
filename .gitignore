@@ -35,8 +35,15 @@ limca_db/
 
 projects/
 
+*.pdf
+*.zip
+
 astra/benchmarks/
+astra/evals/
 
 .claude/
 
 **/.debug/
+
+.DS_Store
+test/

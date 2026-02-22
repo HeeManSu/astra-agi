@@ -155,6 +155,39 @@ astra_tool_definitions = Table(
     Index("idx_tool_defs_is_active", "is_active"),
 )
 
+astra_workflow_instances = Table(
+    "astra_workflow_instances",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("agent_id", String(255), nullable=False, index=True),
+    Column("conversation_id", String(255), nullable=False, index=True),
+    Column("plan_id", String(255), nullable=False),
+    Column("plan_version", String(32), nullable=False, server_default="1.0.0"),
+    Column("status", String(32), nullable=False, server_default="RUNNING"),
+    Column("current_node_ids", JSON, nullable=True),
+    Column("state_snapshot", JSON, nullable=True),
+    Column("node_status_map", JSON, nullable=True),
+    Column("retry_counts", JSON, nullable=True),
+    Column("response", TEXT, nullable=True),
+    Column("error", TEXT, nullable=True),
+    Column("execution_log", JSON, nullable=True),
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
+    Column("started_at", DateTime(timezone=True), nullable=True),
+    Column(
+        "updated_at",
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    ),
+    Column("completed_at", DateTime(timezone=True), nullable=True),
+    Column("duration_ms", INTEGER, nullable=True),
+    # Indexes
+    Index("idx_wfi_agent_created", "agent_id", "created_at"),
+    Index("idx_wfi_status", "status"),
+    Index("idx_wfi_conversation", "conversation_id"),
+    Index("idx_wfi_plan", "plan_id", "plan_version"),
+)
+
 
 class LibSQLStorage(StorageBackend):
     """
@@ -335,6 +368,8 @@ class LibSQLStorage(StorageBackend):
             return astra_team_auth
         elif collection_name == "astra_tool_definitions":
             return astra_tool_definitions
+        elif collection_name == "astra_workflow_instances":
+            return astra_workflow_instances
         raise ValueError(f"Unknown collection: {collection_name}")
 
     def build_insert_query(self, collection: str, data: dict[str, Any]) -> Any:
@@ -396,6 +431,14 @@ class LibSQLStorage(StorageBackend):
         # Apply filters
         if filter_dict:
             for key, value in filter_dict.items():
+                if isinstance(value, dict):
+                    # Support Mongo-like operators for cross-backend store methods.
+                    # Currently used for {"$in": [...]} in tool definition lookups.
+                    if "$in" in value:
+                        in_values = value.get("$in") or []
+                        stmt = stmt.where(table.c[key].in_(in_values))
+                        continue
+                    raise ValueError(f"Unsupported filter operator for SQL backend: {value}")
                 stmt = stmt.where(table.c[key] == value)
 
         if sort:

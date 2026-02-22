@@ -22,7 +22,9 @@ Example Output:
             ...
 """
 
+from collections import Counter
 import json
+import re
 
 from framework.code_mode.semantic import (
     DomainSchema,
@@ -105,7 +107,10 @@ def _sanitize_identifier(name: str) -> str:
         >>> _sanitize_identifier("get_stock_price")
         'get_stock_price'
     """
-    return name.replace("-", "_")
+    sanitized = re.sub(r"[^0-9a-zA-Z_]", "_", name.replace("-", "_"))
+    if sanitized and sanitized[0].isdigit():
+        sanitized = f"_{sanitized}"
+    return sanitized or "identifier"
 
 
 # Parameter Formatting
@@ -138,6 +143,9 @@ def _format_param_signature(param: ParamSchema) -> str:
     else:
         # Optional: check if default is None or has a value
         if param.default is None:
+            # Avoid double `| None` if type already includes None (e.g. `str | None`)
+            if "None" in type_str:
+                return f"{param.name}: {type_str} = None"
             return f"{param.name}: {type_str} | None = None"
         else:
             # Use repr() to properly quote strings
@@ -179,7 +187,8 @@ def _format_example(domain_id: str, tool: ToolSchema) -> str:
             args.append(repr(value))
 
     # Construct call string
-    call = f"{domain_id}.{tool.name}({', '.join(args)})"
+    method_name = _sanitize_identifier(tool.slug)
+    call = f"{domain_id}.{method_name}({', '.join(args)})"
 
     # Format output as indented dict
     output_dict = tool.example.output
@@ -278,8 +287,8 @@ def _generate_tool_stub(domain_id: str, tool: ToolSchema) -> str:
     """
     lines = []
 
-    # Sanitize tool name for Python (e.g., 'get-block' -> 'get_block')
-    method_name = _sanitize_identifier(tool.name)
+    # Sanitize tool slug for Python (e.g., 'get-block' -> 'get_block')
+    method_name = _sanitize_identifier(tool.slug)
 
     # Build parameter list
     parameters = tool.parameters
@@ -353,8 +362,7 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     This is the main entry point. It produces a single string containing
     all class and method stubs, ready to be injected into an LLM prompt.
 
-    Handles duplicate domains by tracking seen domain IDs and skipping
-    any duplicates (e.g., when multiple agents have the same MCP toolkit).
+    Validates domain IDs are unique and raises if duplicates are present.
 
     Flow:
         TeamSemanticLayer
@@ -393,16 +401,19 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     )
     lines.append("")
 
-    # Track seen domain IDs to avoid duplicate classes
-    seen_domains: set[str] = set()
+    domain_ids = [domain.id for domain in semantic_layer.domains]
+    duplicate_ids = sorted(
+        [domain_id for domain_id, count in Counter(domain_ids).items() if count > 1]
+    )
+    if duplicate_ids:
+        raise ValueError(
+            "Duplicate domain IDs detected in semantic layer: "
+            + ", ".join(duplicate_ids)
+            + ". Domain IDs must be unique."
+        )
 
     # Generate each domain (agent) as a class
     for domain in semantic_layer.domains:
-        # Skip if we've already generated this domain (deduplication)
-        if domain.id in seen_domains:
-            continue
-        seen_domains.add(domain.id)
-
         lines.extend(_generate_domain_stub(domain))
 
     return "\n".join(lines)
@@ -414,8 +425,7 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
     Unlike generate_stubs() which creates rich docstrings for LLM understanding,
     this function creates minimal stubs that route calls to call_tool().
 
-    Handles duplicate domains by tracking seen domain IDs and skipping
-    any duplicates (e.g., when multiple agents have the same MCP toolkit).
+    Validates domain IDs are unique and raises if duplicates are present.
 
     Uses **kwargs pattern for maximum flexibility:
     - Accepts any combination of arguments the LLM generates
@@ -436,15 +446,18 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
     """
     lines = ["\n# ═══════ Agent Stub Classes ═══════\n"]
 
-    # Track seen domain IDs to avoid duplicate classes
-    seen_domains: set[str] = set()
+    domain_ids = [domain.id for domain in semantic_layer.domains]
+    duplicate_ids = sorted(
+        [domain_id for domain_id, count in Counter(domain_ids).items() if count > 1]
+    )
+    if duplicate_ids:
+        raise ValueError(
+            "Duplicate domain IDs detected in semantic layer: "
+            + ", ".join(duplicate_ids)
+            + ". Domain IDs must be unique."
+        )
 
     for domain in semantic_layer.domains:
-        # Skip if we've already generated this domain (deduplication)
-        if domain.id in seen_domains:
-            continue
-        seen_domains.add(domain.id)
-
         # Sanitize domain ID for Python class name
         class_name = _sanitize_identifier(domain.id)
 
@@ -457,11 +470,11 @@ def generate_runtime_stubs(semantic_layer: EntitySemanticLayer) -> str:
             lines.append("    pass")
 
         for tool in domain.tools:
-            # Sanitize tool name for Python method
-            method_name = _sanitize_identifier(tool.name)
+            # Sanitize tool slug for Python method
+            method_name = _sanitize_identifier(tool.slug)
 
-            # Use domain.id (sanitized) for routing - both local and MCP
-            full_name = f"{domain.id}.{tool.name}"
+            # Use canonical identifiers for routing.
+            full_name = f"{domain.id}.{tool.slug}"
 
             # Use **kwargs for maximum flexibility
             # The actual tool's Pydantic model will validate inputs and apply defaults

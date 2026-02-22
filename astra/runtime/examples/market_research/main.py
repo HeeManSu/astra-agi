@@ -33,7 +33,7 @@ server = AstraServer(
     storage=StorageClient(
         storage=MongoDBStorage("mongodb://localhost:27017", "market_research_agent")
     ),
-    cors_allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    cors_allowed_origins=["http://localhost:3010", "http://127.0.0.1:3010"],
     # Auth enabled by default (requires ASTRA_JWT_SECRET env var)
     telemetry=TelemetryConfig(
         enabled=True,

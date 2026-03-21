@@ -1,4 +1,4 @@
-"""DSL validator — semantic checks on an assembled DslWorkflow graph.
+"""Plan validator — semantic checks on an assembled ExecutionPlan graph.
 
 Runs *after* the builder, *before* the runtime.  Each check is a flat
 function that appends to ``errors`` or ``warnings``.
@@ -7,7 +7,7 @@ Checks
 ------
 1. branch_cardinality   - BranchNode has exactly 1 THEN + 1 ELSE/FALLTHROUGH
 2. loop_cardinality     - LoopNode has exactly 1 BODY + ≥1 BACK_EDGE
-3. terminal_edges       - RespondNode / TerminateNode has 0 outgoing edges
+3. terminal_edges       - RespondNode has 0 outgoing edges
 4. dead_ends            - non-terminal nodes with 0 outgoing edges
 5. tool_whitelist       - ActionNode.tool is in allowed set
 6. self_loops           - no edge where source == target
@@ -16,18 +16,23 @@ Checks
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
+import traceback
 
 from framework.code_mode.compiler.edges import EdgeRole
 from framework.code_mode.compiler.nodes import NodeType
-from framework.code_mode.compiler.schema import DslWorkflow
+from framework.code_mode.compiler.schema import ExecutionPlan
+
+
+log = logging.getLogger(__name__)
 
 
 # ── Result ───────────────────────────────────────────────────────────────────
 
 
 @dataclass
-class ValidationResult:
-    """Outcome of ``validate_workflow``."""
+class PlanValidationResult:
+    """Outcome of ``validate_plan``."""
 
     ok: bool
     errors: list[str] = field(default_factory=list)
@@ -37,29 +42,33 @@ class ValidationResult:
 # ── Public API ───────────────────────────────────────────────────────────────
 
 
-def validate_workflow(
-    workflow: DslWorkflow,
+def validate_plan(
+    workflow: ExecutionPlan,
     *,
     allowed_tools: set[str] | None = None,
-) -> ValidationResult:
-    """Run all semantic checks and return a ``ValidationResult``."""
+) -> PlanValidationResult:
+    """Run all semantic checks and return a ``PlanValidationResult``."""
     errors: list[str] = []
     warnings: list[str] = []
 
-    _check_branch_cardinality(workflow, errors)
-    _check_loop_cardinality(workflow, errors)
-    _check_terminal_edges(workflow, errors)
-    _check_dead_ends(workflow, warnings)
-    _check_tool_whitelist(workflow, allowed_tools, warnings)
-    _check_self_loops(workflow, errors)
+    try:
+        _check_branch_cardinality(workflow, errors)
+        _check_loop_cardinality(workflow, errors)
+        _check_terminal_edges(workflow, errors)
+        _check_dead_ends(workflow, warnings)
+        _check_tool_whitelist(workflow, allowed_tools, warnings)
+        _check_self_loops(workflow, errors)
+    except Exception as exc:
+        log.exception("validate_plan: unexpected error during validation")
+        errors.append(f"Internal validation error: {exc}\n{traceback.format_exc()}")
 
-    return ValidationResult(ok=len(errors) == 0, errors=errors, warnings=warnings)
+    return PlanValidationResult(ok=len(errors) == 0, errors=errors, warnings=warnings)
 
 
 # ── Individual checks ────────────────────────────────────────────────────────
 
 
-def _check_branch_cardinality(wf: DslWorkflow, errors: list[str]) -> None:
+def _check_branch_cardinality(wf: ExecutionPlan, errors: list[str]) -> None:
     """Every BranchNode must have exactly 1 THEN edge and a false-path.
 
     The false-path can be:
@@ -90,7 +99,7 @@ def _check_branch_cardinality(wf: DslWorkflow, errors: list[str]) -> None:
             )
 
 
-def _check_loop_cardinality(wf: DslWorkflow, errors: list[str]) -> None:
+def _check_loop_cardinality(wf: ExecutionPlan, errors: list[str]) -> None:
     """Every LoopNode must have exactly 1 BODY edge and at least 1 BACK_EDGE."""
     for node in wf.nodes:
         if node.type != NodeType.LOOP:
@@ -112,9 +121,9 @@ def _check_loop_cardinality(wf: DslWorkflow, errors: list[str]) -> None:
             )
 
 
-def _check_terminal_edges(wf: DslWorkflow, errors: list[str]) -> None:
-    """RespondNode and TerminateNode must have zero outgoing edges."""
-    terminal_types = {NodeType.RESPOND, NodeType.TERMINATE}
+def _check_terminal_edges(wf: ExecutionPlan, errors: list[str]) -> None:
+    """RespondNode must have zero outgoing edges."""
+    terminal_types = {NodeType.RESPOND}
     for node in wf.nodes:
         if node.type not in terminal_types:
             continue
@@ -128,9 +137,9 @@ def _check_terminal_edges(wf: DslWorkflow, errors: list[str]) -> None:
             )
 
 
-def _check_dead_ends(wf: DslWorkflow, warnings: list[str]) -> None:
+def _check_dead_ends(wf: ExecutionPlan, warnings: list[str]) -> None:
     """Non-terminal nodes with zero outgoing edges are suspicious."""
-    terminal_types = {NodeType.RESPOND, NodeType.TERMINATE}
+    terminal_types = {NodeType.RESPOND}
     for node in wf.nodes:
         if node.type in terminal_types:
             continue
@@ -143,7 +152,7 @@ def _check_dead_ends(wf: DslWorkflow, warnings: list[str]) -> None:
 
 
 def _check_tool_whitelist(
-    wf: DslWorkflow,
+    wf: ExecutionPlan,
     allowed_tools: set[str] | None,
     warnings: list[str],
 ) -> None:
@@ -161,7 +170,7 @@ def _check_tool_whitelist(
             )
 
 
-def _check_self_loops(wf: DslWorkflow, errors: list[str]) -> None:
+def _check_self_loops(wf: ExecutionPlan, errors: list[str]) -> None:
     """No edge should have source == target."""
     for edge in wf.edges:
         if edge.source == edge.target:

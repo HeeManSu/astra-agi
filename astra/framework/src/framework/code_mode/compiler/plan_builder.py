@@ -1,12 +1,12 @@
-"""DSL builder — lowers a validated Python AST into a DslWorkflow graph.
+"""Plan builder — lowers a validated Python AST into a ExecutionPlan graph.
 
-Pipeline:  ast.Module  →  build()  →  BuildResult(.ok, .workflow, .errors)
+Pipeline:  ast.Module  →  build()  →  PlanBuildResult(.ok, .workflow, .errors)
 
 Four internal components:
-    BuildContext  — accumulates nodes, edges, state fields
-    NodeFactory   — creates typed DslNode subclasses
-    EdgeBuilder   — emits edges with correct types and roles
-    ASTWalker     — walks the AST, dispatches to handlers, chains flow
+    PlanBuildContext  — accumulates nodes, edges, state fields
+    PlanNodeFactory   — creates typed PlanNode subclasses
+    PlanEdgeBuilder   — emits edges with correct types and roles
+    CodeToPlanCompiler     — walks the AST, dispatches to handlers, chains flow
 """
 
 from __future__ import annotations
@@ -14,32 +14,32 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass, field
 
-from framework.code_mode.compiler.edges import DslEdge, EdgeRole, EdgeType
+from framework.code_mode.compiler.edges import PlanEdge, EdgeRole, EdgeType
 from framework.code_mode.compiler.nodes import (
     ActionNode,
     BranchNode,
-    DslNode,
+    PlanNode,
     LoopNode,
     NodeType,
     RespondNode,
     TransformNode,
 )
-from framework.code_mode.compiler.schema import DslWorkflow, StateField
+from framework.code_mode.compiler.schema import ExecutionPlan, StateField
 
 
 # ── Build Context ────────────────────────────────────────────────────────────
 
 
 @dataclass
-class BuildContext:
+class PlanBuildContext:
     """Mutable accumulator for the graph being built.
 
     Every component writes into this; at the end the ``build()`` function
-    reads it off to assemble a ``DslWorkflow``.
+    reads it off to assemble a ``ExecutionPlan``.
     """
 
-    nodes: list[DslNode] = field(default_factory=list)
-    edges: list[DslEdge] = field(default_factory=list)
+    nodes: list[PlanNode] = field(default_factory=list)
+    edges: list[PlanEdge] = field(default_factory=list)
     state_fields: list[StateField] = field(default_factory=list)
     entry_id: str | None = None
     errors: list[str] = field(default_factory=list)
@@ -47,7 +47,7 @@ class BuildContext:
     # ── names we've already registered (fast dedup) ──
     _state_names: set[str] = field(default_factory=set, repr=False)
 
-    def add_node(self, node: DslNode) -> str:
+    def add_node(self, node: PlanNode) -> str:
         """Append *node* and return its id.
 
         The first node added automatically becomes the entry point.
@@ -57,7 +57,7 @@ class BuildContext:
             self.entry_id = node.id
         return node.id
 
-    def add_edge(self, edge: DslEdge) -> None:
+    def add_edge(self, edge: PlanEdge) -> None:
         """Append *edge* to the edge list."""
         self.edges.append(edge)
 
@@ -73,14 +73,12 @@ class BuildContext:
         self.state_fields.append(StateField(name=name, type=type_))
 
 
-# ── Node Factory ─────────────────────────────────────────────────────────────
-
-
-class NodeFactory:
-    """Creates typed DslNode subclasses with sensible defaults.
+# ── Node Factory
+class PlanNodeFactory:
+    """Creates typed PlanNode subclasses with sensible defaults.
 
     Pure factory — returns a node, does NOT mutate any context.
-    The caller is responsible for adding it to a ``BuildContext``.
+    The caller is responsible for adding it to a ``PlanBuildContext``.
     """
 
     def __init__(self) -> None:
@@ -141,17 +139,15 @@ class NodeFactory:
         )
 
 
-# ── Edge Builder ─────────────────────────────────────────────────────────────
-
-
-class EdgeBuilder:
-    """Emits edges into a ``BuildContext`` with correct types and roles.
+# ── Edge Builder
+class PlanEdgeBuilder:
+    """Emits edges into a ``PlanBuildContext`` with correct types and roles.
 
     Named methods prevent role/type misuse — callers never construct
-    ``DslEdge`` directly.
+    ``PlanEdge`` directly.
     """
 
-    def __init__(self, ctx: BuildContext) -> None:
+    def __init__(self, ctx: PlanBuildContext) -> None:
         self._ctx = ctx
 
     def _emit(
@@ -164,7 +160,7 @@ class EdgeBuilder:
         label: str = "",
     ) -> None:
         self._ctx.add_edge(
-            DslEdge(
+            PlanEdge(
                 source=src,
                 target=tgt,
                 type=etype,
@@ -206,10 +202,8 @@ class EdgeBuilder:
         self._emit(body_tail, loop_id, EdgeType.SEQUENTIAL, EdgeRole.BACK_EDGE)
 
 
-# ── AST Walker ──────────────────────────────────────────────────────────────
-
-
-class ASTWalker:
+# ── AST Walker
+class CodeToPlanCompiler:
     """Walks a list of AST statements and builds the DSL graph.
 
     Dispatches each statement to the right handler, chains tails
@@ -218,9 +212,9 @@ class ASTWalker:
 
     def __init__(
         self,
-        ctx: BuildContext,
-        factory: NodeFactory,
-        edges: EdgeBuilder,
+        ctx: PlanBuildContext,
+        factory: PlanNodeFactory,
+        edges: PlanEdgeBuilder,
         allowed_tools: set[str],
     ) -> None:
         self._ctx = ctx
@@ -463,7 +457,7 @@ class ASTWalker:
 
     # ── helpers ──────────────────────────────────────────────────────────
 
-    def _find_node(self, node_id: str) -> DslNode | None:
+    def _find_node(self, node_id: str) -> PlanNode | None:
         """Look up a node by ID."""
         for n in self._ctx.nodes:
             if n.id == node_id:
@@ -542,15 +536,13 @@ class ASTWalker:
         return ast.unparse(node)
 
 
-# ── Build Result ─────────────────────────────────────────────────────────────
-
-
+# ── Build Result
 @dataclass
-class BuildResult:
+class PlanBuildResult:
     """Outcome of ``build()`` — consumed by the sandbox and validator."""
 
     ok: bool
-    workflow: DslWorkflow | None = None
+    workflow: ExecutionPlan | None = None
     errors: list[str] = field(default_factory=list)
 
 
@@ -562,8 +554,8 @@ def build(
     *,
     name: str = "",
     allowed_tools: set[str] | None = None,
-) -> BuildResult:
-    """Lower a validated ``ast.Module`` into a ``DslWorkflow``.
+) -> PlanBuildResult:
+    """Lower a validated ``ast.Module`` into a ``ExecutionPlan``.
 
     Args:
         module:        Parsed AST (must pass ``ast_parser.validate`` first).
@@ -572,20 +564,20 @@ def build(
                        external tool calls (everything else → TransformNode).
 
     Returns:
-        ``BuildResult`` with ``.ok``, ``.workflow``, and ``.errors``.
+        ``PlanBuildResult`` with ``.ok``, ``.workflow``, and ``.errors``.
     """
     if not module.body:
-        return BuildResult(ok=False, errors=["Empty module — nothing to build"])
+        return PlanBuildResult(ok=False, errors=["Empty module — nothing to build"])
 
-    ctx = BuildContext()
-    factory = NodeFactory()
-    edge_builder = EdgeBuilder(ctx)
-    walker = ASTWalker(ctx, factory, edge_builder, allowed_tools or set())
+    ctx = PlanBuildContext()
+    factory = PlanNodeFactory()
+    edge_builder = PlanEdgeBuilder(ctx)
+    walker = CodeToPlanCompiler(ctx, factory, edge_builder, allowed_tools or set())
 
     walker.walk(module.body)
 
     # ── Assemble workflow ────────────────────────────────────────────────
-    workflow = DslWorkflow(
+    workflow = ExecutionPlan(
         name=name or "workflow",
         description=f"Auto-generated from AST ({len(ctx.nodes)} nodes)",
         state=ctx.state_fields,
@@ -598,6 +590,6 @@ def build(
     errors = list(ctx.errors)
     errors.extend(workflow.validate_structure())
     if errors:
-        return BuildResult(ok=False, workflow=workflow, errors=errors)
+        return PlanBuildResult(ok=False, workflow=workflow, errors=errors)
 
-    return BuildResult(ok=True, workflow=workflow)
+    return PlanBuildResult(ok=True, workflow=workflow)

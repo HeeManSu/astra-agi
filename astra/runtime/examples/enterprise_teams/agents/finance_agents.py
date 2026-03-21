@@ -2,17 +2,16 @@ import os
 import sys
 
 from dotenv import load_dotenv
-
-
-env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../.env"))
-load_dotenv(env_path, override=True)
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from framework.agents import Agent
 from framework.models import Gemini
-from tools import brave_mcp, duckduckgo_mcp, github_mcp, notion_mcp
-from tools.finance_tools import (
+
+from astra.runtime.examples.enterprise_teams.tools import (
+    brave_mcp,
+    duckduckgo_mcp,
+    github_mcp,
+    notion_mcp,
+)
+from astra.runtime.examples.enterprise_teams.tools.finance_tools import (
     assess_vendor_risk,
     compute_profit_margin,
     compute_working_capital,
@@ -26,6 +25,12 @@ from tools.finance_tools import (
     score_credit_exposure,
     summarize_finance_kpis,
 )
+
+
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../.env"))
+load_dotenv(env_path, override=True)
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 model = Gemini("gemini-2.5-flash")

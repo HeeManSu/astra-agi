@@ -1,6 +1,6 @@
 """
-Compiler package for code-mode validation, DSL node/edge definitions,
-and workflow schema.
+Compiler package for code-mode plan node/edge definitions,
+execution plan schema, and validation.
 """
 
 from framework.code_mode.compiler.ast_parser import (
@@ -9,83 +9,61 @@ from framework.code_mode.compiler.ast_parser import (
     parse_code,
     validate,
 )
-from framework.code_mode.compiler.dsl_builder import (
-    BuildResult,
-    build,
-)
-from framework.code_mode.compiler.dsl_validator import (
-    ValidationResult,
-    validate_workflow,
-)
 from framework.code_mode.compiler.edges import (
-    DslEdge,
     EdgeRole,
     EdgeType,
-    by_role,
+    PlanEdge,
     conditional,
-    error_edge,
     sequential,
 )
 from framework.code_mode.compiler.nodes import (
-    NODE_TYPE_MAP,
+    PLAN_NODE_MAP,
     ActionNode,
     BranchNode,
-    CheckpointNode,
-    DslNode,
-    FallbackNode,
-    GateNode,
     LoopNode,
     NodeType,
-    ParallelNode,
-    Position,
-    ReplanNode,
+    PlanNode,
     RespondNode,
-    RetryConfig,
-    SubflowNode,
-    TerminateNode,
     TransformNode,
 )
+from framework.code_mode.compiler.plan_builder import (
+    PlanBuildResult,
+    build,
+)
+from framework.code_mode.compiler.plan_validator import (
+    PlanValidationResult,
+    validate_plan,
+)
 from framework.code_mode.compiler.schema import (
-    DslWorkflow,
+    ExecutionPlan,
+    PlanConfig,
     StateField,
-    WorkflowConfig,
 )
 
 
 __all__ = [
-    "NODE_TYPE_MAP",
+    "PLAN_NODE_MAP",
     "ActionNode",
     "BranchNode",
-    "BuildResult",
-    "CheckpointNode",
-    "DslEdge",
-    "DslNode",
-    "DslWorkflow",
     "EdgeRole",
     "EdgeType",
-    "FallbackNode",
-    "GateNode",
+    "ExecutionPlan",
     "LoopNode",
     "NodeType",
-    "ParallelNode",
     "ParseResult",
-    "Position",
-    "ReplanNode",
+    "PlanBuildResult",
+    "PlanConfig",
+    "PlanEdge",
+    "PlanNode",
+    "PlanValidationResult",
     "RespondNode",
-    "RetryConfig",
     "StateField",
-    "SubflowNode",
-    "TerminateNode",
     "TransformNode",
     "ValidationError",
-    "ValidationResult",
-    "WorkflowConfig",
     "build",
-    "by_role",
     "conditional",
-    "error_edge",
     "parse_code",
     "sequential",
     "validate",
-    "validate_workflow",
+    "validate_plan",
 ]

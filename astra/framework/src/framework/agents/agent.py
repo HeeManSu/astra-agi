@@ -63,7 +63,7 @@ class Agent:
         rag_pipeline: Any | None = None,
         memory: Memory | None = None,
         max_retries: int = 3,
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int | None = None,
         stream_enabled: bool = False,
         middlewares: list[Middleware] | None = None,
@@ -209,7 +209,7 @@ class Agent:
         from framework.code_mode.semantic import (
             build_domain_schema,
             build_entity_semantic_layer,
-            build_mcp_domain_schema,
+            build_mcp_tool_schemas,
         )
         from framework.tool import Tool
         from framework.tool.mcp.toolkit import MCPToolkit
@@ -232,18 +232,16 @@ class Agent:
             tools=local_tools,
         )
 
-        # Add MCP tools as additional domains (using shared builder)
-        mcp_domains = []
+        # Merge MCP tools into the agent's domain (not as separate domains)
         seen_mcp_domains: set[str] = set()
         for mcp in mcp_toolkits:
             if mcp.slug in seen_mcp_domains:
                 continue
             seen_mcp_domains.add(mcp.slug)
-            mcp_domain = build_mcp_domain_schema(mcp.slug, mcp.name, tool_definitions)
-            if mcp_domain:
-                mcp_domains.append(mcp_domain)
+            mcp_schemas = build_mcp_tool_schemas(mcp.slug, tool_definitions)
+            domain.tools.extend(mcp_schemas)
 
-        all_domains = [domain, *mcp_domains]
+        all_domains = [domain]
 
         return build_entity_semantic_layer(
             provider_id=self.id,

@@ -179,6 +179,7 @@ class DomainSchema:
         name: Display name (agent.name)
         description: Domain description (agent.description)
         tools: List of tools in this domain
+        instructions: Optional agent instructions (included in stub docstring)
 
     Example:
         DomainSchema(
@@ -186,6 +187,7 @@ class DomainSchema:
             name="Inventory Manager",
             description="Checks stock and reserves items for orders",
             tools=[ToolSchema(name="check_inventory", ...), ToolSchema(name="reserve_items", ...)],
+            instructions="You manage inventory levels and...",
         )
     """
 
@@ -193,6 +195,7 @@ class DomainSchema:
     name: str
     description: str
     tools: list[ToolSchema]
+    instructions: str | None = None
 
 
 # Entity Semantic Layer (Root)
@@ -242,6 +245,7 @@ class EntitySemanticLayer:
                     "id": d.id,
                     "name": d.name,
                     "description": d.description,
+                    "instructions": d.instructions,
                     "tools": [
                         {
                             "name": t.name,
@@ -278,6 +282,63 @@ class EntitySemanticLayer:
             ],
             "metadata": self.metadata,
         }
+
+    def get_planner_context(self) -> dict:
+        """Build structured context for the planner LLM.
+
+        Returns a dict with provider metadata and an agents_section string
+        that includes each agent's role (extracted from instructions) and tools.
+        This gives the planner enough context to distinguish agents that share
+        the same tools but serve different roles.
+        """
+        planner_context = {
+            "provider_name": self.provider_name,
+            "provider_description": self.provider_description or "",
+            "provider_instructions": self.provider_instructions or "",
+            "agents": [],
+        }
+
+        for domain in self.domains:
+            planner_context["agents"].append(
+                {
+                    "id": domain.id,
+                    "name": domain.name,
+                    "description": domain.description,
+                    "instructions": domain.instructions,
+                    "tools": [
+                        {
+                            "name": tool.name,
+                            "slug": tool.slug,
+                            "description": tool.description,
+                        }
+                        for tool in domain.tools
+                    ],
+                }
+            )
+
+        return planner_context
+
+    def get_tool_stubs_by_tool_slugs(self, allowed_slugs: set[str]) -> EntitySemanticLayer:
+        """Returns a new semantic layer containing only the specified tools."""
+        from copy import deepcopy
+
+        filtered_domains = []
+        for domain in self.domains:
+            # We assume allowed_slugs contains strings like "agent.tool_slug"
+            filtered_tools = [t for t in domain.tools if f"{domain.id}.{t.slug}" in allowed_slugs]
+            if filtered_tools:
+                d = deepcopy(domain)
+                d.tools = filtered_tools
+                filtered_domains.append(d)
+
+        return EntitySemanticLayer(
+            provider_id=self.provider_id,
+            provider_name=self.provider_name,
+            provider_description=self.provider_description,
+            provider_instructions=self.provider_instructions,
+            domains=filtered_domains,
+            metadata=dict(self.metadata),
+        )
 
 
 # Builder Function
@@ -477,6 +538,7 @@ def build_domain_schema(
     name: str,
     description: str | None,
     tools: list[Any],
+    instructions: str | None = None,
 ) -> DomainSchema:
     """
     Build DomainSchema from raw domain properties.
@@ -486,6 +548,7 @@ def build_domain_schema(
         name: Domain name
         description: Domain description
         tools: List of tool objects
+        instructions: Optional agent instructions for LLM context
 
     Returns:
         DomainSchema representing the domain
@@ -500,6 +563,7 @@ def build_domain_schema(
         name=name,
         description=description or f"Domain: {name}",
         tools=tool_schemas,
+        instructions=instructions,
     )
 
 
@@ -549,27 +613,26 @@ def build_entity_semantic_layer(
     )
 
 
-def build_mcp_domain_schema(
+def build_mcp_tool_schemas(
     mcp_slug: str,
-    mcp_name: str,
     tool_definitions: dict[str, Any] | None,
-) -> DomainSchema | None:
+) -> list[ToolSchema]:
     """
-    Build domain schema for an MCP toolkit from tool_definitions.
+    Extract ToolSchema list for an MCP toolkit from tool_definitions.
 
-    This is used by both Agent and Team to add MCP tools to their semantic layer.
-    MCP tools are fetched from tool_definitions (synced to DB at server startup).
+    Lower-level helper used to merge MCP tools into a parent agent's domain
+    instead of creating a separate domain. Callers that need full DomainSchema
+    should use build_mcp_domain_schema() instead.
 
     Args:
         mcp_slug: Stable MCP slug identifier
-        mcp_name: Display name of the MCP toolkit
         tool_definitions: Dict of ToolDefinition objects from DB (slug -> ToolDef)
 
     Returns:
-        DomainSchema for the MCP toolkit, or None if no tools found
+        List of ToolSchema for the MCP toolkit (empty if none found)
     """
     if not tool_definitions:
-        return None
+        return []
 
     mcp_source = f"mcp:{mcp_slug}"
     slug_prefix = f"{mcp_source}-"
@@ -615,9 +678,31 @@ def build_mcp_domain_schema(
                 )
             )
 
+    return tool_schemas
+
+
+def build_mcp_domain_schema(
+    mcp_slug: str,
+    mcp_name: str,
+    tool_definitions: dict[str, Any] | None,
+) -> DomainSchema | None:
+    """
+    Build a standalone DomainSchema for an MCP toolkit.
+
+    Kept for backward compatibility. Prefer build_mcp_tool_schemas() when
+    merging MCP tools into a parent agent's domain.
+
+    Args:
+        mcp_slug: Stable MCP slug identifier
+        mcp_name: Display name of the MCP toolkit
+        tool_definitions: Dict of ToolDefinition objects from DB (slug -> ToolDef)
+
+    Returns:
+        DomainSchema for the MCP toolkit, or None if no tools found
+    """
+    tool_schemas = build_mcp_tool_schemas(mcp_slug, tool_definitions)
     if not tool_schemas:
         return None
-
     return DomainSchema(
         id=mcp_slug,
         name=mcp_name,

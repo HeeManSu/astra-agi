@@ -1,7 +1,7 @@
 """
-Node dispatcher — one async function per node type (Phase 1).
+Node dispatcher — one async function per node type.
 
-Handles: ActionNode, TransformNode, RespondNode, BranchNode, LoopNode, TerminateNode
+Handles: ActionNode, TransformNode, RespondNode, BranchNode, LoopNode
 
 State resolution:
   - Input expressions like "$.state.field" or "state.field" are resolved from
@@ -19,26 +19,16 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 import logging
+import traceback
 from typing import Any
 
-from framework.code_mode.compiler.edges import EdgeRole
 from framework.code_mode.compiler.nodes import (
     ActionNode,
     BranchNode,
-    CheckpointNode,
-    DslNode,
-    FallbackNode,
-    GateNode,
-    GateTimeoutAction,
-    JoinStrategy,
     LoopNode,
     NodeType,
-    ParallelNode,
-    ReplanNode,
+    PlanNode,
     RespondNode,
-    SubflowNode,
-    TerminateNode,
-    TerminateStatus,
     TransformNode,
 )
 from framework.code_mode.executor.models import ExecutionContext, NodeResult
@@ -101,16 +91,52 @@ def _resolve(expr: str, state: dict[str, Any]) -> Any:
     try:
         return ast.literal_eval(expr)
     except Exception:
-        # Fall back to raw string for unparseable literals.
+        log.debug("_resolve: literal_eval failed for expr=%r", expr, exc_info=True)
+
+    # Safe eval: handle expressions with state variable references
+    # e.g. str({'step_1': step_1, 'step_2': step_2})
+    _SAFE_BUILTINS = {
+        "str": str,
+        "int": int,
+        "float": float,
+        "bool": bool,
+        "list": list,
+        "dict": dict,
+        "tuple": tuple,
+        "set": set,
+        "len": len,
+        "round": round,
+        "min": min,
+        "max": max,
+        "sum": sum,
+        "abs": abs,
+        "sorted": sorted,
+        "any": any,
+        "all": all,
+        "isinstance": isinstance,
+        "type": type,
+        "range": range,
+        "True": True,
+        "False": False,
+        "None": None,
+    }
+    try:
+        safe_ns = {k: v for k, v in state.items() if not k.startswith("__")}
+        safe_ns.update(_SAFE_BUILTINS)
+        return eval(expr, {"__builtins__": {}}, safe_ns)
+    except Exception:
+        log.debug(
+            "_resolve: safe eval failed for expr=%r, returning raw string", expr, exc_info=True
+        )
         return expr
 
 
-def _resolve_inputs(node: DslNode, state: dict[str, Any]) -> dict[str, Any]:
+def _resolve_inputs(node: PlanNode, state: dict[str, Any]) -> dict[str, Any]:
     """Resolve all node input bindings against current state."""
     return {k: _resolve(expr, state) for k, expr in node.inputs.items()}
 
 
-def _write_outputs(node: DslNode, raw_outputs: dict[str, Any], state: dict[str, Any]) -> None:
+def _write_outputs(node: PlanNode, raw_outputs: dict[str, Any], state: dict[str, Any]) -> None:
     """Write handler output values into state using node output bindings.
 
     If node.outputs is defined, each output key maps to a state path.
@@ -167,14 +193,7 @@ async def handle_action(
     ctx: ExecutionContext,
     tools: dict[str, Callable],
 ) -> NodeResult:
-    """Call the tool referenced by node.tool and write results to state.
-
-    Idempotency: if the tool's signature declares `_idempotency_key`, we inject
-    a deterministic key `{workflow_id}:{node_id}:{attempt}`.
-    - Same attempt → same key  (safe to replay within a retry window)
-    - New attempt  → new key   (tool can detect and skip duplicate work)
-    Tools that do NOT declare the param are unaffected.
-    """
+    """Call the tool referenced by node.tool and write results to state."""
     inputs = _resolve_inputs(node, ctx.state)
 
     tool_fn = tools.get(node.tool)
@@ -183,16 +202,6 @@ async def handle_action(
             status="error",
             error=f"Tool '{node.tool}' not found. Available: {list(tools.keys())}",
         )
-
-    # ── Inject idempotency key if the tool opts in ----------------------
-    import inspect
-
-    try:
-        if "_idempotency_key" in inspect.signature(tool_fn).parameters:
-            attempt = ctx.retry_counts.get(node.id, 0)
-            inputs["_idempotency_key"] = f"{ctx.workflow.workflow_id}:{node.id}:{attempt}"
-    except (ValueError, TypeError):
-        pass  # uninspectable callables (C extensions etc.) — skip gracefully
 
     try:
         # Support both sync and async tool functions
@@ -209,9 +218,14 @@ async def handle_action(
         return NodeResult(status="ok", outputs=raw)
 
     except asyncio.TimeoutError:
+        log.error("handle_action: tool '%s' timed out", node.tool, exc_info=True)
         return NodeResult(status="timeout", error=f"Tool '{node.tool}' timed out")
     except Exception as exc:
-        return NodeResult(status="error", error=str(exc))
+        log.exception("handle_action: tool '%s' raised an exception", node.tool)
+        return NodeResult(
+            status="error",
+            error=f"Tool '{node.tool}' failed: {exc}\n{traceback.format_exc()}",
+        )
 
 
 async def handle_transform(node: TransformNode, ctx: ExecutionContext) -> NodeResult:
@@ -240,11 +254,51 @@ async def handle_transform(node: TransformNode, ctx: ExecutionContext) -> NodeRe
 
 
 async def handle_respond(node: RespondNode, ctx: ExecutionContext) -> NodeResult:
-    """Resolve message template, store as __response__, signal COMPLETED."""
-    message = _render_template(node.message, ctx.state)
-    ctx.state["__response__"] = message
+    """Resolve message expression/template, store as __response__, signal COMPLETED.
+
+    The RespondNode.message may be:
+      1. A Python expression (from ast.unparse) containing state variable references,
+         e.g. ``{'step_1': step_1_result, 'step_2': step_2_result}``
+      2. A template with ``{{field}}`` placeholders
+      3. A plain string
+
+    We first try to eval() the message as a Python expression using the execution
+    state as the namespace. This resolves variable references like ``step_1_result``
+    to their actual values from tool outputs. If eval fails (e.g. the message is
+    a plain string or template), we fall back to _render_template().
+    """
+    raw_message = node.message
+
+    # ── Strategy 1: Evaluate as Python expression with state as namespace
+    # This handles messages like: {'status': 'success', 'results': {'step_1': step_1_result}}
+    # where step_1_result etc. are keys in ctx.state with actual tool output values.
+    resolved = None
+    try:
+        # Build a safe namespace from the execution state (only state variables)
+        eval_ns: dict[str, Any] = dict(ctx.state)
+        result = eval(raw_message, {"__builtins__": {}}, eval_ns)
+        if isinstance(result, (dict, list)):
+            import json as _json
+
+            resolved = _json.dumps(result, default=str, ensure_ascii=False)
+        elif result is not None:
+            resolved = str(result)
+    except Exception:
+        # eval failed — message is not a valid Python expression, fall through
+        log.debug(
+            "handle_respond: eval failed for message, falling back to template rendering",
+            exc_info=True,
+        )
+
+    # ── Strategy 2: Fall back to template rendering ({{field}} placeholders)
+    if resolved is None:
+        resolved = _render_template(raw_message, ctx.state)
+
+    ctx.state["__response__"] = resolved
     # Signal the runner to stop — no next node needed
-    return NodeResult(status="ok", outputs={"__response__": message}, override_next="__COMPLETED__")
+    return NodeResult(
+        status="ok", outputs={"__response__": resolved}, override_next="__COMPLETED__"
+    )
 
 
 async def handle_branch(node: BranchNode, ctx: ExecutionContext) -> NodeResult:
@@ -308,439 +362,21 @@ async def handle_loop(node: LoopNode, ctx: ExecutionContext) -> NodeResult:
         return NodeResult(status="ok")
 
 
-async def handle_terminate(node: TerminateNode, ctx: ExecutionContext) -> NodeResult:
-    """Force stop the workflow with given status."""
-    if node.output:
-        value = _resolve(node.output, ctx.state)
-        ctx.state["__response__"] = str(value) if value is not None else ""
-
-    # Signal based on TerminateStatus
-    override = "__COMPLETED__" if node.status == TerminateStatus.SUCCESS else "__FAILED__"
-    return NodeResult(
-        status="ok" if node.status == TerminateStatus.SUCCESS else "error",
-        error=node.reason or None,
-        override_next=override,
-    )
-
-
-def _merge_branch_state(ctx: ExecutionContext, branch_state: dict[str, Any], merge_to: str) -> None:
-    """Write branch final state back into parent ctx.state."""
-    if merge_to:
-        path = merge_to.lstrip("$").lstrip(".")
-        ctx.state[path] = branch_state
-    else:
-        for k, v in branch_state.items():
-            if not k.startswith("__"):  # skip runner-internal sentinel keys
-                ctx.state[k] = v
-
-
-async def handle_gate(
-    node: DslNode,
-    ctx: ExecutionContext,
-    gate_fn: Callable | None,
-    cancel_event: asyncio.Event | None = None,
-) -> NodeResult:
-    """Pause for external approval.
-
-    gate_fn=None          → returns WAITING (caller must provide gate_fn to resume).
-    cancel_event fires    → returns __CANCELLED__ immediately.
-    gate_fn(id, prompt)   → approved=True continues; denied=False routes to deny edge.
-    Timeout: GateTimeoutAction.APPROVE / DENY / FAIL.
-    """
-    assert isinstance(node, GateNode)  # guaranteed by dispatch routing
-    if gate_fn is None:
-        return NodeResult(status="waiting", override_next="__WAITING__")
-
-    timeout = node.timeout_seconds or 300
-
-    async def _call_gate() -> bool:
-        if asyncio.iscoroutinefunction(gate_fn):
-            return await gate_fn(node.id, node.prompt)
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, gate_fn, node.id, node.prompt)
-
-    gate_task = asyncio.ensure_future(asyncio.wait_for(_call_gate(), timeout=timeout))
-
-    # Race gate approval against cancellation
-    if cancel_event is not None:
-        cancel_waiter = asyncio.ensure_future(cancel_event.wait())
-        done, pending = await asyncio.wait(
-            {gate_task, cancel_waiter}, return_when=asyncio.FIRST_COMPLETED
-        )
-        for t in pending:
-            t.cancel()
-            try:
-                await t
-            except (asyncio.CancelledError, Exception):
-                pass
-        if cancel_waiter in done:
-            return NodeResult(status="error", override_next="__CANCELLED__")
-        # Gate task completed — extract result
-        try:
-            approved = gate_task.result()
-        except asyncio.TimeoutError:
-            approved = None  # handled below
-        except Exception as exc:
-            return NodeResult(status="error", error=str(exc))
-    else:
-        try:
-            approved = await gate_task
-        except asyncio.TimeoutError:
-            approved = None
-
-    if approved is None:  # timeout reached
-        if node.on_timeout == GateTimeoutAction.APPROVE:
-            approved = True
-        elif node.on_timeout == GateTimeoutAction.FAIL:
-            return NodeResult(status="error", error=f"Gate '{node.label or node.id}' timed out")
-        else:  # DENY (default)
-            approved = False
-
-    ctx.state[f"__gate_{node.id}_approved__"] = approved
-    return NodeResult(status="ok", outputs={"approved": approved})
-
-
-async def handle_parallel(
-    node: DslNode,
-    ctx: ExecutionContext,
-    run_branch: Callable | None,
-    cancel_event: asyncio.Event | None = None,
-) -> NodeResult:
-    """Fan out to BRANCH edges concurrently, merge results per join strategy.
-
-    cancel_event fires → all in-flight branch tasks are cancelled immediately.
-    """
-    assert isinstance(node, ParallelNode)  # guaranteed by dispatch routing
-    if run_branch is None:
-        return NodeResult(
-            status="error",
-            error="ParallelNode requires run_branch (nested parallel not supported in sub-branches)",
-        )
-
-    branch_edges = [e for e in ctx.workflow.outgoing_edges(node.id) if e.role == EdgeRole.BRANCH]
-    if not branch_edges:
-        return NodeResult(status="ok")
-
-    tasks = [
-        asyncio.create_task(run_branch(ctx.workflow, e.target, dict(ctx.state)))
-        for e in branch_edges
-    ]
-
-    async def _cancel_all_on_event() -> None:
-        """Background watcher: cancel all branch tasks if cancel_event fires."""
-        if cancel_event is not None:
-            await cancel_event.wait()
-            for t in tasks:
-                t.cancel()
-
-    watcher = asyncio.create_task(_cancel_all_on_event()) if cancel_event is not None else None
-
-    if node.join == JoinStrategy.ALL:
-        raw = await asyncio.gather(*tasks, return_exceptions=True)
-        if watcher is not None:
-            watcher.cancel()
-        # Check for cancellation
-        if cancel_event is not None and cancel_event.is_set():
-            return NodeResult(status="error", override_next="__CANCELLED__")
-        errors: list[str] = []
-        for r in raw:
-            if isinstance(r, (BaseException, asyncio.CancelledError)):
-                errors.append(str(r))
-                continue
-            b_state, b_journal, b_error = r
-            ctx.journal.extend(b_journal)
-            if b_error:
-                errors.append(b_error)
-            else:
-                _merge_branch_state(ctx, b_state, node.merge_to)
-        if errors:
-            return NodeResult(
-                status="error", error=f"Parallel branches failed: {'; '.join(errors)}"
-            )
-
-    else:  # ANY or RACE — first completed wins, cancel the rest
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        for t in pending:
-            t.cancel()
-            try:
-                await t
-            except (asyncio.CancelledError, Exception):
-                pass
-        if watcher is not None:
-            watcher.cancel()
-        first_task = next(iter(done))
-        try:
-            b_state, b_journal, b_error = first_task.result()
-        except asyncio.CancelledError:
-            return NodeResult(status="error", override_next="__CANCELLED__")
-        except Exception as exc:
-            return NodeResult(status="error", error=str(exc))
-        ctx.journal.extend(b_journal)
-        if b_error:
-            return NodeResult(status="error", error=b_error)
-        _merge_branch_state(ctx, b_state, node.merge_to)
-
-    return NodeResult(status="ok")
-
-
-async def handle_fallback(
-    node: FallbackNode,
-    ctx: ExecutionContext,
-    run_branch: Callable | None,
-) -> NodeResult:
-    """TRY primary path; on error run CATCH; optionally run COMPENSATE."""
-    if run_branch is None:
-        return NodeResult(status="error", error="FallbackNode requires run_branch")
-
-    workflow = ctx.workflow
-    try_edge = workflow.edge_by_role(node.id, EdgeRole.TRY)
-    if try_edge is None:
-        return NodeResult(status="error", error=f"FallbackNode '{node.id}' missing TRY edge")
-
-    try_state, try_journal, try_error = await run_branch(workflow, try_edge.target, dict(ctx.state))
-    ctx.journal.extend(try_journal)
-    if try_error is None:
-        _merge_branch_state(ctx, try_state, "")
-        return NodeResult(status="ok")
-
-    # TRY failed — look for CATCH
-    catch_edge = workflow.edge_by_role(node.id, EdgeRole.CATCH)
-    if catch_edge is None:
-        return NodeResult(status="error", error=try_error)
-
-    ctx.state["__fallback_error__"] = try_error
-    catch_state, catch_journal, catch_error = await run_branch(
-        workflow, catch_edge.target, dict(ctx.state)
-    )
-    ctx.journal.extend(catch_journal)
-    if catch_error:
-        return NodeResult(
-            status="error",
-            error=f"CATCH failed: {catch_error} (original: {try_error})",
-        )
-    _merge_branch_state(ctx, catch_state, "")
-
-    # Optional COMPENSATE path (cleanup/rollback — runs after CATCH)
-    comp_edge = workflow.edge_by_role(node.id, EdgeRole.COMPENSATE)
-    if comp_edge is not None:
-        comp_state, comp_journal, comp_error = await run_branch(
-            workflow, comp_edge.target, dict(ctx.state)
-        )
-        ctx.journal.extend(comp_journal)
-        if not comp_error:
-            _merge_branch_state(ctx, comp_state, "")
-        else:
-            log.warning("COMPENSATE path failed in '%s': %s", node.id, comp_error)
-
-    return NodeResult(status="ok")
-
-
-async def handle_checkpoint(
-    node: DslNode,
-    ctx: ExecutionContext,
-    store: Any | None,
-    instance_id: str | None,
-) -> NodeResult:
-    """Flush full state + journal to WorkflowInstanceStore.
-
-    No-op if store is not configured (persistence disabled).
-    """
-    assert isinstance(node, CheckpointNode)  # guaranteed by dispatch routing
-    if store is None or instance_id is None:
-        log.debug("CheckpointNode '%s': no store configured, skipping flush", node.id)
-        return NodeResult(status="ok")
-
-    import dataclasses
-
-    journal_dicts = [{k: v for k, v in dataclasses.asdict(e).items()} for e in ctx.journal]
-    await store.update_status(
-        instance_id,
-        "RUNNING",
-        state_snapshot=ctx.state,
-        execution_log=journal_dicts,
-        current_node_ids=[ctx.current_node_id],
-    )
-    log.info(
-        "CheckpointNode '%s' (%s): flushed %d journal entries",
-        node.id,
-        node.checkpoint_label,
-        len(journal_dicts),
-    )
-    return NodeResult(status="ok")
-
-
-async def handle_subflow(
-    node: DslNode,
-    ctx: ExecutionContext,
-    tools: dict[str, Callable],
-    workflow_resolver: Callable | None,
-    run_workflow_fn: Callable | None,
-) -> NodeResult:
-    """Delegate execution to a child workflow and map I/O.
-
-    input_map:  {child_state_key: parent_expr}  — what the child receives
-    output_map: {parent_state_key: child_expr}  — what the parent gets back
-    """
-    assert isinstance(node, SubflowNode)  # guaranteed by dispatch routing
-    if workflow_resolver is None:
-        return NodeResult(status="error", error="SubflowNode requires workflow_resolver")
-    if run_workflow_fn is None:
-        return NodeResult(status="error", error="SubflowNode requires run_workflow_fn")
-
-    child_workflow = workflow_resolver(node.workflow_id)
-    if child_workflow is None:
-        return NodeResult(
-            status="error",
-            error=f"SubflowNode: workflow '{node.workflow_id}' not found",
-        )
-
-    # Build child initial state from parent via input_map
-    child_state: dict[str, Any] = {}
-    for child_key, parent_expr in node.input_map.items():
-        child_state[child_key] = _resolve(parent_expr, ctx.state)
-
-    child_result = await run_workflow_fn(child_workflow, child_state, tools)
-
-    if not child_result.ok:
-        return NodeResult(
-            status="error",
-            error=f"Subflow '{node.workflow_id}' failed: {child_result.error}",
-        )
-
-    # Map child outputs back to parent state via output_map
-    for parent_key, child_expr in node.output_map.items():
-        ctx.state[parent_key] = _resolve(child_expr, child_result.state)
-
-    return NodeResult(status="ok", outputs=child_result.state)
-
-
-async def handle_replan(
-    node: DslNode,
-    ctx: ExecutionContext,
-    replan_fn: Callable | None,
-) -> NodeResult:
-    """Pause and call the planner to patch the live workflow graph.
-
-    replan_fn signature:  async (context: Any, workflow: DslWorkflow) -> DslWorkflow | None
-      - context: the value of node.context resolved from state (or full state if empty)
-      - workflow: current DslWorkflow (REMAINING scope) or full workflow (FULL scope)
-      - return None to skip replanning (treat as no-op)
-      - return a new DslWorkflow to replace the running graph in place
-
-    The returned workflow must include a sequential edge from the ReplanNode
-    to the next node the runner should execute.
-
-    Guard rails:
-      - per-node max_replans cap (node.max_replans)
-      - global max_replans cap (workflow.config.max_replans)
-      - structural validation of the patched workflow before applying
-    """
-    assert isinstance(node, ReplanNode)  # guaranteed by dispatch routing
-
-    if not ctx.workflow.config.allow_replan:
-        log.warning("ReplanNode '%s': replanning disabled in workflow config", node.id)
-        return NodeResult(status="ok")
-
-    if replan_fn is None:
-        log.warning("ReplanNode '%s': no replan_fn provided, skipping", node.id)
-        return NodeResult(status="ok")
-
-    # ── Guard: per-node replan count
-    replan_key = f"__replan_{node.id}_count__"
-    replan_count = ctx.state.get(replan_key, 0)
-    if replan_count >= node.max_replans:
-        return NodeResult(
-            status="error",
-            error=f"ReplanNode '{node.id}' exceeded max_replans ({node.max_replans})",
-        )
-
-    # ── Guard: global replan count
-    global_count = ctx.state.get("__total_replan_count__", 0)
-    if global_count >= ctx.workflow.config.max_replans:
-        return NodeResult(
-            status="error",
-            error=f"Global max_replans ({ctx.workflow.config.max_replans}) exceeded",
-        )
-
-    # ── Build context payload for the planner
-    context_data = _resolve(node.context, ctx.state) if node.context else ctx.state
-    planner_workflow = ctx.workflow  # FULL or REMAINING — caller's responsibility to scope
-
-    # ── Call the planner
-    try:
-        if asyncio.iscoroutinefunction(replan_fn):
-            patched = await replan_fn(context_data, planner_workflow)
-        else:
-            patched = replan_fn(context_data, planner_workflow)
-    except Exception as exc:
-        return NodeResult(status="error", error=f"replan_fn raised: {exc}")
-
-    if patched is None:
-        log.info("ReplanNode '%s': planner returned None — no change", node.id)
-        return NodeResult(status="ok")
-
-    # ── Validate patched workflow before applying
-    errors = patched.validate_structure()
-    if errors:
-        return NodeResult(
-            status="error",
-            error=f"Patched workflow failed validation: {errors[0]}",
-        )
-
-    # ── Compatibility: the active ReplanNode must survive the patch.
-    # If the patch removes node.id, _resolve_next finds no outgoing edges and
-    # treats the workflow as complete (silently wrong).  Fail loudly instead.
-    if patched.get_node(node.id) is None:
-        return NodeResult(
-            status="error",
-            error=(
-                f"Replan patch removed active ReplanNode '{node.id}'. "
-                "The patched workflow must retain the current node."
-            ),
-        )
-
-    # ── Apply: replace the live workflow in ctx
-    ctx.workflow = patched
-    ctx.state[replan_key] = replan_count + 1
-    ctx.state["__total_replan_count__"] = global_count + 1
-    log.info("ReplanNode '%s': applied patched workflow (replan #%d)", node.id, replan_count + 1)
-    return NodeResult(status="ok")
+# ── Dispatch router ---------------------------------------------------------
 
 
 async def dispatch(
-    node: DslNode,
+    node: PlanNode,
     ctx: ExecutionContext,
     tools: dict[str, Callable],
-    *,
-    gate_fn: Callable | None = None,
-    run_branch: Callable | None = None,
-    store: Any | None = None,
-    instance_id: str | None = None,
-    workflow_resolver: Callable | None = None,
-    run_workflow_fn: Callable | None = None,
-    replan_fn: Callable | None = None,  # Phase 4
-    cancel_event: asyncio.Event | None = None,  # Cancellation token
 ) -> NodeResult:
-    """Route a node to its handler. Applies per-node timeout if set."""
+    """Route a node to its type-specific handler."""
     handler_map = {
-        # Phase 1
         NodeType.ACTION: lambda: handle_action(node, ctx, tools),  # type: ignore[arg-type]
         NodeType.TRANSFORM: lambda: handle_transform(node, ctx),  # type: ignore[arg-type]
         NodeType.RESPOND: lambda: handle_respond(node, ctx),  # type: ignore[arg-type]
         NodeType.BRANCH: lambda: handle_branch(node, ctx),  # type: ignore[arg-type]
         NodeType.LOOP: lambda: handle_loop(node, ctx),  # type: ignore[arg-type]
-        NodeType.TERMINATE: lambda: handle_terminate(node, ctx),  # type: ignore[arg-type]
-        # Phase 2
-        NodeType.GATE: lambda: handle_gate(node, ctx, gate_fn, cancel_event),  # type: ignore[arg-type]
-        NodeType.PARALLEL: lambda: handle_parallel(node, ctx, run_branch, cancel_event),  # type: ignore[arg-type]
-        NodeType.FALLBACK: lambda: handle_fallback(node, ctx, run_branch),  # type: ignore[arg-type]
-        # Phase 3
-        NodeType.CHECKPOINT: lambda: handle_checkpoint(node, ctx, store, instance_id),  # type: ignore[arg-type]
-        NodeType.SUBFLOW: lambda: handle_subflow(
-            node, ctx, tools, workflow_resolver, run_workflow_fn
-        ),  # type: ignore[arg-type]
-        # Phase 4
-        NodeType.REPLAN: lambda: handle_replan(node, ctx, replan_fn),  # type: ignore[arg-type]
     }
 
     handler_factory = handler_map.get(node.type)
@@ -751,14 +387,4 @@ async def dispatch(
         )
 
     coro = handler_factory()
-
-    if node.timeout_seconds:
-        try:
-            return await asyncio.wait_for(coro, timeout=node.timeout_seconds)
-        except asyncio.TimeoutError:
-            return NodeResult(
-                status="timeout",
-                error=f"Node '{node.id}' ({node.label}) timed out after {node.timeout_seconds}s",
-            )
-
     return await coro

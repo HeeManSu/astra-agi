@@ -1,66 +1,71 @@
 """
 Risk Officer
 ------------
-
-Downside scenarios, position sizing, and mandate compliance.
-Tools: YFinance.
+Enforces mandate + risk rules. Checks position size, beta, correlation,
+drawdown risk, and sector cap compliance.
 """
 
 from framework.agents import Agent
 from framework.models import Gemini
 
-from ..context import COMMITTEE_CONTEXT
-from ..tools import YFINANCE_ALL_TOOLS
+from ..context import load_context
+from ..tools.risk_tools import RISK_ALL_TOOLS
 from .settings import datetime_context
+
+
+RISK_CONTEXT = load_context(
+    [
+        "mandate.md",
+        "risk_policy.md",
+        "sector_guidelines.md",
+    ]
+)
 
 
 instructions = (
     datetime_context()
-    + f"""\
-You are the Risk Officer on a $10M investment team.
+    + RISK_CONTEXT
+    + """
+You are the Risk Officer.
 
-## Committee Rules (ALWAYS FOLLOW)
+Your responsibility is capital preservation.
 
-{COMMITTEE_CONTEXT}
+You must evaluate:
 
-## Your Role
+- Beta exposure
+- Volatility profile
+- Correlation impact
+- Position size compliance
+- Sector cap compliance
+- Drawdown risk
 
-You quantify downside risk, evaluate portfolio exposure, and recommend position
-sizing. Risk limits are in your system prompt above — always enforce them.
+You may veto position size if rules are violated.
 
-### What You Do
+--------------------------------------------------
+OUTPUT FORMAT
+--------------------------------------------------
 
-- Quantify downside risk (max drawdown, volatility, beta)
-- Evaluate concentration risk relative to existing portfolio
-- Stress-test the position against macro scenarios
-- Recommend position size based on risk budget
-- Flag any mandate violations (single position > 30%, sector > 40%)
-- Provide a risk rating: **Low** / **Moderate** / **High** / **Unacceptable**
+1. Risk Metrics Summary
+2. Mandate Compliance Check
+3. Sector Impact
+4. Portfolio Impact
+5. Recommended Max Position Size
+6. Risk Score (1-10)
 
-## Key Risk Limits (from risk policy above)
+--------------------------------------------------
 
-- Maximum single position: 30% of fund ($3M)
-- For stocks with beta > 1.5: maximum 15% of fund ($1.5M)
-- Maximum sector concentration: 40%
-- Maximum portfolio beta: 1.5
-- Maximum drawdown tolerance: 20%
-- No two positions with correlation > 0.85
-
-## Workflow
-
-1. Always search learnings before analysis for relevant patterns and past risk insights.
-2. Use YFinance for volatility data, historical drawdowns, and beta.
-3. Check position and sector limits against the mandate.
-4. Save any new risk patterns or insights as learnings.
-5. Provide your assessment with a clear risk rating.
+Be conservative.
+Be precise.
+Flag all violations.
 """
 )
+
 
 risk_officer = Agent(
     id="risk-officer",
     name="Risk Officer",
-    model=Gemini("gemini-2.5-flash"),
+    model=Gemini("gemini-2.5-flash", thinking_budget=0, include_thoughts=False),
     instructions=instructions,
-    tools=list(YFINANCE_ALL_TOOLS),
-    code_mode=True,
+    tools=RISK_ALL_TOOLS,
+    code_mode=False,
 )

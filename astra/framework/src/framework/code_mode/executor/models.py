@@ -14,7 +14,7 @@ import enum
 import time
 from typing import Any
 
-from framework.code_mode.compiler.schema import DslWorkflow
+from framework.code_mode.compiler.schema import ExecutionPlan
 
 
 # ── Status ------------------------------------------------------------------
@@ -24,8 +24,6 @@ class ExecutionStatus(str, enum.Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
-    WAITING = "waiting"  # GateNode paused
-    CANCELLED = "cancelled"  # externally cancelled via cancel_event
 
 
 # ── Per-node record ---------------------------------------------------------
@@ -70,14 +68,13 @@ class NodeResult:
 class ExecutionContext:
     """All mutable state carried through a single workflow run."""
 
-    workflow: DslWorkflow
+    workflow: ExecutionPlan
     state: dict[str, Any]  # live workflow state
     journal: list[JournalEntry]  # append-only
     current_node_id: str  # cursor — where we are now
     visited_count: dict[str, int]  # node_id → times visited (loop safety)
     status: ExecutionStatus
     start_time: float  # time.monotonic() at run start
-    retry_counts: dict[str, int] = field(default_factory=dict)
 
     @property
     def elapsed_seconds(self) -> float:
@@ -92,7 +89,7 @@ class ExecutionContext:
 
 @dataclass
 class ExecutionResult:
-    """Returned by run_workflow() to the caller."""
+    """Returned by run_plan() to the caller."""
 
     ok: bool
     status: ExecutionStatus

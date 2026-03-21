@@ -1,10 +1,10 @@
 """
-DSL Executor — public package exports.
+Execution engine — public package exports.
 
 Usage:
-    from framework.code_mode.executor import run_workflow, ExecutionResult
+    from framework.code_mode.executor import run_plan, ExecutionResult
 
-    result = await run_workflow(workflow, initial_state, tools)
+    result = await run_plan(plan, initial_state, tools)
     if result.ok:
         print(result.response)
     else:
@@ -18,7 +18,7 @@ from framework.code_mode.executor.models import (
     JournalEntry,
     NodeResult,
 )
-from framework.code_mode.executor.runner import recover_running, replay_workflow, run_workflow
+from framework.code_mode.executor.runner import run_plan
 
 
 __all__ = [
@@ -27,7 +27,5 @@ __all__ = [
     "ExecutionStatus",
     "JournalEntry",
     "NodeResult",
-    "recover_running",
-    "replay_workflow",
-    "run_workflow",
+    "run_plan",
 ]

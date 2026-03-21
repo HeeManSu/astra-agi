@@ -317,40 +317,100 @@ def _generate_tool_stub(domain_id: str, tool: ToolSchema) -> str:
     return "\n".join(lines)
 
 
-# Domain (Class) Stub Generation
-def _generate_domain_stub(domain: DomainSchema) -> list[str]:
+# ─── Tool Catalog helpers ────────────────────────────────────────────────────
+
+
+def _tool_signature_key(tool: ToolSchema) -> str:
+    """Return a stable identity key for a tool based on its slug.
+
+    Two tools with the same slug are considered identical regardless of which
+    domain they belong to.
     """
-    Generate a class stub for a domain (Agent).
+    return _sanitize_identifier(tool.slug)
 
-    Each Agent becomes a Python class with:
-    - Class name from domain.id (used as-is)
-    - Class docstring from domain.description
-    - @staticmethod methods for each tool
 
-    Args:
-        domain: DomainSchema representing an Agent
+def _generate_catalog_entry(tool: ToolSchema) -> str:
+    """Generate a @staticmethod tool stub for the ToolCatalog class.
 
-    Returns:
-        List of lines for the class stub
+    Produces a method with full docstring (Args, Returns) at class indentation
+    level (4-space base + 4-space body).
     """
-    lines = []
+    method_name = _sanitize_identifier(tool.slug)
 
-    # Sanitize domain.id for Python class name (e.g., 'brave-search' -> 'brave_search')
+    # Build parameter list
+    params = [_format_param_signature(p) for p in tool.parameters]
+
+    if len(params) <= 2:
+        param_str = ", ".join(params)
+        sig = f"    def {method_name}({param_str}) -> {_type_to_python(tool.returns.type)}:"
+    else:
+        sig_lines = [f"    def {method_name}("]
+        sig_lines.extend(f"        {p}," for p in params)
+        sig_lines.append(f"    ) -> {_type_to_python(tool.returns.type)}:")
+        sig = "\n".join(sig_lines)
+
+    # Docstring at 8-space indent (inside class method)
+    doc_lines: list[str] = []
+    doc_lines.append('        """')
+    doc_lines.append(f"        {tool.description}")
+    doc_lines.append("")
+    doc_lines.append("        Args:")
+    for p in tool.parameters:
+        suffix_parts: list[str] = []
+        if p.default is not None:
+            suffix_parts.append(f"default: {p.default!r}")
+        if p.required:
+            suffix_parts.append("required")
+        suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
+        doc_lines.append(f"            {p.name}: {p.description}{suffix}")
+    doc_lines.append("")
+    doc_lines.append("        Returns:")
+    return_type = _type_to_python(tool.returns.type)
+    if tool.returns.fields:
+        doc_lines.append(f"            {return_type} with fields:")
+        doc_lines.extend(
+            f"            - {f.name} ({f.type}): {f.description}" for f in tool.returns.fields
+        )
+    else:
+        doc_lines.append(f"            {return_type}: {tool.returns.description}")
+    doc_lines.append('        """')
+
+    return f"    @staticmethod\n{sig}\n" + "\n".join(doc_lines) + "\n        ..."
+
+
+def _generate_agent_class(domain: DomainSchema) -> list[str]:
+    """Generate a compact agent class with instructions + tool references.
+
+    All tool definitions live in the catalog section.  This function emits
+    the agent class with its instructions and a ``# Tools: ...`` comment
+    listing the tools it can call.
+    """
+    lines: list[str] = []
     class_name = _sanitize_identifier(domain.id)
 
-    # Class definition
+    # ── Class definition + docstring with instructions
     lines.append(f"class {class_name}:")
-    lines.append(f'    """{domain.description}"""')
+    if domain.instructions:
+        lines.append(f'    """{domain.description}')
+        lines.append("")
+        lines.append("    Instructions:")
+        lines.extend(f"    {instr_line}" for instr_line in domain.instructions.strip().splitlines())
+        lines.append('    """')
+    else:
+        lines.append(f'    """{domain.description}"""')
 
-    # Generate each tool as a @staticmethod
-    for tool in domain.tools:
-        lines.append("")  # Blank line between methods
-        lines.append(_generate_tool_stub(class_name, tool))
+    # ── List all tools as a comment reference
+    if domain.tools:
+        tool_names = ", ".join(_sanitize_identifier(t.slug) for t in domain.tools)
+        lines.append("")
+        lines.append(f"    # Tools: {tool_names}")
 
-    # Blank lines after class
+    # If no tools at all, add pass
+    if not domain.tools:
+        lines.append("    pass")
+
     lines.append("")
     lines.append("")
-
     return lines
 
 
@@ -359,39 +419,54 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     """
     Generate complete Python stub code from a TeamSemanticLayer.
 
-    This is the main entry point. It produces a single string containing
-    all class and method stubs, ready to be injected into an LLM prompt.
+    Uses a two-section layout to avoid repeating identical tool definitions:
 
-    Validates domain IDs are unique and raises if duplicates are present.
+    Section 1 — TOOL CATALOG
+        Each unique tool is defined once as a module-level function with full
+        docstring (Args, Returns).  Tools that appear on multiple agents are
+        listed here exactly once.
 
-    Flow:
-        TeamSemanticLayer
-        └── domains[]
-            └── DomainSchema → class
-                └── tools[]
-                    └── ToolSchema → @staticmethod
+    Section 2 — AGENT CLASSES
+        Each agent becomes a class with:
+        - Full per-agent instructions in the docstring
+        - A ``# Tools: ...`` comment listing catalogued tools
+        - Inline @staticmethod stubs only for tools unique to that agent
+
+    The LLM calls tools via ``agent_name.tool_name(...)``.  The catalog
+    teaches it the signature; the class tells it which agent owns which tools.
 
     Args:
         semantic_layer: Complete semantic layer from build_team_semantic_layer()
 
     Returns:
         Python stub code as a single string
-
-    Example:
-        team = Team(...)
-        semantic = team.semantic_layer
-        stubs = generate_stubs(semantic)
-
-        prompt = f'''
-        You have access to:
-        {stubs}
-
-        Task: {user_query}
-        '''
     """
-    lines = []
+    lines: list[str] = []
 
-    # Header comment with team name
+    # ── Validate uniqueness
+    domain_ids = [d.id for d in semantic_layer.domains]
+    duplicate_ids = sorted([did for did, cnt in Counter(domain_ids).items() if cnt > 1])
+    if duplicate_ids:
+        raise ValueError(
+            "Duplicate domain IDs detected in semantic layer: "
+            + ", ".join(duplicate_ids)
+            + ". Domain IDs must be unique."
+        )
+
+    # ── Collect tool frequency across domains
+    tool_occurrences: dict[str, int] = Counter()
+    tool_representative: dict[str, ToolSchema] = {}
+    for domain in semantic_layer.domains:
+        for tool in domain.tools:
+            key = _tool_signature_key(tool)
+            tool_occurrences[key] += 1
+            if key not in tool_representative:
+                tool_representative[key] = tool
+
+    # All tools go to the catalog — agent classes just reference them
+    catalogued_slugs: set[str] = set(tool_occurrences.keys())
+
+    # ── Header
     lines.append(
         "# ═══════════════════════════════════════════════════════════════════════════════"
     )
@@ -401,20 +476,23 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
     )
     lines.append("")
 
-    domain_ids = [domain.id for domain in semantic_layer.domains]
-    duplicate_ids = sorted(
-        [domain_id for domain_id, count in Counter(domain_ids).items() if count > 1]
-    )
-    if duplicate_ids:
-        raise ValueError(
-            "Duplicate domain IDs detected in semantic layer: "
-            + ", ".join(duplicate_ids)
-            + ". Domain IDs must be unique."
-        )
+    # ── Section 1: Tool Catalog (each tool defined once inside a reference class)
+    if catalogued_slugs:
+        lines.append("class ToolCatalog:")
+        lines.append('    """Tool signatures for reference. Do NOT call these directly.')
+        lines.append('    Always call via agent_name.tool_name(...)."""')
+        for slug in sorted(catalogued_slugs):
+            tool = tool_representative[slug]
+            lines.append("")
+            lines.append(_generate_catalog_entry(tool))
+        lines.append("")
+        lines.append("")
 
-    # Generate each domain (agent) as a class
-    for domain in semantic_layer.domains:
-        lines.extend(_generate_domain_stub(domain))
+    # # ── Section 2: Agent Classes
+    # lines.append("# ─── Agents ─────────────────────────────────────────────────────────────────")
+    # lines.append("")
+    # for domain in semantic_layer.domains:
+    #     lines.extend(_generate_agent_class(domain))
 
     return "\n".join(lines)
 

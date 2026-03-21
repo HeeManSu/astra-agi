@@ -625,6 +625,17 @@ class Gemini(Model):
         if tools:
             config_dict["tools"] = prepare_tools_for_gemini(tools)
 
+        # Add thinking config if provided (Gemini 2.5+ models)
+        thinking_budget = self._config.get("thinking_budget")
+        include_thoughts = self._config.get("include_thoughts")
+        if thinking_budget is not None or include_thoughts is not None:
+            thinking_config: dict[str, Any] = {}
+            if thinking_budget is not None:
+                thinking_config["thinking_budget"] = thinking_budget
+            if include_thoughts is not None:
+                thinking_config["include_thoughts"] = include_thoughts
+            config_dict["thinking_config"] = thinking_config
+
         # Create config, filtering out None values
         return GenerateContentConfig(**{k: v for k, v in config_dict.items() if v is not None})
 
@@ -632,7 +643,7 @@ class Gemini(Model):
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
         **kwargs: Any,
@@ -758,7 +769,7 @@ class Gemini(Model):
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
         **kwargs: Any,

@@ -12,6 +12,7 @@ class Colors:
     GREEN = "\033[92m"
     CYAN = "\033[96m"
     YELLOW = "\033[93m"
+    RED = "\033[91m"
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
@@ -147,8 +148,19 @@ class ConsoleDebugger:
         indent = "  " * depth
 
         # Print log message with level indicator
-        color = c.DIM if level == "DEBUG" else c.GREEN if level == "INFO" else c.YELLOW
-        prefix = f"{c.MAGENTA}DEBUG{c.RESET} {indent}  "
+        if level == "ERROR":
+            color = c.RED
+            prefix_label = f"{c.RED}⛔ ERROR{c.RESET}"
+        elif level == "WARN":
+            color = c.YELLOW
+            prefix_label = f"{c.YELLOW}⚠ WARN{c.RESET} "
+        elif level == "INFO":
+            color = c.GREEN
+            prefix_label = f"{c.MAGENTA}DEBUG{c.RESET}"
+        else:
+            color = c.DIM
+            prefix_label = f"{c.MAGENTA}DEBUG{c.RESET}"
+        prefix = f"{prefix_label} {indent}  "
         self._write(f"{prefix}{color}{message}{c.RESET}")
 
         # Print data if present
@@ -177,8 +189,18 @@ class ConsoleDebugger:
             return
 
         c = Colors
-        color = c.DIM if level == "DEBUG" else c.GREEN if level == "INFO" else c.YELLOW
-        prefix = f"{c.MAGENTA}DEBUG{c.RESET} "
+        if level == "ERROR":
+            color = c.RED
+            prefix = f"{c.RED}⛔ ERROR{c.RESET} "
+        elif level == "WARN":
+            color = c.YELLOW
+            prefix = f"{c.YELLOW}⚠ WARN{c.RESET}  "
+        elif level == "INFO":
+            color = c.GREEN
+            prefix = f"{c.MAGENTA}DEBUG{c.RESET} "
+        else:
+            color = c.DIM
+            prefix = f"{c.MAGENTA}DEBUG{c.RESET} "
         self._write(f"{prefix}{color}{message}{c.RESET}")
 
         if data:

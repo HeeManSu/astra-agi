@@ -38,8 +38,10 @@ from typing import TYPE_CHECKING, Any
 
 from framework.code_mode.prompts import (
     AGENT_CODE_MODE_PROMPT,
+    AGENT_PLANNER_PROMPT,
     RESPONSE_FORMAT_PROMPT,
     TEAM_CODE_MODE_PROMPT,
+    TEAM_PLANNER_PROMPT,
 )
 from framework.code_mode.stub_generator import generate_runtime_stubs, generate_stubs
 
@@ -133,7 +135,7 @@ def save_debug_artifact(filename: str, content: str) -> None:
         "stubs.py": ("generated_stubs", "stubs"),
         "prompt.txt": ("generated_prompt", "prompt"),
         "semantic_layer.json": ("generated_semantic_layer", "semantic_layer"),
-        "dsl.json": ("generated_DSL", "dsl"),
+        "execution_plan.json": ("generated_DSL", "dsl"),
     }
 
     entry = eval_map.get(filename)
@@ -514,13 +516,6 @@ class Sandbox:
     async def format_response(self, user_query: str, raw_output: str) -> str:
         """Convert raw JSON tool results into a human-readable response.
 
-        This is the second LLM call that takes raw tool outputs and formats
-        them into a natural language response that answers the user's question.
-
-        Example:
-            Input:  {"price": 150.25, "symbol": "AAPL", "change": 2.3}
-            Output: "Apple (AAPL) is trading at $150.25, up 2.3% today."
-
         Args:
             user_query: Original user question (for context)
             raw_output: JSON string from synthesize_response()
@@ -531,42 +526,130 @@ class Sandbox:
         # Use semantic layer for metadata
         semantic = self._semantic_layer or self.provider.build_semantic_layer()
 
-        # Escape curly braces in JSON to prevent .format() from interpreting them as placeholders
-        # JSON uses {} for objects, but .format() uses {} for variable substitution. @TODO: review it properly
+        # ── Gather agent instructions for synthesis context
+        seen_instructions: set[str] = set()
+        agent_instruction_parts: list[str] = []
+        for domain in semantic.domains:
+            if domain.instructions and domain.instructions.strip():
+                instr = domain.instructions.strip()
+                if instr not in seen_instructions:
+                    seen_instructions.add(instr)
+                    agent_instruction_parts.append(f"### {domain.id}\n{instr}")
+        agent_instructions_text = (
+            "\n\n".join(agent_instruction_parts)
+            if agent_instruction_parts
+            else "No additional agent instructions."
+        )
+
+        # Escape curly braces to prevent .format() from interpreting them
         escaped_output = raw_output.replace("{", "{{").replace("}", "}}")
+        escaped_instructions = agent_instructions_text.replace("{", "{{").replace("}", "}}")
 
         prompt = RESPONSE_FORMAT_PROMPT.format(
             provider_name=semantic.provider_name,
             provider_instructions=semantic.provider_instructions or "",
+            agent_instructions=escaped_instructions,
             user_query=user_query,
             tool_results=escaped_output,
         )
 
-        from observability import LogLevel, SpanKind, log, span, update_span
+        response = await self.model.invoke([{"role": "user", "content": prompt}])
+        content = response.content if hasattr(response, "content") else str(response)
 
-        async with span(
-            "response_formatting",
-            kind=SpanKind.GENERATION,
-            attributes={"model": getattr(self.model, "model_id", "unknown")},
-        ):
-            await log(LogLevel.INFO, "Invoking LLM for response formatting")
-            response = await self.model.invoke([{"role": "user", "content": prompt}])
-            content = response.content if hasattr(response, "content") else str(response)
+        # Print token usage
+        usage = response.usage
+        if usage:
+            print(
+                f"Tokens: in={usage.get('input_tokens', 0)} "
+                f"out={usage.get('output_tokens', 0)} "
+                f"thinking={usage.get('thoughts_tokens', 0)} "
+                f"total={usage.get('total_tokens', 0)}"
+            )
 
-            # Update span attributes so engine can track tokens
-            # ModelResponse standardize usage in .usage dict
-            usage = response.usage
-            if usage:
-                update_span(
-                    {
-                        "input_tokens": usage.get("input_tokens", 0),
-                        "output_tokens": usage.get("output_tokens", 0),
-                        "thoughts_tokens": usage.get("thoughts_tokens", 0),
-                        "total_tokens": usage.get("total_tokens", 0),
-                    }
-                )
+        # Save final output to debug file
+        final_output = content.strip()
+        save_debug_artifact("final_output.txt", final_output)
 
-            return content.strip()
+        return final_output
+
+    async def _execute_planning_phase(
+        self,
+        user_query: str,
+        semantic_layer: Any,
+    ) -> tuple[str, str]:
+        """Phase 1: Planning — select relevant agents/tools before code generation.
+
+        Returns:
+            Tuple of (filtered_tool_stubs, planner_summary).
+        """
+        # Build structured context with agent roles
+        planner_ctx = semantic_layer.get_planner_context()
+        save_debug_artifact(
+            "planner_input.json",
+            json.dumps(planner_ctx, indent=2, ensure_ascii=False),
+        )
+        print("  [planner] Saved to: .debug/planner_input.json")
+
+        # Pick prompt based on provider type
+        if self.provider.provider_type == "TEAM":
+            prompt = TEAM_PLANNER_PROMPT.format(
+                team_name=planner_ctx["provider_name"],
+                team_description=planner_ctx["provider_description"],
+                team_instructions=planner_ctx["provider_instructions"],
+                agents_section=planner_ctx["agents"],
+                user_query=user_query,
+            )
+        else:
+            prompt = AGENT_PLANNER_PROMPT.format(
+                agent_name=planner_ctx["provider_name"],
+                agent_description=planner_ctx["provider_description"],
+                agent_instructions=planner_ctx["provider_instructions"],
+                tools_section=planner_ctx["agents"],
+                user_query=user_query,
+            )
+
+        save_debug_artifact("planner_prompt.txt", prompt)
+        print("  [planner] Saved to: .debug/planner_prompt.txt")
+
+        print("  [planner] Invoking LLM...")
+        response = await self.model.invoke([{"role": "user", "content": prompt}])
+
+        content = response.content if hasattr(response, "content") else str(response)
+
+        cleaned_content = content.strip()
+        if cleaned_content.startswith("```"):
+            cleaned_content = cleaned_content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+        # Track token usage
+        usage = response.usage
+        if usage:
+            print(
+                f"  [planner] Tokens: "
+                f"in={usage.get('input_tokens', 0)} "
+                f"out={usage.get('output_tokens', 0)} "
+                f"thinking={usage.get('thoughts_tokens', 0)} "
+                f"total={usage.get('total_tokens', 0)}"
+            )
+
+        save_debug_artifact("planner_output.json", cleaned_content)
+        print("  [planner] Saved to: .debug/planner_output.json")
+
+        # Collect planned tool slugs as "agent.tool_slug"
+        planned_tool_slugs = set()
+        for step in json.loads(cleaned_content).get("steps", []):
+            agent = step.get("agent", "")
+            tool_slug = step.get("tool_slug", "")
+            if agent and tool_slug:
+                planned_tool_slugs.add(f"{agent}.{tool_slug}")
+
+        # Filter semantic layer and generate stubs from filtered tools only
+        filtered_layer = semantic_layer.get_tool_stubs_by_tool_slugs(planned_tool_slugs)
+        filtered_stubs = generate_stubs(filtered_layer)
+
+        save_debug_artifact("stubs_filtered.py", filtered_stubs)
+        print("  [planner] Saved to: .debug/stubs_filtered.py")
+
+        return filtered_stubs, cleaned_content
 
     async def generate_parse_validate_code(
         self,
@@ -596,284 +679,194 @@ class Sandbox:
         Returns:
             Python code as a string (ready to execute)
         """
-        from observability import LogLevel, log, span, update_span
+        from framework.code_mode.compiler.ast_parser import parse_code, validate
 
-        async with span("code_generation"):
-            # Step 1: Get the semantic layer (with tool_definitions from context if available)
-            async with span("semantic_layer.build"):
-                await log(LogLevel.INFO, "Building semantic layer")
-                # Use build_semantic_layer with tool_definitions for MCP tool support
-                tool_definitions = context.get("tool_definitions") if context else None
-                if hasattr(self.provider, "build_semantic_layer"):
-                    semantic_layer = self.provider.build_semantic_layer(tool_definitions)
-                    self._semantic_layer = semantic_layer  # Store for use in _build_full_code()
+        # Step 1: Build semantic layer
+        tool_definitions = context.get("tool_definitions") if context else None
+        if hasattr(self.provider, "build_semantic_layer"):
+            semantic_layer = self.provider.build_semantic_layer(tool_definitions)
+            self._semantic_layer = semantic_layer
 
-                # Extract tool whitelist from semantic layer for AST validation
-                # and DSL building.  Only domain.tool_slug patterns are valid tool calls.
-                allowed_tools = {
-                    f"{domain.id}.{tool.slug}"
-                    for domain in semantic_layer.domains
-                    for tool in domain.tools
-                }
+        allowed_tools = {
+            f"{domain.id}.{tool.slug}" for domain in semantic_layer.domains for tool in domain.tools
+        }
 
-                agent_count = len(semantic_layer.domains)
-                total_tools = sum(len(d.tools) for d in semantic_layer.domains)
-                await log(
-                    LogLevel.DEBUG,
-                    f"Agents: {agent_count}, Tools: {total_tools}",
-                    {"agent_count": agent_count, "total_tools": total_tools},
+        agent_count = len(semantic_layer.domains)
+        total_tools = sum(len(d.tools) for d in semantic_layer.domains)
+        print(f"  [code-gen] Semantic layer: {agent_count} agents, {total_tools} tools")
+        save_debug_artifact(
+            "semantic_layer.json",
+            json.dumps(semantic_layer.to_dict(), indent=2, ensure_ascii=False),
+        )
+        print("  [code-gen] Saved to: .debug/semantic_layer.json")
+
+        # Step 2: Planning phase (tool selection) → returns filtered stubs + planner summary
+        planner_summary = ""
+        stubs = ""
+        if total_tools > 5:
+            print("  [code-gen] Running planning phase...")
+            stubs, planner_summary = await self._execute_planning_phase(user_query, semantic_layer)
+        else:
+            print(f"  [code-gen] Skipping planning ({total_tools} tools <= 5)")
+            stubs = generate_stubs(semantic_layer)
+
+        save_debug_artifact("stubs.py", stubs)
+        print("  [code-gen] Saved to: .debug/stubs.py")
+
+        # Step 4: Load conversation history ONLY for clarification follow-ups.
+        # Normal queries skip history to avoid tool call name patterns
+        # (e.g. "agent-slug.tool-name") misleading the LLM.
+        messages: list[dict[str, Any]] = []
+        if thread_id:
+            storage = getattr(self.provider, "storage", None)
+            if storage:
+                recent = await storage.get_history_as_messages(thread_id, limit=2)
+                has_prior_clarification = any(
+                    "needs_clarification" in m.get("content", "")
+                    for m in recent
+                    if m.get("role") == "assistant"
                 )
-                save_debug_artifact(
-                    "semantic_layer.json",
-                    json.dumps(semantic_layer.to_dict(), indent=2, ensure_ascii=False),
-                )
-                await log(LogLevel.DEBUG, "Saved to: .debug/semantic_layer.json")
-
-            # Step 2: Generate Python stubs
-            async with span("stubs.generate"):
-                await log(LogLevel.INFO, "Generating Python stubs")
-                stubs = generate_stubs(semantic_layer)
-                stub_lines = stubs.count("\n")
-                agents = [d.id for d in semantic_layer.domains]
-                await log(
-                    LogLevel.DEBUG,
-                    f"Generated {stub_lines} lines for {len(agents)} agents",
-                    {"stub_lines": stub_lines, "agents": agents},
-                )
-                save_debug_artifact("stubs.py", stubs)
-                await log(LogLevel.DEBUG, "Saved to: .debug/stubs.py")
-
-            # Step 3: Load conversation history
-            async with span(
-                "memory.load_context",
-                attributes={
-                    "thread_id": thread_id or "none",
-                    "has_memory": bool(thread_id),
-                },
-            ):
-                await log(LogLevel.INFO, "Loading conversation history")
-                messages: list[dict[str, Any]] = []
-                if thread_id:
-                    history = await self.provider.get_history(thread_id)
-                    # If memory is disabled (empty history), check if the previous
-                    # turn was a clarification. If so, load 4 turns so the LLM
-                    # can see the original question + clarification + user's reply.
-                    if not history:
-                        storage = getattr(self.provider, "storage", None)
-                        if storage:
-                            recent = await storage.get_history_as_messages(thread_id, limit=2)
-                            has_prior_clarification = any(
-                                "needs_clarification" in m.get("content", "")
-                                for m in recent
-                                if m.get("role") == "assistant"
-                            )
-                            if has_prior_clarification:
-                                history = await storage.get_history_as_messages(thread_id, limit=8)
+                if has_prior_clarification:
+                    history = await storage.get_history_as_messages(thread_id, limit=8)
                     messages.extend(history)
-                await log(
-                    LogLevel.DEBUG,
-                    f"Retrieved {len(messages)} messages from storage",
-                    {"messages_loaded": len(messages)},
+                    print(
+                        f"  [code-gen] Loaded {len(messages)} history messages (clarification follow-up)"
+                    )
+
+        # Step 5: Build prompt
+        runtime_context_str = "No additional runtime context provided."
+        if context:
+            filtered_context = {
+                key: value for key, value in context.items() if key != "tool_definitions"
+            }
+            if filtered_context:
+                runtime_context_str = "\n".join(
+                    [f"- {key}: {value}" for key, value in filtered_context.items()]
                 )
-                if messages:
-                    save_debug_artifact(
-                        "conversation_context.json",
-                        json.dumps(messages, indent=2, ensure_ascii=False),
-                    )
-                    await log(LogLevel.DEBUG, "Saved to: .debug/conversation_context.json")
 
-            # Step 4: Build the prompt
-            async with span(
-                "prompt.build",
-                attributes={
-                    "prompt_type": self.provider.provider_type.lower(),
-                    "has_history": bool(messages),
-                    "has_runtime_context": bool(context),
-                },
-            ):
-                await log(LogLevel.INFO, "Building prompt")
+        # Escape curly braces in dynamic content so Python's .format() does not
+        # mis-interpret them as positional/keyword placeholder syntax.
+        # This mirrors the same pattern used in format_response() above.
+        escaped_stubs = stubs.replace("{", "{{").replace("}", "}}")
+        escaped_planner = (
+            (planner_summary or "No planning phase was executed.")
+            .replace("{", "{{")
+            .replace("}", "}}")
+        )
+        escaped_runtime = runtime_context_str.replace("{", "{{").replace("}", "}}")
 
-                # Format runtime context (exclude tool_definitions - stubs already provide that)
-                runtime_context_str = ""
-                if context:
-                    filtered_context = {
-                        key: value for key, value in context.items() if key != "tool_definitions"
+        if self.provider.provider_type == "AGENT":
+            agent_domain_id = semantic_layer.provider_id
+            if semantic_layer.domains:
+                agent_domain_id = semantic_layer.domains[0].id
+                for domain in semantic_layer.domains:
+                    if domain.id == semantic_layer.provider_id:
+                        agent_domain_id = domain.id
+                        break
+            agent_class = re.sub(r"[^a-zA-Z0-9_]+", "_", agent_domain_id)
+            prompt = AGENT_CODE_MODE_PROMPT.format(
+                agent_name=semantic_layer.provider_name,
+                agent_description=semantic_layer.provider_description
+                or f"Agent: {semantic_layer.provider_name}",
+                agent_instructions=semantic_layer.provider_instructions or "",
+                agent_class=agent_class,
+                stubs=escaped_stubs,
+                runtime_context=escaped_runtime,
+                planner_summary=escaped_planner,
+                user_query=user_query,
+            )
+        else:
+            prompt = TEAM_CODE_MODE_PROMPT.format(
+                team_name=semantic_layer.provider_name,
+                team_description=semantic_layer.provider_description or "",
+                stubs=escaped_stubs,
+                runtime_context=escaped_runtime,
+                planner_summary=escaped_planner,
+                user_query=user_query,
+            )
+
+        messages.append({"role": "user", "content": prompt})
+        save_debug_artifact("prompt.txt", prompt)
+        print("  [code-gen] Saved to: .debug/prompt.txt")
+
+        # Step 6: Generate code with retry
+        max_code_gen_attempts = 2
+        code = ""
+        last_error: str | None = None
+
+        for attempt_idx in range(max_code_gen_attempts):
+            if attempt_idx > 0:
+                print(f"  [code-gen] Retry attempt {attempt_idx + 1}: {last_error}")
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your previous output was not valid Python.\n"
+                            f"Error: {last_error}\n\n"
+                            "Fix the code and output ONLY raw Python — "
+                            "no markdown fences, no prose, no explanation.\n"
+                            "Start directly with executable Python statements."
+                        ),
                     }
-                    if filtered_context:
-                        runtime_context_str = "\n".join(
-                            [f"- {key}: {value}" for key, value in filtered_context.items()]
-                        )
-                        await log(
-                            LogLevel.DEBUG, f"Runtime context keys: {list(filtered_context.keys())}"
-                        )
-                    else:
-                        runtime_context_str = "No additional runtime context provided."
-                else:
-                    runtime_context_str = "No additional runtime context provided."
+                )
 
-                # Build prompt based on provider type
-                if self.provider.provider_type == "AGENT":
-                    agent_domain_id = semantic_layer.provider_id
-                    # Prefer provider_id domain when present; this keeps prompt and stubs aligned.
-                    if semantic_layer.domains:
-                        agent_domain_id = semantic_layer.domains[0].id
-                        for domain in semantic_layer.domains:
-                            if domain.id == semantic_layer.provider_id:
-                                agent_domain_id = domain.id
-                                break
-                    agent_class = re.sub(r"[^a-zA-Z0-9_]+", "_", agent_domain_id)
-                    prompt = AGENT_CODE_MODE_PROMPT.format(
-                        agent_name=semantic_layer.provider_name,
-                        agent_description=semantic_layer.provider_description
-                        or f"Agent: {semantic_layer.provider_name}",
-                        agent_instructions=semantic_layer.provider_instructions or "",
-                        agent_class=agent_class,
-                        stubs=stubs,
-                        runtime_context=runtime_context_str,
-                        user_query=user_query,
-                    )
-                    await log(LogLevel.DEBUG, "Using AGENT_CODE_MODE_PROMPT template")
-                else:
-                    prompt = TEAM_CODE_MODE_PROMPT.format(
-                        team_name=semantic_layer.provider_name,
-                        team_description=semantic_layer.provider_description or "",
-                        team_instructions=semantic_layer.provider_instructions or "",
-                        stubs=stubs,
-                        runtime_context=runtime_context_str,
-                        user_query=user_query,
-                    )
-                    await log(LogLevel.DEBUG, "Using TEAM_CODE_MODE_PROMPT template")
+            print(f"  [code-gen] Invoking LLM (attempt {attempt_idx + 1})...")
+            response = await self.model.invoke(messages)
+            content = response.content if hasattr(response, "content") else str(response)
 
-                messages.append({"role": "user", "content": prompt})
-                save_debug_artifact("prompt.txt", prompt)
-                await log(LogLevel.DEBUG, "Saved to: .debug/prompt.txt")
+            # Track token usage
+            usage = response.usage
+            if usage:
+                print(
+                    f"  [code-gen] Tokens: "
+                    f"in={usage.get('input_tokens', 0)} "
+                    f"out={usage.get('output_tokens', 0)} "
+                    f"thinking={usage.get('thoughts_tokens', 0)} "
+                    f"total={usage.get('total_tokens', 0)}"
+                )
 
-            # Step 5 + 6: Generate code, extract, parse, validate — with retry
-            #
-            # On syntax/validation failure, we feed the error back to the LLM
-            # and ask it to correct the code.  This handles:
-            #   - Markdown fencing (```python ... ```) despite prompt instructions
-            #   - Leading prose / trailing explanation
-            #   - Genuine syntax bugs (mismatched brackets, unterminated strings)
-            #
-            # Max 2 attempts total (1 original + 1 retry).  The retry prompt is
-            # appended as a user message so the LLM sees its own broken output.
+            code = self._extract_code(content)
+            save_debug_artifact("generated_code.py", code)
+            save_debug_artifact(f"generated_code_attempt_{attempt_idx + 1}.py", content)
+            print(f"  [code-gen] Saved to: .debug/generated_code_attempt_{attempt_idx + 1}.py")
 
-            max_code_gen_attempts = 2
-            code = ""
-            last_error: str | None = None
+            # Parse and validate
+            parsed_ast = parse_code(code)
 
-            for attempt_idx in range(max_code_gen_attempts):
-                async with span(
-                    "llm.generate_code",
-                    attributes={
-                        "model": getattr(self.model, "model_id", "unknown"),
-                        "attempt": attempt_idx + 1,
-                    },
-                ):
-                    if attempt_idx == 0:
-                        await log(LogLevel.INFO, "Invoking LLM for code generation")
-                    else:
-                        await log(
-                            LogLevel.INFO,
-                            f"Retrying code generation (attempt {attempt_idx + 1}): "
-                            f"previous error → {last_error}",
-                        )
-                        # Append correction prompt so the LLM sees its own mistake
-                        messages.append(
-                            {
-                                "role": "user",
-                                "content": (
-                                    "Your previous output was not valid Python.\n"
-                                    f"Error: {last_error}\n\n"
-                                    "Fix the code and output ONLY raw Python — "
-                                    "no markdown fences, no prose, no explanation.\n"
-                                    "Start directly with executable Python statements."
-                                ),
-                            }
-                        )
+            if parsed_ast.error:
+                last_error = str(parsed_ast.error)
+                print(f"  [code-gen] AST parse failed: {last_error}")
+                if attempt_idx < max_code_gen_attempts - 1:
+                    continue
+                raise SyntaxError(f"Generated code has syntax errors: {parsed_ast.error}")
 
-                    response = await self.model.invoke(messages)
-                    content = response.content if hasattr(response, "content") else str(response)
+            assert parsed_ast.module is not None and parsed_ast.ast_dump is not None
 
-                    # ── Extract clean Python from LLM output
-                    code = self._extract_code(content)
-                    await log(LogLevel.DEBUG, f"Extracted code ({len(code)} chars)")
+            errors = validate(parsed_ast.module, allowed_tools=allowed_tools)
 
-                    # Track token usage
-                    usage = response.usage
-                    if usage:
-                        update_span(
-                            {
-                                "input_tokens": usage.get("input_tokens", 0),
-                                "output_tokens": usage.get("output_tokens", 0),
-                                "thoughts_tokens": usage.get("thoughts_tokens", 0),
-                                "total_tokens": usage.get("total_tokens", 0),
-                            }
-                        )
+            if errors:
+                error_msgs = [f"  L{e.line}: {e.message}" for e in errors]
+                error_summary = "\n".join(error_msgs)
+                last_error = error_summary
+                print(f"  [code-gen] Validation failed ({len(errors)} errors)")
+                if attempt_idx < max_code_gen_attempts - 1:
+                    continue
+                raise ValueError(
+                    f"Generated code failed validation ({len(errors)} errors):\n{error_summary}"
+                )
 
-                    save_debug_artifact(f"generated_code_attempt_{attempt_idx + 1}.py", content)
-                    save_debug_artifact("generated_code.py", code)
+            print("  [code-gen] Validation passed ✔")
+            break
 
-                # ── Parse and validate
-                async with span(
-                    "ast.parse_and_validate",
-                    attributes={"attempt": attempt_idx + 1},
-                ):
-                    from framework.code_mode.compiler.ast_parser import parse_code, validate
-
-                    await log(LogLevel.INFO, "Parsing generated code into AST")
-                    parsed_ast = parse_code(code)
-
-                    if parsed_ast.error:
-                        last_error = str(parsed_ast.error)
-                        await log(
-                            LogLevel.WARN,
-                            f"AST parse failed (attempt {attempt_idx + 1}): {last_error}",
-                        )
-                        if attempt_idx < max_code_gen_attempts - 1:
-                            continue  # retry
-                        raise SyntaxError(f"Generated code has syntax errors: {parsed_ast.error}")
-
-                    assert parsed_ast.module is not None and parsed_ast.ast_dump is not None
-
-                    await log(
-                        LogLevel.DEBUG,
-                        f"AST parsed: {len(parsed_ast.module.body)} top-level statements",
-                    )
-
-                    # Validate against restricted subset
-                    await log(LogLevel.INFO, "Validating AST against code-mode rules")
-                    errors = validate(parsed_ast.module, allowed_tools=allowed_tools)
-
-                    if errors:
-                        error_msgs = [f"  L{e.line}: {e.message}" for e in errors]
-                        error_summary = "\n".join(error_msgs)
-                        last_error = error_summary
-                        await log(
-                            LogLevel.WARN,
-                            f"Validation failed (attempt {attempt_idx + 1}, "
-                            f"{len(errors)} errors):\n{error_summary}",
-                        )
-                        if attempt_idx < max_code_gen_attempts - 1:
-                            continue  # retry
-                        raise ValueError(
-                            f"Generated code failed validation ({len(errors)} errors):\n"
-                            f"{error_summary}"
-                        )
-
-                    await log(LogLevel.INFO, "Validation passed")
-                    break  # success — exit retry loop
-
-            return code
+        return code
 
     async def build_dsl_workflow(self, code: str) -> None:
         """Lower generated code into a DSL workflow graph, validate, and save artifact.
 
         Steps:
             1. Parse the code into an AST via ast_parser.parse_code()
-            2. Build the DSL graph from the AST via dsl_builder.build()
-            3. Validate the workflow via dsl_validator.validate_workflow()
+            2. Build the DSL graph from the AST via plan_builder.build()
+            3. Validate the workflow via plan_validator.validate_plan()
             4. Save the full workflow as .debug/dsl.json (+ numbered eval copy)
             5. Store the workflow on self._dsl_workflow for downstream use
 
@@ -888,11 +881,14 @@ class Sandbox:
         from observability import LogLevel, log, span
 
         from framework.code_mode.compiler.ast_parser import parse_code
-        from framework.code_mode.compiler.dsl_builder import build as _build_dsl
-        from framework.code_mode.compiler.dsl_validator import validate_workflow
+        from framework.code_mode.compiler.plan_builder import build as _build_dsl
+        from framework.code_mode.compiler.plan_validator import validate_plan
 
         async with span("dsl.build"):
             result = parse_code(code)
+            if result.ast_dump is not None:
+                save_debug_artifact("parsed_code.py", result.ast_dump)
+                print("  [code-gen] Saved to: .debug/parsed_code.py")
             if result.error or result.module is None:
                 await log(LogLevel.ERROR, f"DSL parse failed: {result.error}")
                 raise ValueError(f"DSL parse failed: {result.error}")
@@ -932,7 +928,7 @@ class Sandbox:
 
             # Validate the DSL workflow
             await log(LogLevel.INFO, "Validating DSL workflow")
-            validation = validate_workflow(workflow)
+            validation = validate_plan(workflow)
 
             if validation.warnings:
                 for w in validation.warnings:
@@ -952,7 +948,7 @@ class Sandbox:
 
             # Save full DSL artifact using dataclasses.asdict for complete dump
             save_debug_artifact(
-                "dsl.json",
+                "execution_plan.json",
                 json.dumps(asdict(workflow), indent=2, ensure_ascii=False, default=str),
             )
             await log(LogLevel.DEBUG, "Saved to: .debug/dsl.json")
@@ -1083,10 +1079,25 @@ class Sandbox:
             _tool = value
 
             async def _local_call(_t=_tool, **kwargs: Any) -> Any:
+                from pydantic import ValidationError as _ValidationError
+
                 func = _t.func
                 input_schema = getattr(_t, "input_schema", None)
                 if input_schema:
-                    input_model = input_schema(**kwargs)
+                    try:
+                        input_model = input_schema(**kwargs)
+                    except _ValidationError as exc:
+                        # Return a structured error dict instead of raising so
+                        # downstream tool steps and synthesize_response() still run.
+                        errors = [
+                            {"field": e["loc"][0] if e["loc"] else "?", "msg": e["msg"]}
+                            for e in exc.errors()
+                        ]
+                        return {
+                            "error": f"Input validation failed for {_t.name}: {exc.error_count()} error(s)",
+                            "validation_errors": errors,
+                            "inputs_received": {k: str(v) for k, v in kwargs.items()},
+                        }
                     sig = _inspect.signature(func)
                     param_name = next(iter(sig.parameters.keys()))
                     call_args = {param_name: input_model}
@@ -1104,40 +1115,54 @@ class Sandbox:
 
             dsl_tools[key] = _local_call
 
-        # ── MCP tools: each "mcp_slug.tool_slug" → remote_name mapping
-        for qualified_key, remote_name in self._mcp_tool_name_map.items():
-            mcp_slug = qualified_key.rsplit(".", 1)[0]
-            toolkit_entry = (self._tool_map or {}).get(mcp_slug)
-            if not (isinstance(toolkit_entry, tuple) and toolkit_entry[0] == "MCP"):
-                continue
-            _, toolkit = toolkit_entry
-            _remote = remote_name
-            _tk = toolkit
+        # ── MCP tools: register under agent domain IDs.
+        # After local tools are registered above, any tool in the semantic
+        # layer that ISN'T in dsl_tools yet must be an MCP tool.  We find
+        # the matching MCP toolkit from self._tool_map and create a callable.
+        if self._semantic_layer:
+            # Collect all registered MCP toolkits
+            _mcp_toolkits: list[Any] = [
+                v[1]
+                for v in (self._tool_map or {}).values()
+                if isinstance(v, tuple) and len(v) == 2 and v[0] == "MCP"
+            ]
 
-            async def _mcp_call(_r=_remote, _toolkit=_tk, **kwargs: Any) -> Any:
-                result = await _toolkit.call_tool(_r, **kwargs)
-                try:
-                    import json as _j
+            for domain in self._semantic_layer.domains:
+                for tool_schema in domain.tools:
+                    tool_key_dash = f"{domain.id}.{tool_schema.slug}"
+                    tool_key_under = f"{domain.id}.{tool_schema.slug.replace('-', '_')}"
+                    # Already registered as local tool? skip.
+                    if tool_key_dash in dsl_tools or tool_key_under in dsl_tools:
+                        continue
+                    # Unregistered → must be an MCP tool.
+                    # tool_schema.name is the remote MCP tool name used by call_tool().
+                    if not _mcp_toolkits:
+                        continue
+                    # Use the first available toolkit (works for single-MCP setups;
+                    # for multi-MCP, we'd need to match by source).
+                    _toolkit_obj = _mcp_toolkits[0]
+                    _r = tool_schema.name
+                    _tk_ref = _toolkit_obj
 
-                    return _j.loads(result)
-                except (TypeError, ValueError):
-                    return {"result": result}
+                    async def _mcp_call(_r=_r, _toolkit=_tk_ref, **kwargs: Any) -> Any:
+                        result = await _toolkit.call_tool(_r, **kwargs)
+                        try:
+                            import json as _j
 
-            dsl_tools[qualified_key] = _mcp_call
+                            return _j.loads(result)
+                        except (TypeError, ValueError):
+                            return {"result": result}
+
+                    dsl_tools[tool_key_dash] = _mcp_call
+                    if tool_key_under != tool_key_dash:
+                        dsl_tools[tool_key_under] = _mcp_call
 
         return dsl_tools
 
     async def execute_dsl(self, timeout: float = 60.0) -> SandboxResult:
-        """Execute the compiled DslWorkflow via the DSL execution engine.
+        """Execute the compiled ExecutionPlan via the DSL execution engine.
 
-        Replaces the subprocess-based execute() for structured, reproducible
-        execution. Requires build_dsl_workflow() to have been called first
-        (sets self._dsl_workflow).
-
-        Flow:
-            1. Build callable tool map from self._tool_map
-            2. Call run_workflow(workflow, initial_state={}, tools=dsl_tools)
-            3. Convert ExecutionResult → SandboxResult for caller compatibility
+        Requires build_dsl_workflow() to have been called first.
 
         Args:
             timeout: Maximum seconds for workflow execution.
@@ -1147,79 +1172,84 @@ class Sandbox:
         """
         import asyncio as _asyncio
 
-        from observability import LogLevel, log, span
+        from framework.code_mode.executor import run_plan
 
-        from framework.code_mode.executor import run_workflow
-
-        async with span("dsl.execute", attributes={"timeout": timeout}):
-            if not getattr(self, "_dsl_workflow", None):
-                await log(LogLevel.ERROR, "execute_dsl called before build_dsl_workflow()")
-                return SandboxResult(
-                    output="",
-                    success=False,
-                    stderr="execute_dsl() called before build_dsl_workflow(). "
-                    "Call build_dsl_workflow(code) first.",
-                )
-
-            await log(LogLevel.INFO, "Building DSL tool map")
-            dsl_tools = self._build_dsl_tool_map()
-            await log(LogLevel.DEBUG, f"DSL tool map: {list(dsl_tools.keys())}")
-
-            await log(LogLevel.INFO, "Running workflow via DSL execution engine")
-            try:
-                exec_result = await _asyncio.wait_for(
-                    run_workflow(
-                        self._dsl_workflow,
-                        initial_state={},
-                        tools=dsl_tools,
-                    ),
-                    timeout=timeout,
-                )
-            except _asyncio.TimeoutError:
-                await log(LogLevel.ERROR, f"DSL execution timed out after {timeout}s")
-                return SandboxResult(
-                    output="",
-                    success=False,
-                    exit_code=-1,
-                    stderr=f"TimeoutError: DSL execution exceeded {timeout}s",
-                )
-            except Exception as exc:
-                await log(LogLevel.ERROR, f"DSL execution error: {exc}")
-                return SandboxResult(
-                    output="",
-                    success=False,
-                    stderr=str(exc),
-                )
-
-            # ── Convert ExecutionResult → SandboxResult
-            # Collect action node tool calls from the journal for SSE streaming
-            tool_calls: list[dict[str, Any]] = [
-                {"name": entry.node_id, "args": entry.inputs, "result": entry.outputs}
-                for entry in exec_result.journal
-                if entry.node_type == "action"
-            ]
-
-            # Prefer __response__ (set by RespondNode) over raw state JSON
-            raw_output = exec_result.response or json.dumps(
-                exec_result.state, default=str, ensure_ascii=False
-            )
-
-            await log(
-                LogLevel.INFO,
-                f"DSL execution complete — status={exec_result.status.value}, "
-                f"nodes={len(exec_result.journal)}, tokens={exec_result.total_token_usage}",
-            )
-
+        if not getattr(self, "_dsl_workflow", None):
             return SandboxResult(
-                output=raw_output,
-                success=exec_result.ok,
-                exit_code=0 if exec_result.ok else 1,
-                tool_calls=tool_calls,
-                stderr=exec_result.error or "",
+                output="",
+                success=False,
+                stderr="execute_dsl() called before build_dsl_workflow(). "
+                "Call build_dsl_workflow(code) first.",
             )
 
-    # PRIVATE: Code Assembly
-    # These methods build the code that runs in the subprocess.
+        dsl_tools = self._build_dsl_tool_map()
+
+        try:
+            exec_result = await _asyncio.wait_for(
+                run_plan(
+                    self._dsl_workflow,
+                    initial_state={},
+                    tools=dsl_tools,
+                ),
+                timeout=timeout,
+            )
+        except _asyncio.TimeoutError:
+            return SandboxResult(
+                output="",
+                success=False,
+                exit_code=-1,
+                stderr=f"TimeoutError: DSL execution exceeded {timeout}s",
+            )
+        except Exception as exc:
+            return SandboxResult(
+                output="",
+                success=False,
+                stderr=str(exc),
+            )
+
+        # ── Convert ExecutionResult → SandboxResult
+        # Build node_id → tool name lookup from the workflow
+        from framework.code_mode.compiler.nodes import ActionNode
+
+        node_tool_map: dict[str, str] = {}
+        for node in self._dsl_workflow.nodes:
+            if isinstance(node, ActionNode):
+                node_tool_map[node.id] = node.tool
+
+        tool_calls: list[dict[str, Any]] = [
+            {
+                "name": node_tool_map.get(entry.node_id, entry.label),
+                "args": entry.inputs,
+                "result": entry.outputs,
+            }
+            for entry in exec_result.journal
+            if entry.node_type == "action"
+        ]
+
+        raw_output = exec_result.response or json.dumps(
+            exec_result.state, default=str, ensure_ascii=False
+        )
+
+        print(
+            f"DSL execution complete — status={exec_result.status.value}, "
+            f"nodes={len(exec_result.journal)}, tokens={exec_result.total_token_usage}"
+        )
+
+        # Surface node-level errors
+        if not exec_result.ok:
+            if exec_result.error:
+                print(f"DSL FAILED: {exec_result.error}")
+            for entry in exec_result.journal:
+                if entry.status == "error" and entry.error:
+                    print(f"  Node '{entry.label}' ({entry.node_id}) failed: {entry.error}")
+
+        return SandboxResult(
+            output=raw_output,
+            success=exec_result.ok,
+            exit_code=0 if exec_result.ok else 1,
+            tool_calls=tool_calls,
+            stderr=exec_result.error or "",
+        )
 
     def _build_full_code(self, code: str) -> str:
         """Assemble the complete Python script for the subprocess.

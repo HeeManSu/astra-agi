@@ -50,6 +50,12 @@ test = [
     "pytest-asyncio>=0.23.0",
     "httpx>=0.26.0",
 ]
+investment-team = [
+    "yfinance>=1.2.0",
+    "fredapi>=0.5.0",
+    "google-genai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]

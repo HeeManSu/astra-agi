@@ -64,7 +64,13 @@ async def save_user_message(
     return thread_id
 
 
-async def save_assistant_message(storage, thread_id: str | None, response: str) -> None:
+async def save_assistant_message(
+    storage,
+    thread_id: str | None,
+    response: str,
+    tool_calls: list[dict] | None = None,
+    metadata: dict | None = None,
+) -> None:
     """
     Save assistant message to storage and flush the queue.
 
@@ -72,7 +78,15 @@ async def save_assistant_message(storage, thread_id: str | None, response: str) 
         storage: StorageClient instance or None
         thread_id: Thread ID
         response: Assistant's response to save
+        tool_calls: Optional list of tool call dicts to persist
+        metadata: Optional additional metadata
     """
     if storage and thread_id:
-        await storage.add_message(thread_id, "assistant", response)
+        await storage.add_message(
+            thread_id,
+            "assistant",
+            response,
+            tool_calls=tool_calls,
+            metadata=metadata,
+        )
         await storage.queue.flush()

@@ -1,6 +1,6 @@
 """Top-level DSL workflow schema for Astra.
 
-A ``DslWorkflow`` is the complete, serializable representation of a
+A ``ExecutionPlan`` is the complete, serializable representation of a
 workflow graph.  It holds:
 
   - Typed state schema (what data flows through the graph)
@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from typing import Any
 import uuid
 
-from framework.code_mode.compiler.edges import DslEdge, EdgeRole, EdgeType
-from framework.code_mode.compiler.nodes import DslNode
+from framework.code_mode.compiler.edges import PlanEdge, EdgeRole, EdgeType
+from framework.code_mode.compiler.nodes import PlanNode
 
 
 # ── State schema
@@ -42,36 +42,23 @@ class StateField:
 
 # ── Workflow config
 @dataclass
-class WorkflowConfig:
-    """Global configuration for a workflow execution.
+class PlanConfig:
+    """Runtime limits and configuration for a ExecutionPlan.
 
     Attributes:
         max_execution_seconds: Hard cap on total workflow wall-clock time.
         max_nodes:             Safety limit on total node visits (journal entries).
-                               Loop-heavy workflows need this higher than graph size
-                               because visits = loop_count x items x body_nodes.
-        max_visits_per_node:   Max times a single node can be visited.  Catches true
-                               infinite loops (same node re-entered) without false-
-                               positiving on valid large workflows.  0 = unlimited.
-        checkpoint_strategy:   When to auto-checkpoint — "on_gate", "every_node", "manual".
-        allow_replan:          Whether ReplanNodes are permitted to fire.
-        max_replans:           Global cap on total re-plan invocations.
-        state_size_limit_mb:   Warn at 80 %, hard-fail above 100 % of this limit.
-                               Set to 0 to disable the check.
     """
 
     max_execution_seconds: int = 300
     max_nodes: int = 10_000  # total visits (was 100 — too blunt for loops)
     max_visits_per_node: int = 5_000  # per-node visit cap (0 = unlimited)
-    checkpoint_strategy: str = "on_gate"  # "on_gate" | "every_node" | "manual"
-    allow_replan: bool = True
-    max_replans: int = 2
     state_size_limit_mb: int = 50  # 0 = unlimited
 
 
 # ── Top-level workflow
 @dataclass
-class DslWorkflow:
+class ExecutionPlan:
     """Complete DSL workflow graph — the unit of validation and execution.
 
     Attributes:
@@ -83,7 +70,7 @@ class DslWorkflow:
         nodes:       Ordered list of all nodes in the graph.
         edges:       Ordered list of all edges connecting the nodes.
         entry:       Node ID where execution begins.
-        config:      Global execution config (timeouts, limits, checkpoints).
+        config:      Global execution config (timeouts, limits).
     """
 
     name: str = ""
@@ -93,15 +80,15 @@ class DslWorkflow:
 
     # Graph structure
     state: list[StateField] = field(default_factory=list)
-    nodes: list[DslNode] = field(default_factory=list)
-    edges: list[DslEdge] = field(default_factory=list)
+    nodes: list[PlanNode] = field(default_factory=list)
+    edges: list[PlanEdge] = field(default_factory=list)
     entry: str = ""  # node id where execution starts
 
     # Config
-    config: WorkflowConfig = field(default_factory=WorkflowConfig)
+    config: PlanConfig = field(default_factory=PlanConfig)
 
     # ── Node lookup helpers
-    def get_node(self, node_id: str) -> DslNode | None:
+    def get_node(self, node_id: str) -> PlanNode | None:
         """Find a node by id, or None."""
         for n in self.nodes:
             if n.id == node_id:
@@ -113,18 +100,18 @@ class DslWorkflow:
         return {n.id for n in self.nodes}
 
     # ── Edge lookup helpers
-    def outgoing_edges(self, node_id: str) -> list[DslEdge]:
+    def outgoing_edges(self, node_id: str) -> list[PlanEdge]:
         """All edges leaving a node, sorted by priority."""
         return sorted(
             [e for e in self.edges if e.source == node_id],
             key=lambda e: e.priority,
         )
 
-    def incoming_edges(self, node_id: str) -> list[DslEdge]:
+    def incoming_edges(self, node_id: str) -> list[PlanEdge]:
         """All edges arriving at a node."""
         return [e for e in self.edges if e.target == node_id]
 
-    def edge_by_role(self, node_id: str, role: EdgeRole) -> DslEdge | None:
+    def edge_by_role(self, node_id: str, role: EdgeRole) -> PlanEdge | None:
         """Find outgoing edge with a specific role from a node.
 
         Returns the first matching edge, or None if no edge with that
@@ -136,12 +123,12 @@ class DslWorkflow:
         return None
 
     # ── Structural queries
-    def terminal_nodes(self) -> list[DslNode]:
+    def terminal_nodes(self) -> list[PlanNode]:
         """Nodes with no outgoing edges (graph sinks)."""
         sources_with_edges = {e.source for e in self.edges}
         return [n for n in self.nodes if n.id not in sources_with_edges]
 
-    def root_nodes(self) -> list[DslNode]:
+    def root_nodes(self) -> list[PlanNode]:
         """Nodes with no incoming edges (graph sources)."""
         targets_with_edges = {e.target for e in self.edges}
         return [n for n in self.nodes if n.id not in targets_with_edges]
@@ -154,7 +141,7 @@ class DslWorkflow:
           1. Entry node exists
           2. All edge sources/targets reference existing nodes
           3. No duplicate node IDs
-          4. At least one RespondNode or TerminateNode exists
+          4. At least one RespondNode exists
           5. All nodes are reachable from entry
         """
         errors: list[str] = []
@@ -186,9 +173,9 @@ class DslWorkflow:
         # 4. Terminal node check
         from framework.code_mode.compiler.nodes import NodeType
 
-        has_terminal = any(n.type in (NodeType.RESPOND, NodeType.TERMINATE) for n in self.nodes)
+        has_terminal = any(n.type == NodeType.RESPOND for n in self.nodes)
         if not has_terminal:
-            errors.append("Workflow must have at least one RespondNode or TerminateNode")
+            errors.append("Workflow must have at least one RespondNode")
 
         # 5. Reachability from entry
         if self.entry and self.entry in ids:
@@ -217,7 +204,7 @@ class DslWorkflow:
     def summary(self) -> str:
         """One-line summary for logs and debugging."""
         return (
-            f"DslWorkflow('{self.name}', "
+            f"ExecutionPlan('{self.name}', "
             f"{len(self.nodes)} nodes, "
             f"{len(self.edges)} edges, "
             f"entry='{self.entry}')"

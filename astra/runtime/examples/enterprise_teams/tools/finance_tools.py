@@ -93,7 +93,9 @@ async def forecast_cash_flow(input: ForecastCashFlowInput) -> ForecastCashFlowOu
 class AssessVendorRiskInput(BaseModel):
     vendor_name: str = Field(description="Vendor name")
     dependency_level: str = Field(description="low, medium, or high")
-    sla_breaches_last_quarter: int = Field(description="Count of SLA breaches in last quarter")
+    sla_breaches_last_quarter: int = Field(
+        ge=0, description="Count of SLA breaches in last quarter"
+    )
 
 
 class AssessVendorRiskOutput(BaseModel):
@@ -117,7 +119,7 @@ async def assess_vendor_risk(input: AssessVendorRiskInput) -> AssessVendorRiskOu
         input.dependency_level.lower(), 40
     )
     breach_penalty = min(input.sla_breaches_last_quarter * 8, 40)
-    risk_score = min(dependency_weight + breach_penalty, 100)
+    risk_score = max(0, min(dependency_weight + breach_penalty, 100))
 
     if risk_score >= 70:
         tier = "high"
@@ -165,8 +167,8 @@ async def compute_working_capital(input: ComputeWorkingCapitalInput) -> ComputeW
 
 
 class ScoreCreditExposureInput(BaseModel):
-    receivable_amount: float = Field(description="Total receivables")
-    overdue_amount: float = Field(description="Overdue receivables")
+    receivable_amount: float = Field(ge=0, description="Total receivables")
+    overdue_amount: float = Field(ge=0, description="Overdue receivables")
 
 
 class ScoreCreditExposureOutput(BaseModel):
@@ -185,7 +187,7 @@ SCORE_CREDIT_EXPOSURE_SPEC = ToolSpec(
 @bind_tool(SCORE_CREDIT_EXPOSURE_SPEC)
 async def score_credit_exposure(input: ScoreCreditExposureInput) -> ScoreCreditExposureOutput:
     ratio = round(input.overdue_amount / max(input.receivable_amount, 1.0), 4)
-    score = min(100, int(ratio * 140))
+    score = max(0, min(100, int(ratio * 140)))
     return ScoreCreditExposureOutput(exposure_ratio=ratio, exposure_score=score)
 
 

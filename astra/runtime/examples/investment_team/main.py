@@ -14,8 +14,12 @@ import os
 from dotenv import load_dotenv
 
 
+# Load local .env first (tool-specific keys like FRED_API_KEY, etc.)
+local_env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(local_env_path)
+
+# Then load root .env with override=True so root model API keys take precedence
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.env"))
-# Must load dotenv BEFORE importing agents so model classes get the right API keys
 load_dotenv(env_path, override=True)
 
 from framework.storage.client import StorageClient

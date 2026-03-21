@@ -297,7 +297,7 @@ class Team:
         """
         from framework.code_mode.semantic import (
             build_domain_schema,
-            build_mcp_domain_schema,
+            build_mcp_tool_schemas,
         )
         from framework.tool import Tool
         from framework.tool.mcp.toolkit import MCPToolkit
@@ -325,6 +325,7 @@ class Team:
                     name=member.name,
                     description=member.description or agent_or_team.description,
                     tools=local_tools,
+                    instructions=getattr(agent_or_team, "instructions", None),
                 )
                 if domain.id in seen_domain_ids:
                     raise ValueError(
@@ -334,23 +335,16 @@ class Team:
                 seen_domain_ids.add(domain.id)
                 domains.append(domain)
 
-                # Add MCP tools as additional domains
+                # Merge MCP tools into the agent's domain (not as separate domains)
                 for mcp in mcp_toolkits:
                     if mcp.slug in seen_mcp_domains:
                         continue
+                    seen_mcp_domains.add(mcp.slug)
                     mcp_tool_definitions = mcp.get_tool_definitions(tool_definitions)
                     if not mcp_tool_definitions:
                         continue
-                    mcp_domain = build_mcp_domain_schema(mcp.slug, mcp.name, mcp_tool_definitions)
-                    if mcp_domain:
-                        seen_mcp_domains.add(mcp.slug)
-                        if mcp_domain.id in seen_domain_ids:
-                            raise ValueError(
-                                f"Duplicate semantic domain id '{mcp_domain.id}' in team '{self.id}'. "
-                                "MCP slugs must be unique."
-                            )
-                        seen_domain_ids.add(mcp_domain.id)
-                        domains.append(mcp_domain)
+                    mcp_schemas = build_mcp_tool_schemas(mcp.slug, mcp_tool_definitions)
+                    domain.tools.extend(mcp_schemas)
 
             elif isinstance(agent_or_team, Team):
                 # Nested team: recursively build and merge domains
@@ -596,8 +590,8 @@ class Team:
 
         # Execute and stream results
         try:
-            # result = await sandbox.execute_dsl(timeout=exec_timeout)
-            result = await sandbox.execute(code)
+            result = await sandbox.execute_dsl(timeout=exec_timeout)
+            # result = await sandbox.execute(code)
 
             # Report tool calls
             if result.tool_calls:
@@ -622,7 +616,15 @@ class Team:
 
             # Format and yield final output
             if result.success:
-                formatted_output = await sandbox.format_response(query, result.output)
+                try:
+                    formatted_output = await sandbox.format_response(query, result.output)
+                except Exception as fmt_err:
+                    import traceback
+
+                    traceback.print_exc()
+                    print(f"[ERROR] format_response failed: {fmt_err}")
+                    # Fall back to raw output
+                    formatted_output = result.output
 
                 # Run OUTPUT middlewares
                 formatted_output, error = await self._run_output_middleware(formatted_output)
@@ -630,16 +632,27 @@ class Team:
                     yield StreamEvent(event_type="error", data={"message": error})
                     return
 
-                # Save assistant response
-                await save_assistant_message(self.storage, thread_id, formatted_output)
+                # Save assistant response (with tool_calls for persistence)
+                await save_assistant_message(
+                    self.storage,
+                    thread_id,
+                    formatted_output,
+                    tool_calls=result.tool_calls if result.tool_calls else None,
+                )
 
                 yield StreamEvent(event_type="content", data={"text": formatted_output})
                 yield StreamEvent(event_type="done", data={"status": "complete"})
             else:
+                print(
+                    f"[DEBUG] result.success is False — stderr: {result.stderr}, output: {result.output[:200]}"
+                )
                 yield StreamEvent(
                     event_type="error",
                     data={"message": f"Execution failed: {result.stderr or 'Unknown error'}"},
                 )
 
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()
             yield StreamEvent(event_type="error", data={"message": f"Execution error: {e}"})

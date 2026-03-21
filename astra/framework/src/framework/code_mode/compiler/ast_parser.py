@@ -17,6 +17,11 @@ Usage:
 
 import ast
 from dataclasses import dataclass
+import logging
+import traceback
+
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -73,6 +78,13 @@ def parse_code(code: str) -> ParseResult:
         )
 
     except SyntaxError as e:
+        log.warning(
+            "parse_code: SyntaxError in generated code at line %s, col %s: %s",
+            e.lineno,
+            e.offset,
+            e.msg,
+            exc_info=True,
+        )
         return ParseResult(
             module=None,
             error=f"SyntaxError at line {e.lineno}, col {e.offset}: {e.msg}",
@@ -80,9 +92,10 @@ def parse_code(code: str) -> ParseResult:
         )
 
     except Exception as e:
+        log.exception("parse_code: unexpected parse error")
         return ParseResult(
             module=None,
-            error=f"Parse error: {e}",
+            error=f"Parse error: {e}\n{traceback.format_exc()}",
             ast_dump=None,
         )
 
@@ -296,8 +309,16 @@ def validate(
     Returns:
         List of ValidationError (empty means code is valid).
     """
-    checker = _ASTValidator(module, allowed_tools=allowed_tools)
-    return checker.run()
+    try:
+        checker = _ASTValidator(module, allowed_tools=allowed_tools)
+        return checker.run()
+    except Exception as exc:
+        log.exception("validate: unexpected internal error during AST validation")
+        return [
+            ValidationError(
+                message=f"Internal validation error: {exc}\n{traceback.format_exc()}",
+            )
+        ]
 
 
 class _ASTValidator:
@@ -401,6 +422,10 @@ class _ASTValidator:
                                 f"'{target_name}[...].{func.attr}()' is not allowed — '{target_name}' is a blocked module/object",
                                 node,
                             )
+                elif isinstance(func.value, ast.Call) and func.attr == "get":
+                    # Allow chained .get().get() — safe dict access, no side effects
+                    # e.g. step_result.get("result", {}).get("price")
+                    pass
                 else:
                     self._emit(
                         "Chained calls like 'a.b.c()' are not allowed — use single-level 'var.method()'",

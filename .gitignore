@@ -6,44 +6,54 @@ dist/
 wheels/
 *.egg-info
 
+astra/runtime/examples
+*.json/
+
 # Virtual environments
 .venv
+.venv-pdf
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# Data files
-packages/framework/markdowns
-.cursorrules
-benchmarks.txt
-random.txt
-*.md
-*.db
-jsons/
-*.txt
-*.json
-jsons/
-# Node.js / JavaScript
-node_modules/
-dist/
-astra_landing_page/
-astra-cloud/
+# Debug and temp artifacts
+**/.debug/
 astra/runtime/.debug/
+jsons/
 limca_db/
-
-projects/
-
-*.pdf
-*.zip
-
 astra/benchmarks/
 astra/evals/
 
-.claude/
+# Database files
+*.db
 
-**/.debug/
+# Secrets / credentials
+google_credentials.json
 
+# Node.js / JavaScript
+node_modules/
+
+# Build outputs
+astra_landing_page/
+astra-cloud/
+
+# macOS
 .DS_Store
+
+# IDE
+.claude/
+.cursorrules
+
+# Test artifacts
 test/
+
+# Compiled / package artifacts
+*.pdf
+*.zip
+
+cookbook/
+docs/
+
+*.egg-info

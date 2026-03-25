@@ -1,13 +1,7 @@
-[general]
-disableTypeErrors = false
-
-[source_paths]
-packages = [
+[pyrefly]
+python_interpreter = ".venv/bin/python"
+source_roots = [
     "astra/framework/src",
     "astra/runtime/src",
-    "market-research"
+    "astra/observability/src",
 ]
-
-[tool.pyrefly]
-errors = { missing-override-decorator = "error" }
-

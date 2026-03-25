@@ -59,7 +59,7 @@ const chatSlice = createSlice({
 
           // Check if we're updating an existing tool call (by index)
           const existingIndex = lastMessage.tool_calls.findIndex(
-            (tc) => tc.index === toolCall.index
+            (tc) => tc.index === toolCall.index,
           );
 
           if (existingIndex !== -1) {
@@ -93,11 +93,25 @@ const chatSlice = createSlice({
     setMessages: (state, action) => {
       // Set messages for a session (used when loading thread history)
       const { sessionKey, messages } = action.payload;
-      state.messagesBySession[sessionKey] = messages.map((msg) => ({
-        ...msg,
-        id: msg.id || crypto.randomUUID(),
-        timestamp: msg.created_at || new Date().toISOString(),
-      }));
+      state.messagesBySession[sessionKey] = messages.map((msg) => {
+        // Extract tool_calls from metadata if present (persisted tool calls)
+        const toolCalls = msg.metadata?.tool_calls;
+        return {
+          ...msg,
+          id: msg.id || crypto.randomUUID(),
+          timestamp: msg.created_at || new Date().toISOString(),
+          ...(toolCalls && toolCalls.length > 0
+            ? {
+                tool_calls: toolCalls.map((tc, idx) => ({
+                  index: idx,
+                  tool_name: tc.name || "Unknown Tool",
+                  result: tc.result,
+                  status: "complete",
+                })),
+              }
+            : {}),
+        };
+      });
     },
     clearSession: (state, action) => {
       const sessionKey = action.payload;

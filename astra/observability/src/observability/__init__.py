@@ -15,8 +15,7 @@ Public API:
             await log(LogLevel.INFO, "Step started")
 """
 
-# Public API (ContextVars-based instrumentation)
-# Internal (for runtime initialization)
+from .debug import save_debug_artifact
 from .engine import ObservabilityEngine
 from .instrument import (
     get_current_span_id,
@@ -66,6 +65,8 @@ __all__ = [
     "StorageBackend",
     "TelemetryMongoDB",
     "TelemetrySQLite",
+    # Debug
+    "save_debug_artifact",
     # Queries
     "TraceWithSpans",
     "get_trace_with_spans",

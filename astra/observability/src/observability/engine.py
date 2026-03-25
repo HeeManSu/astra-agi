@@ -115,19 +115,30 @@ class ObservabilityEngine:
         trace_msg = (
             f"Trace '{trace.name}' completed in {trace.duration_ms}ms with status {status.value}"
         )
-        await self.log_event(
-            Log(
-                trace_id=trace_id,
-                level=LogLevel.DEBUG if status == TraceStatus.SUCCESS else LogLevel.ERROR,
-                message=trace_msg,
-                attributes={
-                    "duration_ms": trace.duration_ms,
+        trace_log_attrs: dict[str, Any] = {"duration_ms": trace.duration_ms}
+        has_llm_usage = bool(
+            trace.total_tokens
+            or trace.input_tokens
+            or trace.output_tokens
+            or trace.thoughts_tokens
+            or trace.model
+        )
+        if has_llm_usage:
+            trace_log_attrs.update(
+                {
                     "total_tokens": trace.total_tokens,
                     "input_tokens": trace.input_tokens,
                     "output_tokens": trace.output_tokens,
                     "thoughts_tokens": trace.thoughts_tokens,
                     "model": trace.model,
-                },
+                }
+            )
+        await self.log_event(
+            Log(
+                trace_id=trace_id,
+                level=LogLevel.DEBUG if status == TraceStatus.SUCCESS else LogLevel.ERROR,
+                message=trace_msg,
+                attributes=trace_log_attrs,
             )
         )
 

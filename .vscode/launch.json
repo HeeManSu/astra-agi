@@ -86,7 +86,9 @@
         "127.0.0.1",
         "--port",
         "8000",
-        "--reload"
+        "--reload",
+        "--reload-exclude",
+        ".debug/*"
       ],
       "console": "integratedTerminal",
       "justMyCode": false,
@@ -119,10 +121,11 @@
       ],
       "cwd": "${workspaceFolder}/astra-playground-ui",
       "serverReadyAction": {
-        "pattern": "Local:.*(https?://.*)",
+        "pattern": "Local:\\s+(https?://localhost:\\d+)",
         "uriFormat": "%s",
         "action": "openExternally"
       },
+      "console": "integratedTerminal",
       "presentation": {
         "group": "enterprise-teams",
         "order": 2

@@ -1,18 +1,20 @@
 """
 AST parsing and validation for generated code.
 
-Two-step pipeline:
-    1. parse_code()  — raw string → AST (catches syntax errors)
-    2. validate()    — AST → list of validation errors
+This module provides a two-step pipeline for validating LLM-generated Python code:
+1. `parse_code()` - Converts raw string to AST, catching syntax errors
+2. `validate()` - Validates AST structure and enforces safety rules
 
-Usage:
+Example:
     result = parse_code(code)
     if result.error:
-        handle syntax error ...
+        # Handle syntax error
+        return
 
     errors = validate(result.module)
     if errors:
-        handle validation errors ...
+        # Handle validation errors
+        return
 """
 
 import ast
@@ -44,29 +46,28 @@ class ParseResult:
 
 
 def _strip_fences(code: str) -> str:
-    """Strip markdown code fences if present.
-
-    Handles:  ```python ... ```  and  ``` ... ```
-    """
     lines = code.strip().splitlines()
     if lines and lines[0].strip().startswith("```"):
-        lines = lines[1:]  # drop opening fence
+        lines = lines[1:]
     if lines and lines[-1].strip() == "```":
-        lines = lines[:-1]  # drop closing fence
+        lines = lines[:-1]
     return "\n".join(lines).strip()
 
 
 def parse_code(code: str) -> ParseResult:
     """Parse Python code into an AST.
 
-    Strips markdown fences before parsing if present.
+    Automatically strips markdown fences and handles syntax errors gracefully.
 
     Args:
-        code: Python source code string to parse.
+        code: Python source code string to parse
 
     Returns:
-        ParseResult with module on success, error message on failure.
+        ParseResult containing the parsed AST module, error message (if any),
+        and AST dump for debugging
     """
+
+    # removes the unwanted markdown fences from the code
     code = _strip_fences(code)
 
     try:
@@ -78,29 +79,13 @@ def parse_code(code: str) -> ParseResult:
         )
 
     except SyntaxError as e:
-        log.warning(
-            "parse_code: SyntaxError in generated code at line %s, col %s: %s",
-            e.lineno,
-            e.offset,
-            e.msg,
-            exc_info=True,
-        )
         return ParseResult(
             module=None,
             error=f"SyntaxError at line {e.lineno}, col {e.offset}: {e.msg}",
             ast_dump=None,
         )
 
-    except Exception as e:
-        log.exception("parse_code: unexpected parse error")
-        return ParseResult(
-            module=None,
-            error=f"Parse error: {e}\n{traceback.format_exc()}",
-            ast_dump=None,
-        )
 
-
-# Nodes that are NEVER allowed in generated code.
 _BANNED_NODES = (
     # Imports
     ast.Import,
@@ -121,7 +106,7 @@ _BANNED_NODES = (
     # Async
     ast.Await,
     ast.AsyncFor,
-    # Generators / comprehensions
+    # Generators
     ast.Yield,
     ast.YieldFrom,
     ast.GeneratorExp,
@@ -133,21 +118,15 @@ _BANNED_NODES = (
     ast.Nonlocal,
     # Deletion
     ast.Delete,
-    # Flow control statements not supported by DSL lowerer
-    ast.Pass,
+    # Flow control statements
     ast.Break,
     ast.Continue,
     # Assertions
     ast.Assert,
-    # Augmented assignment (x += 1)
-    ast.AugAssign,
     # Walrus operator (:=)
     ast.NamedExpr,
-    # Annotated assignment (x: int = 5)
-    ast.AnnAssign,
 )
 
-# Also ban Match if available (Python 3.10+)
 if hasattr(ast, "Match"):
     _BANNED_NODES = (*_BANNED_NODES, ast.Match)
 
@@ -178,20 +157,15 @@ _BANNED_NAMES: dict[type, str] = {
     ast.Global: "global statement",
     ast.Nonlocal: "nonlocal statement",
     ast.Delete: "del statement",
-    ast.Pass: "pass statement",
     ast.Break: "break statement",
     ast.Continue: "continue statement",
     ast.Assert: "assert statement",
-    ast.AugAssign: "augmented assignment (+=, -=, etc.)",
     ast.NamedExpr: "walrus operator (:=)",
-    ast.AnnAssign: "type annotation assignment",
 }
 
-# Only these are allowed at the top level of the module.
-_ALLOWED_TOP_LEVEL = (ast.Assign, ast.Expr, ast.If, ast.For)
+_ALLOWED_TOP_LEVEL = (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Expr, ast.If, ast.For, ast.Pass)
 
-# Dangerous builtins that must NEVER be called.
-_DANGEROUS_CALLS = frozenset(
+_BANNED_FUNCTIONS = frozenset(
     {
         "eval",
         "exec",
@@ -212,8 +186,8 @@ _DANGEROUS_CALLS = frozenset(
     }
 )
 
-# Safe builtins that ARE allowed as bare Name calls.
-_SAFE_BUILTINS = frozenset(
+
+_ALLOWED_BUILTINS = frozenset(
     {
         "len",
         "range",
@@ -247,9 +221,7 @@ _SAFE_BUILTINS = frozenset(
     }
 )
 
-# Known dangerous module/object names that must NEVER be used as call targets.
-# Blocks os.system(), subprocess.run(), socket.connect(), etc.
-_DANGEROUS_MODULES = frozenset(
+_BANNED_MODULES = frozenset(
     {
         # System / process
         "os",
@@ -277,7 +249,7 @@ _DANGEROUS_MODULES = frozenset(
         "code",
         "codeop",
         "ast",
-        # Serialization (pickle is code exec)
+        # Serialization
         "pickle",
         "shelve",
         "marshal",
@@ -285,35 +257,26 @@ _DANGEROUS_MODULES = frozenset(
 )
 
 
-def validate(
-    module: ast.Module,
-    *,
-    allowed_tools: set[str] | None = None,
-) -> list[ValidationError]:
-    """Validate an AST module against the restricted code-mode subset.
+def validate(module: ast.Module) -> list[ValidationError]:
+    """Validate an AST module for safety and structural correctness.
 
-    Checks:
-        1. No banned node types anywhere in the tree
-        2. Only Assign/Expr/If/For at top level
-        3. Dangerous / unknown call enforcement
-        4. Max 1 level of if nesting, max 1 level of for nesting
-        5. Exactly one synthesize_response() as the last statement
-        6. Tool whitelist enforcement (when allowed_tools is provided)
+    Performs validation checks:
+    - Banned node types (imports, function definitions, etc.)
+    - Top-level structure (only assignments, expressions, if/for allowed)
+    - Banned function calls
+    - Nesting depth limits (max 1 level for if/for)
+    - Required synthesize_response() as final statement
 
     Args:
-        module:        A parsed ast.Module to validate.
-        allowed_tools: Optional set of known tool names (e.g. {"inventory.check_stock"}).
-                       When provided, attribute calls that don't match the whitelist
-                       are flagged as unknown.
+        module: A parsed ast.Module to validate
 
     Returns:
-        List of ValidationError (empty means code is valid).
+        List of ValidationError objects. Empty list means code is valid.
     """
     try:
-        checker = _ASTValidator(module, allowed_tools=allowed_tools)
+        checker = _ASTValidator(module)
         return checker.run()
     except Exception as exc:
-        log.exception("validate: unexpected internal error during AST validation")
         return [
             ValidationError(
                 message=f"Internal validation error: {exc}\n{traceback.format_exc()}",
@@ -322,246 +285,190 @@ def validate(
 
 
 class _ASTValidator:
-    """Internal validator that walks the AST and collects errors."""
+    """
+    Walks the AST and collects validation errors.
+    """
 
-    def __init__(
-        self,
-        module: ast.Module,
-        *,
-        allowed_tools: set[str] | None = None,
-    ) -> None:
+    def __init__(self, module: ast.Module) -> None:
         self._module = module
-        self._allowed_tools = allowed_tools
         self._errors: list[ValidationError] = []
 
     def run(self) -> list[ValidationError]:
+        """Run all the validation checks and collect errors."""
+
         self._check_banned_nodes()
         self._check_top_level()
-        self._check_nesting(self._module.body, if_depth=0, for_depth=0)
+        self._check_nesting()
         self._check_calls()
         self._check_synthesize()
-        if self._allowed_tools is not None:
-            self._check_tool_whitelist()
         return self._errors
 
-    # -- Check 1: Banned nodes --
-
     def _check_banned_nodes(self) -> None:
-        """Walk entire tree and flag any banned node type."""
+        """Walk the AST and collect validation errors for banned nodes."""
+
         for node in ast.walk(self._module):
             if isinstance(node, _BANNED_NODES):
                 name = _BANNED_NAMES.get(type(node), type(node).__name__)
-                self._emit(
-                    f"'{name}' is not allowed in generated code",
-                    node,
+                self._errors.append(
+                    ValidationError(
+                        message=f"'{name}' is not allowed in generated code",
+                        node_type=name,
+                        line=node.lineno,
+                        col=node.col_offset,
+                    )
                 )
-
-    # -- Check 2: Top-level structure --
 
     def _check_top_level(self) -> None:
-        """Ensure only Assign, Expr, If, For appear at module level."""
-        for stmt in self._module.body:
-            if not isinstance(stmt, _ALLOWED_TOP_LEVEL):
-                self._emit(
-                    f"Unsupported top-level statement: {type(stmt).__name__}",
-                    stmt,
+        """Check that the module has only allowed top-level nodes."""
+
+        for statement in self._module.body:
+            if not isinstance(statement, _ALLOWED_TOP_LEVEL):
+                self._errors.append(
+                    ValidationError(
+                        message=f"Unsupported top-level statement: {type(statement).__name__}",
+                        node_type=type(statement).__name__,
+                        line=statement.lineno,
+                        col=statement.col_offset,
+                    )
                 )
 
-    # -- Check 3: Dangerous / unknown calls --
+    def _check_nesting(self) -> None:
+        """Enforce max nesting depth of 2 for if/for blocks.
+
+        Allowed (depth <= 2):
+            for item in items:          # depth 1
+                if item['active']:      # depth 2 — OK
+
+        Blocked (depth 3+):
+            for item in items:          # depth 1
+                if item['active']:      # depth 2
+                    for sub in item:    # depth 3 — ERROR
+
+        elif chains are NOT counted as nesting. Python represents
+        ``elif`` as a single ``ast.If`` inside the parent's ``orelse``
+        list, so we skip that case explicitly.
+        """
+
+        for node in ast.walk(self._module):
+            if not isinstance(node, (ast.If, ast.For)):
+                continue
+
+            # Collect depth-1 child statements from body (+ else if not elif).
+            depth1_stmts: list[ast.stmt] = []
+            if isinstance(node, ast.If):
+                depth1_stmts.extend(node.body)
+                # Single ast.If in orelse = elif chain, not nesting. Skip it.
+                if node.orelse and not (
+                    len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If)
+                ):
+                    depth1_stmts.extend(node.orelse)
+            elif isinstance(node, ast.For):
+                depth1_stmts.extend(node.body)
+
+            for child in depth1_stmts:
+                if not isinstance(child, (ast.If, ast.For)):
+                    continue
+                # child is at depth 2 — allowed. Check its children for depth 3.
+                depth2_stmts: list[ast.stmt] = []
+                if isinstance(child, ast.If):
+                    depth2_stmts.extend(child.body)
+                    if child.orelse and not (
+                        len(child.orelse) == 1 and isinstance(child.orelse[0], ast.If)
+                    ):
+                        depth2_stmts.extend(child.orelse)
+                elif isinstance(child, ast.For):
+                    depth2_stmts.extend(child.body)
+
+                for grandchild in depth2_stmts:
+                    if isinstance(grandchild, (ast.If, ast.For)):
+                        self._errors.append(
+                            ValidationError(
+                                message=(
+                                    f"Control flow nested too deep: "
+                                    f"{type(grandchild).__name__} at line {getattr(grandchild, 'lineno', '?')} "
+                                    f"is at depth 3+ (max allowed: 2)"
+                                ),
+                                node_type=type(grandchild).__name__,
+                                line=getattr(grandchild, "lineno", 0),
+                                col=getattr(grandchild, "col_offset", 0),
+                            )
+                        )
 
     def _check_calls(self) -> None:
-        """Walk all Call nodes and enforce call safety rules.
+        """Check that the AST has no dangerous function or method calls.
 
-        Rules:
-          - Name calls must be in _SAFE_BUILTINS (blocks eval, exec, open, etc.)
-          - Attribute calls must be single-level: var.method() only
-            (blocks chained calls like a.b.c())
-          - Attribute call target must NOT be a known dangerous module
-            (blocks os.system(), subprocess.run(), etc.)
+        Three checks on every ast.Call node:
+          1. Bare name calls against _BANNED_FUNCTIONS   → eval(), exec(), open(), ...
+          2. Attribute calls against _BANNED_MODULES      → os.system(), subprocess.run(), ...
+          3. Bare name calls NOT in _ALLOWED_BUILTINS
+             and NOT a dotted method call (agent.tool)    → unknown global function
         """
         for node in ast.walk(self._module):
             if not isinstance(node, ast.Call):
                 continue
 
             func = node.func
+            line = getattr(node, "lineno", 0)
+            col = getattr(node, "col_offset", 0)
 
-            # Case 1: bare name call — e.g. len(), eval()
+            # 1. Bare function call against _BANNED_FUNCTIONS
             if isinstance(func, ast.Name):
-                name = func.id
-                if name in _DANGEROUS_CALLS:
-                    self._emit(
-                        f"'{name}()' is a dangerous builtin and is not allowed",
-                        node,
+                if func.id in _BANNED_FUNCTIONS:
+                    self._errors.append(
+                        ValidationError(
+                            message=f"Banned function call: {func.id}()",
+                            line=line,
+                            col=col,
+                            node_type="Call",
+                        )
                     )
-                elif name not in _SAFE_BUILTINS:
-                    self._emit(
-                        f"Unknown function '{name}()' — only safe builtins and tool calls (var.method()) are allowed",
-                        node,
+                elif func.id not in _ALLOWED_BUILTINS:
+                    self._errors.append(
+                        ValidationError(
+                            message=f"Unknown function call: {func.id}() is not in the allowed builtins",
+                            line=line,
+                            col=col,
+                            node_type="Call",
+                        )
                     )
 
-            # Case 2: attribute call — e.g. agent.tool()
+            # 2. Method call: os.system(), subprocess.run(), ...
             elif isinstance(func, ast.Attribute):
-                # Allow single-level: Name.attr()  (e.g. agent.tool())
-                # Allow subscript:    Name[i].attr() (e.g. results[0].get())
-                # Block chained:      Name.attr.attr() or Call().attr()
-                if isinstance(func.value, ast.Name):
-                    # Block known dangerous modules: os.system(), subprocess.run(), etc.
-                    target_name = func.value.id
-                    if target_name in _DANGEROUS_MODULES:
-                        self._emit(
-                            f"'{target_name}.{func.attr}()' is not allowed — '{target_name}' is a blocked module/object",
-                            node,
+                # Check the root object (leftmost name) against banned modules
+                root = func.value
+                while isinstance(root, ast.Attribute):
+                    root = root.value
+                if isinstance(root, ast.Name) and root.id in _BANNED_MODULES:
+                    self._errors.append(
+                        ValidationError(
+                            message=f"Banned module access: {root.id}.{func.attr}()",
+                            line=line,
+                            col=col,
+                            node_type="Call",
                         )
-                elif isinstance(func.value, ast.Subscript):
-                    # results[0].get() — safe pattern (indexing then method call)
-                    # Check if the base of the subscript is a dangerous module
-                    if isinstance(func.value.value, ast.Name):
-                        target_name = func.value.value.id
-                        if target_name in _DANGEROUS_MODULES:
-                            self._emit(
-                                f"'{target_name}[...].{func.attr}()' is not allowed — '{target_name}' is a blocked module/object",
-                                node,
-                            )
-                elif isinstance(func.value, ast.Call) and func.attr == "get":
-                    # Allow chained .get().get() — safe dict access, no side effects
-                    # e.g. step_result.get("result", {}).get("price")
-                    pass
-                else:
-                    self._emit(
-                        "Chained calls like 'a.b.c()' are not allowed — use single-level 'var.method()'",
-                        node,
                     )
-
-    # -- Check 6: Tool whitelist --
-
-    def _check_tool_whitelist(self) -> None:
-        """Validate that attribute calls match the allowed_tools whitelist.
-
-        Only runs when allowed_tools is provided.  Flags Name.attr() calls
-        where 'name.attr' is not in the whitelist.
-        """
-        assert self._allowed_tools is not None
-
-        # Extract known agent/domain names from the whitelist
-        known_domains = {t.split(".")[0] for t in self._allowed_tools if "." in t}
-
-        for node in ast.walk(self._module):
-            if not isinstance(node, ast.Call):
-                continue
-            func = node.func
-            if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-                target_name = func.value.id
-                # Skip if not a known domain — it's a local variable method
-                # call like results.append() which _check_calls already handles
-                if target_name not in known_domains:
-                    continue
-                full_name = f"{target_name}.{func.attr}"
-                if full_name not in self._allowed_tools:
-                    self._emit(
-                        f"Unknown tool '{full_name}()' — not in the allowed tools whitelist",
-                        node,
-                    )
-
-    # -- Check 3: Nesting depth --
-
-    def _check_nesting(
-        self,
-        stmts: list[ast.stmt],
-        *,
-        if_depth: int,
-        for_depth: int,
-    ) -> None:
-        """Recursively check that if/for nesting doesn't exceed 1 level."""
-        for stmt in stmts:
-            if isinstance(stmt, ast.If):
-                if if_depth >= 1:
-                    self._emit(
-                        "Nested if-statements are not allowed (max depth: 1)",
-                        stmt,
-                    )
-                else:
-                    self._check_nesting(
-                        stmt.body,
-                        if_depth=if_depth + 1,
-                        for_depth=for_depth,
-                    )
-                    if stmt.orelse:
-                        self._check_nesting(
-                            stmt.orelse,
-                            if_depth=if_depth + 1,
-                            for_depth=for_depth,
-                        )
-
-            elif isinstance(stmt, ast.For):
-                if for_depth >= 1:
-                    self._emit(
-                        "Nested for-loops are not allowed (max depth: 1)",
-                        stmt,
-                    )
-                else:
-                    self._check_nesting(
-                        stmt.body,
-                        if_depth=if_depth,
-                        for_depth=for_depth + 1,
-                    )
-                    if stmt.orelse:
-                        self._check_nesting(
-                            stmt.orelse,
-                            if_depth=if_depth,
-                            for_depth=for_depth + 1,
-                        )
-
-    # -- Check 4: synthesize_response --
 
     def _check_synthesize(self) -> None:
-        """Ensure exactly one synthesize_response() call as the last statement."""
-        synth_count = 0
-        for node in ast.walk(self._module):
-            if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id == "synthesize_response"
-            ):
-                synth_count += 1
-
-        if synth_count == 0:
-            self._errors.append(
-                ValidationError(
-                    message="Missing synthesize_response() — exactly one is required as the last statement",
-                )
-            )
+        """Check that the last top-level statement is synthesize_response(...)."""
+        if not self._module.body:
+            self._errors.append(ValidationError(message="Empty module — no statements found"))
             return
 
-        if synth_count > 1:
-            self._errors.append(
-                ValidationError(
-                    message=f"Found {synth_count} synthesize_response() calls — exactly 1 is required",
-                )
-            )
+        last = self._module.body[-1]
 
-        # Check that the last top-level statement IS synthesize_response
-        if self._module.body:
-            last = self._module.body[-1]
-            is_synth = (
-                isinstance(last, ast.Expr)
-                and isinstance(last.value, ast.Call)
-                and isinstance(last.value.func, ast.Name)
-                and last.value.func.id == "synthesize_response"
-            )
-            if not is_synth:
-                self._emit(
-                    "synthesize_response() must be the last statement",
-                    last,
-                )
+        if (
+            isinstance(last, ast.Expr)
+            and isinstance(last.value, ast.Call)
+            and isinstance(last.value.func, ast.Name)
+            and last.value.func.id == "synthesize_response"
+        ):
+            return
 
-    # -- Helper --
-
-    def _emit(self, message: str, node: ast.AST) -> None:
         self._errors.append(
             ValidationError(
-                message=message,
-                line=getattr(node, "lineno", 0),
-                col=getattr(node, "col_offset", 0),
-                node_type=type(node).__name__,
+                message="Last statement must be synthesize_response(...)",
+                line=getattr(last, "lineno", 0),
+                col=getattr(last, "col_offset", 0),
+                node_type=type(last).__name__,
             )
         )

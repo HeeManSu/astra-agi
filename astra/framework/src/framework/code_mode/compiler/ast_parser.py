@@ -265,6 +265,7 @@ def validate(module: ast.Module) -> list[ValidationError]:
     - Top-level structure (only assignments, expressions, if/for allowed)
     - Banned function calls
     - Nesting depth limits (max 1 level for if/for)
+    - For-loop bodies must not be empty or only ``pass``
     - Required synthesize_response() as final statement
 
     Args:
@@ -299,6 +300,7 @@ class _ASTValidator:
         self._check_banned_nodes()
         self._check_top_level()
         self._check_nesting()
+        self._check_for_nonempty_bodies()
         self._check_calls()
         self._check_synthesize()
         return self._errors
@@ -393,6 +395,22 @@ class _ASTValidator:
                                 col=getattr(grandchild, "col_offset", 0),
                             )
                         )
+
+    def _check_for_nonempty_bodies(self) -> None:
+        """Reject for loops whose body is empty or only pass (avoids broken LOOP_BODY/LOOP_BACK graphs)."""
+        for node in ast.walk(self._module):
+            if not isinstance(node, ast.For):
+                continue
+
+            if not node.body:
+                self._errors.append(
+                    ValidationError(
+                        message="For-loop body cannot be empty — add at least one statement",
+                        node_type="For",
+                        line=getattr(node, "lineno", 0),
+                        col=getattr(node, "col_offset", 0),
+                    )
+                )
 
     def _check_calls(self) -> None:
         """Check that the AST has no dangerous function or method calls.

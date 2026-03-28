@@ -1,46 +1,27 @@
-"""DSL node definitions for Astra execution plans.
-
-Five node types used by the code-generation pipeline:
-
-  Core:          ActionNode, TransformNode, RespondNode
-  Control Flow:  BranchNode, LoopNode
-
-Every node shares a common base (``PlanNode``) that carries identity
-and I/O bindings.  Type-specific fields live on each subclass.
-
-Flow routing (which node connects to which) is handled exclusively
-by ``PlanEdge`` objects with ``EdgeRole`` tags — node dataclasses do
-NOT store target IDs.
-"""
-
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 import enum
 import uuid
 
 
 class NodeType(str, enum.Enum):
-    """Discriminator for node types."""
-
-    ACTION = "action"  # Calls an external tool (side-effecting)
-    TRANSFORM = "transform"  # Pure data manipulation
-    RESPOND = "respond"  # Returns final result to the caller
-    BRANCH = "branch"  # Conditional routing (if/else)
-    LOOP = "loop"  # Iterates over a collection
+    ACTION = "action"
+    TRANSFORM = "transform"
+    RESPOND = "respond"
+    BRANCH = "branch"
+    LOOP = "loop"
 
 
 @dataclass
-class PlanNode:
-    """Base for every node in a DSL execution plan.
+class Node:
+    """Base for every node in the plan builder.
 
     Attributes:
-        id:          Unique node identifier.
-        type:        Discriminator tag (set by each subclass).
-        label:       Human-readable name for UI / logs.
-        description: Optional longer description.
-        inputs:      Map of input-slot → expression (JSONPath-like).
-        outputs:     Map of output-slot → expression.
+        type: The type of the node.
+        label: The human-readable name of the node.
+        description: The description of the node.
+        id: The unique identifier of the node.
+        inputs: The inputs of the node.
+        outputs: The outputs of the node.
     """
 
     type: NodeType
@@ -48,116 +29,109 @@ class PlanNode:
     description: str = ""
     id: str = field(default_factory=lambda: f"n_{uuid.uuid4().hex[:8]}")
 
-    # I/O bindings (JSONPath expressions referencing workflow state)
     inputs: dict[str, str] = field(default_factory=dict)
     outputs: dict[str, str] = field(default_factory=dict)
 
 
-# ── Core nodes
 @dataclass
-class ActionNode(PlanNode):
-    """Call an external tool or operation (has side effects).
+class ActionNode(Node):
+    """Call an external tool.
 
-    This is the workhorse node — maps to a tool call in generated code.
-
-    Example:
-        tool = "market_analyst.get_stock_price"
-        inputs = {"symbol": "$.user.stock_symbol"}
-        outputs = {"price": "$.result.current_price"}
+    Attributes:
+        tool: The tool to call.
     """
 
     type: NodeType = field(default=NodeType.ACTION, init=False)
-
-    tool: str = ""  # "domain.tool-slug" identifier
-    is_async: bool = False  # future: concurrent tool calls
+    tool: str = ""
 
 
 @dataclass
-class TransformNode(PlanNode):
-    """Pure data manipulation — no side effects.
+class TransformNode(Node):
+    """Data transformation node.
 
-    Runs an expression against the current state and writes the result
-    back.  Used for assignments that don't map to tool calls.
-
-    Example:
-        expression = "$.price * $.quantity"
-        assign_to  = "$.total_cost"
+    Attributes:
+        expression: The Python expression to evaluate.
+        assign_to: The variable name to assign the evaluated result.
     """
 
     type: NodeType = field(default=NodeType.TRANSFORM, init=False)
-
-    expression: str = ""  # Python expression to evaluate
-    assign_to: str = ""  # state path to write result
+    expression: str = ""
+    assign_to: str = ""
 
 
 @dataclass
-class RespondNode(PlanNode):
+class RespondNode(Node):
     """Return the final result to the caller.
 
-    Typically the final node in an execution plan.  In code-mode, exactly
-    one ``RespondNode`` is generated (mirroring ``synthesize_response()``).
-
-    Example:
-        message = "$.formatted_response"
+    Attributes:
+        message: The expression or template for the response.
     """
 
     type: NodeType = field(default=NodeType.RESPOND, init=False)
+    message: str = ""
 
-    message: str = ""  # expression or template for the response
 
-
-# ── Control flow nodes
 @dataclass
-class BranchNode(PlanNode):
+class BranchNode(Node):
     """Conditional routing (if / else / switch).
 
-    Evaluates ``condition`` and routes via outgoing edges.
-    The node stores *only* the condition — routing is fully
-    determined by edges:
-
-    - ``EdgeRole.THEN``             → target when condition is truthy
-    - ``EdgeRole.ELSE``             → target when condition is falsy (explicit else)
-    - ``EdgeRole.ELSE_FALLTHROUGH`` → target when condition is falsy (no else block)
-
-    Example::
-
-        BranchNode(id="br_1", condition="risk_score > threshold")
+    Attributes:
+        condition: The condition to evaluate.
     """
 
     type: NodeType = field(default=NodeType.BRANCH, init=False)
-
-    condition: str = ""  # predicate expression
+    condition: str = ""
 
 
 @dataclass
-class LoopNode(PlanNode):
+class LoopNode(Node):
     """Iterate over a collection with a body sub-graph.
 
-    The node stores *only* the collection path, iteration variable, and
-    safety cap.  Routing is defined by edges:
-
-    - ``EdgeRole.BODY``      → entry of the loop body
-    - ``EdgeRole.BACK_EDGE`` → tail of loop body back to this node (next iteration)
-    - Sequential ``NONE``    → exit edge to the statement after the loop
-
-    Example::
-
-        LoopNode(id="loop_1", over="$.items", as_var="item")
+    Attributes:
+        over: The path to the collection to iterate over.
+        as_var: The variable name to use for the current element.
+        max_iterations: The maximum number of iterations to perform.
     """
 
     type: NodeType = field(default=NodeType.LOOP, init=False)
+    over: str = ""
+    as_var: str = "item"
+    max_iterations: int = 1000
 
-    over: str = ""  # state path to an iterable
-    as_var: str = "item"  # variable name for current element
-    max_iterations: int = 1000  # safety cap
 
-
-# ── Registry
-PLAN_NODE_MAP: dict[NodeType, type[PlanNode]] = {
+NODE_MAP: dict[NodeType, type[Node]] = {
     NodeType.ACTION: ActionNode,
     NodeType.TRANSFORM: TransformNode,
     NodeType.RESPOND: RespondNode,
     NodeType.BRANCH: BranchNode,
     NodeType.LOOP: LoopNode,
 }
-"""Lookup table: NodeType enum → concrete dataclass."""
+
+
+def action_node(
+    tool: str,
+    label: str,
+    inputs: dict[str, str] | None = None,
+    outputs: dict[str, str] | None = None,
+) -> ActionNode:
+    return ActionNode(tool=tool, label=label, inputs=inputs or {}, outputs=outputs or {})
+
+
+def transform_node(
+    expression: str,
+    assign_to: str,
+    label: str,
+) -> TransformNode:
+    return TransformNode(expression=expression, assign_to=assign_to, label=label)
+
+
+def respond_node(message: str) -> RespondNode:
+    return RespondNode(label="respond", message=message)
+
+
+def branch_node(condition: str, label: str = "") -> BranchNode:
+    return BranchNode(label=label, condition=condition)
+
+
+def loop_node(over: str, as_var: str = "item", label: str = "") -> LoopNode:
+    return LoopNode(label=label, over=over, as_var=as_var)

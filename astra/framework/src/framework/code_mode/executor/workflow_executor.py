@@ -82,6 +82,7 @@ SAFE_BUILTINS: dict[str, Any] = {
     "dict": dict,
     "tuple": tuple,
     "set": set,
+    "frozenset": frozenset,
     "abs": abs,
     "min": min,
     "max": max,
@@ -139,8 +140,13 @@ def _execute_loop(
 
     if node.id not in loop_state:
         # First visit — resolve the collection expression
-        collection = evaluate_expression(node.over, state)
-        items = list(collection)
+        try:
+            collection = evaluate_expression(node.over, state)
+            items = list(collection)
+        except TypeError as exc:
+            raise TypeError(
+                f"LoopNode '{node.id}' cannot iterate over '{node.over}': {exc}"
+            ) from exc
         loop_state[node.id] = (items, 0)
     else:
         # Re-visit — advance index
@@ -149,16 +155,28 @@ def _execute_loop(
 
     items, idx = loop_state[node.id]
 
-    if idx >= len(items):
-        # Exhausted - clean up
+    if idx >= len(items) or idx >= node.max_iterations:
+        # Exhausted — clean up state so sibling loops / post-loop code
+        # don't see stale iteration values.
         del loop_state[node.id]
+        if node.as_var.startswith("("):
+            for name in (n.strip() for n in node.as_var.strip("()").split(",")):
+                state.pop(name, None)
+        else:
+            state.pop(node.as_var, None)
         return False
 
-    if idx >= node.max_iterations:
-        del loop_state[node.id]
-        return False
-
-    state[node.as_var] = items[idx]
+    value = items[idx]
+    if node.as_var.startswith("("):
+        names = [n.strip() for n in node.as_var.strip("()").split(",")]
+        if len(names) != len(value):
+            raise ValueError(
+                f"Cannot unpack {len(value)} values into {len(names)} names"
+            )
+        for name, v in zip(names, value):
+            state[name] = v
+    else:
+        state[node.as_var] = value
     return True
 
 
@@ -189,12 +207,29 @@ async def _execute_action(
 
     tool_fn = tools.get(node.tool)
     if tool_fn is None:
+        # Fallback: case-insensitive match. The LLM often capitalizes agent
+        # identifiers (e.g. "Macro_Strategist") while the tool map keys use
+        # the original lowercase id ("macro_strategist").
+        lowered = node.tool.lower()
+        for key, fn in tools.items():
+            if key.lower() == lowered:
+                tool_fn = fn
+                break
+    if tool_fn is None:
         raise ValueError(f"Tool not found: '{node.tool}'")
 
     # Resolve each input expression against current state
     resolved_args: dict[str, Any] = {}
     for param_name, expr in node.inputs.items():
-        resolved_args[param_name] = evaluate_expression(expr, state)
+        value = evaluate_expression(expr, state)
+        if param_name.startswith("**"):
+            if not isinstance(value, dict):
+                raise TypeError(
+                    f"** spread expected dict, got {type(value).__name__}"
+                )
+            resolved_args.update(value)
+        else:
+            resolved_args[param_name] = value
 
     # Call the tool — support both sync and async callables
     if asyncio.iscoroutinefunction(tool_fn):
@@ -232,7 +267,7 @@ def find_next_node(
 
     if node_type in (NodeType.ACTION, NodeType.TRANSFORM):
         for edge in outgoing:
-            if edge.type == EdgeType.SEQUENTIAL:
+            if edge.type in (EdgeType.SEQUENTIAL, EdgeType.LOOP_BACK):
                 return edge.target
         return None
 
@@ -243,12 +278,12 @@ def find_next_node(
                     return edge.target
         else:
             for edge in outgoing:
-                if edge.type == EdgeType.BRANCH_ELSE:
+                if edge.type in (EdgeType.BRANCH_ELSE, EdgeType.BRANCH_DEFAULT):
                     return edge.target
-            for edge in outgoing:
-                if edge.type == EdgeType.BRANCH_DEFAULT:
-                    return edge.target
-        return None
+        raise RuntimeError(
+            f"BranchNode '{node_id}' has no matching outgoing edge "
+            f"for branch_result={branch_result}"
+        )
 
     if node_type == NodeType.LOOP:
         if loop_has_items:
@@ -259,7 +294,10 @@ def find_next_node(
             for edge in outgoing:
                 if edge.type == EdgeType.SEQUENTIAL:
                     return edge.target
-        return None
+        raise RuntimeError(
+            f"LoopNode '{node_id}' has no matching outgoing edge "
+            f"for loop_has_items={loop_has_items}"
+        )
 
     return None
 
@@ -420,13 +458,22 @@ async def run_workflow(workflow: ExecutionWorkflow, tools: dict[str, Callable]) 
             break
 
         # Advance to the next node
-        cursor = find_next_node(
-            node_type=node.type,
-            node_id=node.id,
-            edge_index=edge_index,
-            branch_result=branch_result,
-            loop_has_items=loop_has_items,
-        )
+        try:
+            cursor = find_next_node(
+                node_type=node.type,
+                node_id=node.id,
+                edge_index=edge_index,
+                branch_result=branch_result,
+                loop_has_items=loop_has_items,
+            )
+        except RuntimeError as exc:
+            return ExecutionResult(
+                success=False,
+                state=state,
+                steps=steps,
+                error=f"RuntimeError: {exc}",
+                duration_ms=(time.monotonic() - t_start) * 1000,
+            )
 
     return ExecutionResult(
         success=True,

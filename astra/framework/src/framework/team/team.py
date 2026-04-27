@@ -10,12 +10,15 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import dataclasses
+import json
 import re
 from typing import TYPE_CHECKING, Any
 
+from observability import LogLevel
 from pydantic import BaseModel
 
 from framework.agents.agent import Agent
+from framework.code_mode.sandbox import Sandbox
 from framework.memory import Memory
 from framework.middleware import (
     Middleware,
@@ -26,6 +29,7 @@ from framework.middleware import (
 )
 from framework.models.base import Model
 from framework.storage.client import StorageClient
+from framework.storage.persistence import save_assistant_message, save_user_message
 
 
 if TYPE_CHECKING:
@@ -49,7 +53,6 @@ class TeamTimeoutError(TeamError):
     """Raised when team execution exceeds the timeout."""
 
 
-# DATA CLASSES
 @dataclasses.dataclass
 class TeamMember:
     """
@@ -211,7 +214,7 @@ class Team:
         if not input_middlewares:
             return data, None
 
-        from observability import LogLevel, log, span
+        from observability import log, span
 
         async with span(
             "middleware.input",
@@ -505,58 +508,35 @@ class Team:
         Yields:
             StreamEvent objects for SSE streaming
         """
-        from observability import LogLevel, log, span
+        from observability import log
 
-        from framework.code_mode.sandbox import Sandbox
-        from framework.storage.persistence import save_assistant_message, save_user_message
-
-        # Run INPUT middlewares (instrumentation handled internally)
         query, error = await self._run_input_middleware(query)
         if error:
             yield StreamEvent(event_type="error", data={"message": error})
+            await log(LogLevel.ERROR, "Error in input middleware", {"error": error})
             return
 
-        # Save user message with instrumentation
-        async with span(
-            "persistence.save_user_message",
-            attributes={
-                "thread_id": thread_id or "new",
-                "message_length": len(query),
-                "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
-            },
-        ):
-            await log(LogLevel.INFO, "Saving user message to storage")
-            thread_id = await save_user_message(
-                self.storage,
-                thread_id,
-                query,
-                resource_type="team",
-                resource_id=self.id,
-                resource_name=self.name,
-            )
-            await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
-            await log(LogLevel.INFO, "Persistence complete")
+        thread_id = await save_user_message(
+            self.storage,
+            thread_id,
+            query,
+            resource_type="team",
+            resource_id=self.id,
+            resource_name=self.name,
+        )
+        await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
-        # Create sandbox
+        # Initialize sandbox
         sandbox = Sandbox(self)
         exec_timeout = timeout or self.timeout
 
-        # Generate code first
+        # Generate code
         try:
             code = await sandbox.generate_parse_validate_code(
                 query, thread_id=thread_id, context=context
             )
-
-            # Check for clarification (missing data)
-            clarification = sandbox._extract_clarification(code)
-            if clarification:
-                question = clarification.get("question", "Could you provide more details?")
-                await save_assistant_message(self.storage, thread_id, question)
-                yield StreamEvent(event_type="content", data={"text": question})
-                yield StreamEvent(event_type="done", data={"status": "needs_clarification"})
-                return
 
             yield StreamEvent(
                 event_type="code_generated",
@@ -565,35 +545,47 @@ class Team:
                     "code_preview": code[:200] + "..." if len(code) > 200 else code,
                 },
             )
+            await log(LogLevel.INFO, "Code generated successfully", {"code_length": len(code)})
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()  # Always print full traceback for debugging
             yield StreamEvent(event_type="error", data={"message": f"Error generating code: {e}"})
+            await log(LogLevel.ERROR, "Error generating code", {"error": e})
             return
 
-        # Build + validate DSL workflow from generated code
+        # Build DSL workflow
         try:
             await sandbox.build_dsl_workflow(code)
             dsl_workflow = getattr(sandbox, "_dsl_workflow", None)
+
             if dsl_workflow:
+                workflow_summary = {
+                    "nodes": len(dsl_workflow.nodes),
+                    "edges": len(dsl_workflow.edges),
+                    "entry": dsl_workflow.entry,
+                }
                 yield StreamEvent(
                     event_type="status",
                     data={
                         "message": "DSL workflow built and validated.",
-                        "dsl_summary": dsl_workflow.summary(),
+                        "dsl_summary": workflow_summary,
                     },
                 )
+                await log(
+                    LogLevel.INFO,
+                    "DSL workflow built successfully",
+                    {"dsl_workflow": workflow_summary},
+                )
         except Exception as e:
-            yield StreamEvent(event_type="error", data={"message": f"DSL build failed: {e}"})
+            await log(LogLevel.ERROR, "Error building DSL workflow", {"error": e})
+            yield StreamEvent(
+                event_type="error", data={"message": f"Error building DSL workflow: {e}"}
+            )
             return
 
-        # Execute and stream results
+        # Execute DSL workflow
         try:
             result = await sandbox.execute_dsl(timeout=exec_timeout)
             # result = await sandbox.execute(code)
 
-            # Report tool calls
             if result.tool_calls:
                 for i, tool_call in enumerate(result.tool_calls):
                     yield StreamEvent(
@@ -610,49 +602,51 @@ class Team:
                             "index": i,
                             "tool_name": tool_call.get("name", "unknown"),
                             "result": tool_call.get("result", ""),
-                            "success": "error" not in tool_call,
                         },
                     )
+                    await log(LogLevel.INFO, "Tool call emitted", {"tool_call": tool_call})
 
-            # Format and yield final output
             if result.success:
-                try:
-                    formatted_output = await sandbox.format_response(query, result.output)
-                except Exception as fmt_err:
-                    import traceback
-
-                    traceback.print_exc()
-                    print(f"[ERROR] format_response failed: {fmt_err}")
-                    # Fall back to raw output
-                    formatted_output = result.output
-
-                # Run OUTPUT middlewares
-                formatted_output, error = await self._run_output_middleware(formatted_output)
-                if error:
-                    yield StreamEvent(event_type="error", data={"message": error})
-                    return
-
-                # Save assistant response (with tool_calls for persistence)
-                await save_assistant_message(
-                    self.storage,
-                    thread_id,
-                    formatted_output,
-                    tool_calls=result.tool_calls if result.tool_calls else None,
+                synth_input = result.output or "{}"
+            else:
+                synth_input = json.dumps(
+                    {"status": "error", "error": result.stderr or "Unknown error"}
                 )
 
-                yield StreamEvent(event_type="content", data={"text": formatted_output})
+            try:
+                formatted_output = await sandbox.format_response(query, synth_input)
+            except Exception as e:
+                await log(LogLevel.ERROR, "Error formatting response", {"error": e})
+                yield StreamEvent(
+                    event_type="error", data={"message": f"Error formatting response: {e}"}
+                )
+                return
+
+            result.formatted_output = formatted_output
+
+            formatted_output, error = await self._run_output_middleware(formatted_output)
+            if error:
+                yield StreamEvent(event_type="error", data={"message": error})
+                return
+
+            await save_assistant_message(self.storage, thread_id, formatted_output)
+            yield StreamEvent(event_type="content", data={"text": formatted_output})
+
+            if result.success:
+                await log(LogLevel.INFO, "Assistant response saved successfully")
                 yield StreamEvent(event_type="done", data={"status": "complete"})
             else:
-                print(
-                    f"[DEBUG] result.success is False — stderr: {result.stderr}, output: {result.output[:200]}"
+                await log(
+                    LogLevel.ERROR, "Execution failed", {"error": result.stderr or "Unknown error"}
                 )
                 yield StreamEvent(
-                    event_type="error",
-                    data={"message": f"Execution failed: {result.stderr or 'Unknown error'}"},
+                    event_type="done",
+                    data={"status": "error", "error": result.stderr or "Unknown error"},
                 )
 
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
-            yield StreamEvent(event_type="error", data={"message": f"Execution error: {e}"})
+            await log(LogLevel.ERROR, "Error executing DSL workflow", {"error": e})
+            yield StreamEvent(
+                event_type="error", data={"message": f"Error executing DSL workflow: {e}"}
+            )
+            return

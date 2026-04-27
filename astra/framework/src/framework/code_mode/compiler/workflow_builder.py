@@ -93,6 +93,30 @@ def _extract_inputs(call: ast.Call) -> dict[str, str]:
     return inputs
 
 
+def _tool_name_from_attr(func: ast.Attribute) -> str:
+    """Build the qualified tool name as ``{agent}.{tool}``.
+
+    The LLM writes calls like ``Team.Agent.tool(...)`` or ``Agent.tool(...)``.
+    The runtime tool map is keyed ``{agent_id}.{tool_slug}``, so we always
+    keep only the last two dotted segments — stripping any team/root prefix.
+    """
+    parts = ast.unparse(func).split(".")
+    return ".".join(parts[-2:]) if len(parts) >= 2 else parts[-1]
+
+
+def _is_tool_call(func: ast.Attribute) -> bool:
+    """True only when the attribute chain's root is a bare Name.
+
+    Rejects chained calls on state variables like
+    ``x.get('result', {}).get('field')`` — those are TransformNodes,
+    not tool dispatches.
+    """
+    root: ast.expr = func
+    while isinstance(root, ast.Attribute):
+        root = root.value
+    return isinstance(root, ast.Name)
+
+
 class WorkflowBuilder:
     """
     AST to Workflow Builder.
@@ -266,8 +290,8 @@ class WorkflowBuilder:
             return
 
         # agent.tool(...) → ActionNode (dotted name)
-        if isinstance(value.func, ast.Attribute):
-            tool = ast.unparse(value.func)
+        if isinstance(value.func, ast.Attribute) and _is_tool_call(value.func):
+            tool = _tool_name_from_attr(value.func)
             node = action_node(
                 tool=tool,
                 label=f"{tool}(...)",
@@ -314,8 +338,12 @@ class WorkflowBuilder:
         self._register_state_variable(name)
         value = statement.value
 
-        if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute):
-            tool = ast.unparse(value.func)
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Attribute)
+            and _is_tool_call(value.func)
+        ):
+            tool = _tool_name_from_attr(value.func)
             node = action_node(
                 tool=tool,
                 label=f"{name} = {tool}(...)",
@@ -402,8 +430,12 @@ class WorkflowBuilder:
         self._register_state_variable(name)
         value = statement.value
 
-        if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute):
-            tool = ast.unparse(value.func)
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Attribute)
+            and _is_tool_call(value.func)
+        ):
+            tool = _tool_name_from_attr(value.func)
             node = action_node(
                 tool=tool,
                 label=f"{name} = {tool}(...)",

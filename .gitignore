@@ -63,4 +63,4 @@ google_credentials.json
 
 benchmarking/
 
-*.md
+# *.md

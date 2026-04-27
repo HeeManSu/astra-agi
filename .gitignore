@@ -57,3 +57,10 @@ cookbook/
 docs/
 
 *.egg-info
+
+google_credentials.json
+
+
+benchmarking/
+
+*.md

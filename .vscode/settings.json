@@ -14,6 +14,7 @@
     "dedup",
     "distilgpt",
     "dotenv",
+    "elts",
     "Embedder",
     "embedders",
     "errmsg",

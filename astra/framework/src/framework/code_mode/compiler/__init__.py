@@ -1,6 +1,5 @@
 """
-Compiler package for code-mode plan node/edge definitions,
-execution plan schema, and validation.
+Compiler package for code-mode: AST parsing, workflow building, and validation.
 """
 
 from framework.code_mode.compiler.ast_parser import (
@@ -10,58 +9,60 @@ from framework.code_mode.compiler.ast_parser import (
     validate,
 )
 from framework.code_mode.compiler.edges import (
-    EdgeRole,
+    Edge,
     EdgeType,
-    PlanEdge,
-    conditional,
+    branch_default,
+    branch_else,
+    branch_if,
+    loop_back,
+    loop_body,
     sequential,
 )
 from framework.code_mode.compiler.nodes import (
-    PLAN_NODE_MAP,
+    NODE_MAP,
     ActionNode,
     BranchNode,
     LoopNode,
+    Node,
     NodeType,
-    PlanNode,
     RespondNode,
     TransformNode,
-)
-from framework.code_mode.compiler.plan_builder import (
-    PlanBuildResult,
-    build,
 )
 from framework.code_mode.compiler.plan_validator import (
     PlanValidationResult,
     validate_plan,
 )
-from framework.code_mode.compiler.schema import (
-    ExecutionPlan,
-    PlanConfig,
-    StateField,
+from framework.code_mode.compiler.workflow_builder import (
+    ExecutionWorkflow,
+    WorkFlowConfig,
+    WorkflowBuildResult,
+    build_workflow,
 )
 
 
 __all__ = [
-    "PLAN_NODE_MAP",
+    "NODE_MAP",
     "ActionNode",
     "BranchNode",
-    "EdgeRole",
+    "Edge",
     "EdgeType",
-    "ExecutionPlan",
+    "ExecutionWorkflow",
     "LoopNode",
+    "Node",
     "NodeType",
     "ParseResult",
-    "PlanBuildResult",
-    "PlanConfig",
-    "PlanEdge",
-    "PlanNode",
     "PlanValidationResult",
     "RespondNode",
-    "StateField",
     "TransformNode",
     "ValidationError",
-    "build",
-    "conditional",
+    "WorkFlowConfig",
+    "WorkflowBuildResult",
+    "branch_default",
+    "branch_else",
+    "branch_if",
+    "build_workflow",
+    "loop_back",
+    "loop_body",
     "parse_code",
     "sequential",
     "validate",

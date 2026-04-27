@@ -488,11 +488,11 @@ def generate_stubs(semantic_layer: EntitySemanticLayer) -> str:
         lines.append("")
         lines.append("")
 
-    # # ── Section 2: Agent Classes
-    # lines.append("# ─── Agents ─────────────────────────────────────────────────────────────────")
-    # lines.append("")
-    # for domain in semantic_layer.domains:
-    #     lines.extend(_generate_agent_class(domain))
+    # ── Section 2: Agent Classes (grounds the LLM on the exact name to call)
+    lines.append("# ─── Agents ─────────────────────────────────────────────────────────────────")
+    lines.append("")
+    for domain in semantic_layer.domains:
+        lines.extend(_generate_agent_class(domain))
 
     return "\n".join(lines)
 

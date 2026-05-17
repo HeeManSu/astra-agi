@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 14650,
+  "completion_tokens": 3599,
+  "thoughts_tokens": 0,
+  "total_tokens": 18249,
+  "llm_latency_ms": 16185.83,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3982,
+      "completion_tokens": 1548,
+      "thoughts_tokens": 0,
+      "total_tokens": 5530,
+      "latency_ms": 6801.85,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\n  \"status\": \"success\",\n  \"summary\": \"The Research Team will produce a full research packet for AAPL by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst seque"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5485,
+      "completion_tokens": 710,
+      "thoughts_tokens": 0,
+      "total_tokens": 6195,
+      "latency_ms": 3604.14,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_policy_data = macro_strategist.get_monetary_policy_data()\nmacro_inflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nmacro_liquidity_data = macro_strategist.get_liquidity_and"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5183,
+      "completion_tokens": 1341,
+      "thoughts_tokens": 0,
+      "total_tokens": 6524,
+      "latency_ms": 5779.84,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "## MACRO ANALYSIS\n\n**Macro Summary**\nThe macro environment indicates a neutral monetary policy, rising inflation and GDP growth, easing liquidity, and a risk-on equity regime.\n\n**Monetary Policy Asses"
+    }
+  ]
+}

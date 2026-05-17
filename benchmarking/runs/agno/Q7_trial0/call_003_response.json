@@ -1,0 +1,49 @@
+{
+  "call_index": 3,
+  "latency_ms": 2568.57,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:51:17 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2540",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## 1. Macro Summary\n\nThe current macro environment is characterized by a neutral monetary policy, rising inflation and GDP growth, easing liquidity, and a risk-on sentiment. The yield curve remains positive, suggesting a stable, albeit moderately growing, economic outlook.\n\n## 2. Monetary Policy Assessment\n\nThe Federal Funds Rate is stable at 3.64%, with a neutral policy stance. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. This indicates that the Federal Reserve is neither aggressively tightening nor loosening monetary policy, maintaining a balanced approach.\n\n## 3. Inflation & Growth Assessment\n\nInflation, as measured by CPI YoY, is rising at 3.95%, while core CPI YoY is 2.99%. GDP growth QoQ is also rising at 0.49%. The unemployment rate is moderate at 4.3%. This suggests a growing economy with some inflationary pressures building.\n\n## 4. Liquidity & Credit Conditions\n\nFinancial conditions are easing, with the Chicago Fed National Financial Conditions Index (NFCI) at -0.524. Corporate credit spreads are tight at 0.76, indicating a healthy credit market. The liquidity regime is classified as \"easing,\" and the overall risk regime is \"risk-on.\" This implies ample liquidity in the system and a willingness among investors to take on risk.\n\n## 5. Yield Curve Interpretation\n\nThe 10-year/2-year yield spread is positive at 0.47%. A positive yield curve typically signals expectations of future economic growth and is generally considered a healthy sign for the economy.\n\n## 6. Equity Risk Regime (Risk-On / Neutral / Risk-Off)\n\nRisk-On\n\n## 7. Confidence Score (1-10)\n\n8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "4_QIauX0FNb6juMP16HQgAU",
+    "usage_metadata": {
+      "candidates_token_count": 397,
+      "prompt_token_count": 1240,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1240
+        }
+      ],
+      "total_token_count": 1637
+    }
+  }
+}

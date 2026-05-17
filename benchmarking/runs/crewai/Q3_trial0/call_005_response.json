@@ -1,0 +1,56 @@
+{
+  "call_index": 5,
+  "latency_ms": 1736.12,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:08:50 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1717",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "context": "The current task is to analyze the company fundamentals for NVDA. This analysis will be part of a full research report. The output should be a structured fundamentals report with sections: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10). The macro environment is characterized by a neutral monetary policy, rising inflation and growth, easing liquidity, and a steepening yield curve, suggesting a 'Risk-On' equity environment.",
+                  "coworker": "Financial Analyst",
+                  "task": "Analyze the company fundamentals for NVDA. Using the financial tools, evaluate revenue, margins, profitability, cash flow, balance sheet, and growth. Produce the structured output specified in your backstory. Focus on company fundamentals only."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "wMAIaoSVLYmDg8UP7NWD4A0",
+    "usage_metadata": {
+      "candidates_token_count": 173,
+      "prompt_token_count": 1989,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1989
+        }
+      ],
+      "total_token_count": 2162
+    }
+  }
+}

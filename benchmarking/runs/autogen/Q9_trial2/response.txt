@@ -1,0 +1,39 @@
+## 1. MACRO ANALYSIS
+
+1. Macro Summary:
+The current macro environment indicates a neutral monetary policy with stable rates, but rising inflation and strong GDP growth. Liquidity conditions are easing, and the credit spread is tight, pointing to a risk-on sentiment. The yield curve is positively sloped.
+
+2. Monetary Policy Assessment:
+The Federal Funds Rate is 3.64% and stable. The Fed's policy stance is neutral, suggesting no immediate plans for significant rate changes. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%.
+
+3. Inflation & Growth Assessment:
+Inflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ, indicating strong economic momentum. The unemployment rate is moderate at 4.3%, with a moderate labor trend.
+
+4. Liquidity & Credit Conditions:
+Financial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. The corporate credit spread is tight at 0.76, suggesting low credit risk and ample liquidity in the market. The overall liquidity regime is easing, supporting a risk-on environment.
+
+5. Yield Curve Interpretation:
+The 10-year/2-year yield spread is positive at 0.47%, indicating a normal, upward-sloping yield curve. This typically signals expectations of future economic growth and a healthy credit environment.
+
+6. Equity Risk Regime:
+Risk-On
+
+7. Confidence Score: 8
+
+---
+
+## 2. FINANCIAL ANALYSIS
+
+(no output)
+
+---
+
+## 3. VALUATION ANALYSIS
+
+(no output)
+
+---
+
+## 4. TECHNICAL ANALYSIS
+
+(no output)

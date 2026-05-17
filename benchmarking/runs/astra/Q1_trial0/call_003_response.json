@@ -1,0 +1,50 @@
+{
+  "call_index": 3,
+  "latency_ms": 6478.59,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:29:56 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=6378",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Research Packet: AAPL\n\n### 1. MACRO ANALYSIS\n\n**Macro Summary:** The macro environment is characterized by a neutral monetary policy, rising inflation and GDP growth, and easing liquidity conditions. The yield curve is positively sloped.\n\n**Monetary Policy Assessment:** The Fed Funds Rate is stable at 3.64%, indicating a neutral policy stance. The 10-year Treasury is at 4.47% and the 2-year Treasury is at 4.0%, resulting in a positive yield spread of 0.47%.\n\n**Inflation & Growth Assessment:** CPI (YoY) is rising at 3.95%, with core CPI (YoY) at 2.99%. GDP growth (QoQ) is rising at 0.49%, and the unemployment rate is moderate at 4.3%.\n\n**Liquidity & Credit Conditions:** The financial conditions index is -0.524, and the credit spread is 0.76, indicating easing liquidity.\n\n**Yield Curve Interpretation:** The yield curve is positively sloped (10y-2y spread of 0.47), which typically signals economic expansion.\n\n**Equity Risk Regime:** Risk-On\n\n**Confidence Score:** 7\n\n### 2. FINANCIAL ANALYSIS\n\n**Revenue & Growth Analysis:**\n*   Revenue: $451.44B\n*   Net Income: $122.58B\n*   Gross Profit: $216.07B\n*   Operating Cashflow: $140.22B\n*   Free Cashflow: $101.09B\n*   EBITDA: $159.98B\n*   Revenue Growth: 16.6%\n*   Earnings Growth: 21.8%\n*   Earnings Quarterly Growth: 19.4%\n*   Trailing EPS: 8.26\n*   Forward EPS: 9.5861\n*   PEG Ratio: 2.61\n\n**Profitability (Margins, ROIC):**\n*   Gross Margin: 47.9%\n*   Operating Margin: 32.3%\n*   Net Margin: 27.2%\n*   EBITDA Margin: 35.4%\n*   ROE: 141.5%\n*   ROA: 26.2%\n\n**Cash Flow Strength:**\n*   Operating Cashflow: $140.22B\n*   Free Cashflow: $101.09B\n\n**Balance Sheet Quality:**\n*   Total Cash: $68.51B\n*   Total Debt: $84.71B\n*   Net Cash: $-16.20B\n*   Debt to Equity: 79.548\n*   Current Ratio: 1.07\n*   Book Value Per Share: 7.26\n\n**Earnings Stability:**\n*   Trailing EPS: 8.26\n*   Forward EPS: 9.5861\n*   Earnings growth is strong and consistent.\n\n**Financial Risk Factors:**\n*   Net cash position is negative.\n*   Debt to equity ratio is 79.548.\n\n**Conviction Score:** 8\n\n### 3. VALUATION ANALYSIS\n\n**DCF Valuation:**\n*   Current Price: $300.23\n*   Free Cash Flow Used: $101.09B\n*   Growth Rate: 10.0%\n*   Discount Rate: 10.0%\n*   Bear Case Fair Value: $110.25\n*   Base Case Fair Value: $135.69\n*   Bull Case Fair Value: $165.88\n*   Base Case Upside: -54.8%\n\n**Comparable Multiples:**\n*   Trailing P/E: 36.35\n*   Forward P/E: 31.32\n*   PEG Ratio: 2.61\n*   EV/EBITDA: 27.66\n*   EV/Revenue: 9.8\n*   Price/Book: 41.35\n*   Price/Sales: 9.77\n*   Assessment: Premium valuation compared to historical averages and peers.\n\n**Fair Value (Bear / Base / Bull):**\n*   Bear Case: $110.25\n*   Base Case: $135.69\n*   Bull Case: $165.88\n\n**Margin of Safety:**\n*   Current Price: $300.23\n*   Fair Value (Base Case): $135.69\n*   Margin of Safety: -121.3%\n*   Upside Potential: -54.8%\n\n**Valuation Risks:**\n*   The stock is significantly overvalued based on the DCF analysis.\n*   Multiples indicate a premium valuation.\n\n**Final Valuation Verdict:** Overvalued - negative margin of safety.\n\n### 4. TECHNICAL ANALYSIS\n\n**Trend Structure:**\n*   Current Price: $300.23\n*   20-day SMA: $281.36\n*   50-day SMA: $265.97\n*   200-day SMA: $258.65\n*   Trend: Strong uptrend.\n*   52-week range position: 100.0% (at 52-week high).\n*   The stock is making higher highs and is in a strong uptrend.\n\n**Momentum Indicators (RSI, MACD):**\n*   RSI (14-period): 88.4, indicating the stock is overbought.\n*   MACD: 9.5172\n*   Signal Line: 7.7411\n*   Histogram: 1.7762\n*   Crossover: Bullish.\n\n**Support & Resistance:**\n*   Current Price: $300.23\n*   Support Levels: $193.5, $200.7, $224.23\n*   Nearest Support: $224.23\n*   Resistance Levels: None identified (at 52-week high).\n\n**Volume Analysis:**\n*   Volume has been generally strong, with some spikes, particularly on 2026-04-30 (91.85M) and 2026-05-01 (79.92M).\n\n**Entry Timing Quality:**\n*   The stock is in a strong uptrend and at its 52-week high.\n*   RSI indicates overbought conditions, suggesting potential for a pullback.\n*   MACD is bullish.\n\n**Technical Risk Level:** Moderate to High (due to overbought RSI and being at 52-week high).\n\n**Technical Conviction Score:** 7"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "rcUIatDfL6KDjuMP7_fP6QM",
+    "usage_metadata": {
+      "candidates_token_count": 1544,
+      "prompt_token_count": 5260,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5260
+        }
+      ],
+      "total_token_count": 6804
+    },
+    "automatic_function_calling_history": []
+  }
+}

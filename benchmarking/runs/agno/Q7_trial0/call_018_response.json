@@ -1,0 +1,90 @@
+{
+  "call_index": 18,
+  "latency_ms": 2899.14,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:52:06 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2820",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I cannot perform macro analysis, financial analysis, or valuation analysis. My expertise is limited to technical analysis, focusing on price action and momentum indicators. I will provide a technical analysis for AAPL, MSFT, and GOOGL based on the available tools.\n\nHere's the technical analysis for each company:\n\n### AAPL\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL",
+                  "days": 20
+                },
+                "name": "get_price_history"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "FPUIauXyCviG4-EP_fOjgAs",
+    "usage_metadata": {
+      "candidates_token_count": 153,
+      "prompt_token_count": 731,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 731
+        }
+      ],
+      "total_token_count": 884
+    }
+  }
+}

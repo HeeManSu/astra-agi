@@ -1,0 +1,49 @@
+{
+  "call_index": 18,
+  "latency_ms": 4912.25,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:12:03 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=4734",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## AAPL Technical Analysis\n\n1.  **Trend Structure:** AAPL is in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope (1.4344) and 50-day SMA slope (0.4749) are positive, indicating upward momentum. The stock is at its 52-week high.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 88.4, indicating AAPL is significantly overbought.\n    *   **MACD:** MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), indicating a bullish crossover.\n\n3.  **Support & Resistance:**\n    *   **Support Levels:** $224.23, $200.7, $193.5.\n    *   **Resistance Levels:** No clear resistance levels detected as the stock is at its 52-week high.\n\n4.  **Volume Analysis:** Over the last 20 trading days, volume has fluctuated. Recent trading days show volumes between 35M and 55M, with a few spikes above 70M. The most recent day (May 15, 2026) saw 54.72M shares traded.\n\n5.  **Entry Timing Quality:** Poor. The stock is overbought according to RSI and at its 52-week high, suggesting a high risk of pullback.\n\n6.  **Technical Risk Level:** High. The overbought RSI and lack of overhead resistance (due to being at 52-week highs) suggest a potential for a reversal or consolidation.\n\n7.  **Technical Conviction Score (1-10):** 4\n\n## MSFT Technical Analysis\n\n1.  **Trend Structure:** MSFT is in an uptrend, but the trend strength is moderate. The current price of $421.92 is above the 20-day SMA ($417.41) and 50-day SMA ($399.06), but below the 200-day SMA ($461.91). The 20-day SMA slope (0.9795) and 50-day SMA slope (0.2627) are positive. The stock has shown higher highs but no lower lows. Its 52-week range position is 35.6%.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 48.1, indicating a neutral position.\n    *   **MACD:** MACD line (3.3845) is below the signal line (4.7006), with a negative histogram (-1.3161), indicating a bearish crossover.\n\n3.  **Support & Resistance:**\n    *   **Support Levels:** $394.72, $381.71, $356.28.\n    *   **Resistance Levels:** $514.26, $529.23, $551.84.\n    *   **Nearest Support:** $394.72.\n    *   **Nearest Resistance:** $514.26.\n\n4.  **Volume Analysis:** Over the last 20 trading days, volume has been inconsistent, ranging from 25M to 70M. The most recent day (May 15, 2026) saw 50.31M shares traded.\n\n5.  **Entry Timing Quality:** Neutral to Poor. While the price is above short-term moving averages, the bearish MACD crossover and neutral RSI suggest caution.\n\n6.  **Technical Risk Level:** Moderate. The bearish MACD crossover and price being below the 200-day SMA indicate some downside risk, despite the overall uptrend.\n\n7.  **Technical Conviction Score (1-10):** 5"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "f8EIasWLE623qfkPzrfGqAM",
+    "usage_metadata": {
+      "candidates_token_count": 946,
+      "prompt_token_count": 11022,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 11022
+        }
+      ],
+      "total_token_count": 11968
+    }
+  }
+}

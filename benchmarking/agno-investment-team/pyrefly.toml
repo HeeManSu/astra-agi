@@ -1,0 +1,7 @@
+[tool.pyrefly]
+project_root = "."
+python_version = "3.13"
+search_path = [
+  ".",
+  "/Users/himanshu/Desktop/open-source/Astra/agno-investment-team/.venv/lib/python3.13/site-packages",
+]

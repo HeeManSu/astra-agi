@@ -1,0 +1,50 @@
+{
+  "call_index": 2,
+  "latency_ms": 4603.3,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:32:59 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=4482",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "macro_policy_data = macro_strategist.get_monetary_policy_data()\nmacro_inflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nmacro_liquidity_data = macro_strategist.get_liquidity_and_credit_conditions()\nfinancial_statements = financial_analyst.get_financial_statements(symbol='NVDA')\nkey_financial_metrics = financial_analyst.get_key_financial_metrics(symbol='NVDA')\ngrowth_metrics = financial_analyst.get_growth_metrics(symbol='NVDA')\nbalance_sheet_strength = financial_analyst.get_balance_sheet_strength(symbol='NVDA')\ncurrent_market_data = valuation_analyst.get_current_market_data(symbol='NVDA')\ndcf_valuation = valuation_analyst.calculate_dcf(symbol='NVDA')\nmultiple_valuation = valuation_analyst.calculate_multiple_valuation(symbol='NVDA')\ncurrent_price = current_market_data.get('result', {}).get('current_price')\nfair_value = dcf_valuation.get('result', {}).get('base_case')\nmargin_of_safety = valuation_analyst.calculate_margin_of_safety(current_price=current_price, fair_value=fair_value)\nprice_history = technical_analyst.get_price_history(symbol='NVDA')\nrsi = technical_analyst.calculate_rsi(symbol='NVDA')\nmacd = technical_analyst.calculate_macd(symbol='NVDA')\nmoving_averages = technical_analyst.calculate_moving_averages(symbol='NVDA')\ntrend_detection = technical_analyst.detect_trend(symbol='NVDA')\nsupport_resistance = technical_analyst.detect_support_resistance(symbol='NVDA')\nsynthesize_response({\n    \"status\": \"success\",\n    \"results\": {\n        \"step_results\": {\n            \"macro_policy_data\": macro_policy_data,\n            \"macro_inflation_growth_data\": macro_inflation_growth_data,\n            \"macro_liquidity_data\": macro_liquidity_data,\n            \"financial_statements\": financial_statements,\n            \"key_financial_metrics\": key_financial_metrics,\n            \"growth_metrics\": growth_metrics,\n            \"balance_sheet_strength\": balance_sheet_strength,\n            \"current_market_data\": current_market_data,\n            \"dcf_valuation\": dcf_valuation,\n            \"multiple_valuation\": multiple_valuation,\n            \"margin_of_safety\": margin_of_safety,\n            \"price_history\": price_history,\n            \"rsi\": rsi,\n            \"macd\": macd,\n            \"moving_averages\": moving_averages,\n            \"trend_detection\": trend_detection,\n            \"support_resistance\": support_resistance\n        }\n    }\n})"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "Z8YIaofUHO3LqfkP8K-dkAk",
+    "usage_metadata": {
+      "candidates_token_count": 680,
+      "prompt_token_count": 5481,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5481
+        }
+      ],
+      "total_token_count": 6161
+    },
+    "automatic_function_calling_history": []
+  }
+}

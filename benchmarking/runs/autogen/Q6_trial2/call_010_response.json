@@ -1,0 +1,60 @@
+{
+  "call_index": 10,
+  "latency_ms": 1768.36,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:52:46 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1661",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Apple (AAPL)\n\n### 1. DCF Valuation\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "growth_rate": 0.1,
+                  "symbol": "AAPL",
+                  "discount_rate": 0.09,
+                  "terminal_growth": 0.03
+                },
+                "name": "calculate_dcf"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "7a4IatiXB7yAg8UPw9XjmQk",
+    "usage_metadata": {
+      "candidates_token_count": 59,
+      "prompt_token_count": 2327,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2327
+        }
+      ],
+      "total_token_count": 2386
+    }
+  }
+}

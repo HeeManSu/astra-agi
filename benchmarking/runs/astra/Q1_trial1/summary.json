@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 14723,
+  "completion_tokens": 3742,
+  "thoughts_tokens": 0,
+  "total_tokens": 18465,
+  "llm_latency_ms": 15934.29,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3982,
+      "completion_tokens": 1529,
+      "thoughts_tokens": 0,
+      "total_tokens": 5511,
+      "latency_ms": 6197.55,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\n  \"status\": \"success\",\n  \"summary\": \"The Research Team will produce a full research packet for AAPL by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst seque"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5481,
+      "completion_tokens": 864,
+      "thoughts_tokens": 0,
+      "total_tokens": 6345,
+      "latency_ms": 3610.26,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_strategist_step_1 = macro_strategist.get_monetary_policy_data()\nmacro_strategist_step_2 = macro_strategist.get_inflation_and_growth_data()\nmacro_strategist_step_3 = macro_strategist.get_liquidit"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5260,
+      "completion_tokens": 1349,
+      "thoughts_tokens": 0,
+      "total_tokens": 6609,
+      "latency_ms": 6126.48,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "## Research Packet: AAPL\n\n### 1. MACRO ANALYSIS\n\n**Macro Summary**\nThe macro environment indicates a neutral monetary policy stance with stable rates. Inflation is rising, as is GDP growth, suggesting"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "call_index": 7,
+  "latency_ms": 992.68,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 18:26:32 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=856",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "ValuationAnalyst"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "17YIapbCM9flg8UPy9Dn0QM",
+    "usage_metadata": {
+      "candidates_token_count": 4,
+      "prompt_token_count": 1826,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1826
+        }
+      ],
+      "total_token_count": 1830
+    },
+    "automatic_function_calling_history": []
+  }
+}

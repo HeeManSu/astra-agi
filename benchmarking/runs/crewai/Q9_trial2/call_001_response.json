@@ -1,0 +1,56 @@
+{
+  "call_index": 1,
+  "latency_ms": 1511.85,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:19:28 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1431",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "task": "Assess the macro regime and equity risk environment. Use the macro data tools to gather current readings on monetary policy, inflation, growth, liquidity, and the yield curve. Produce a structured macro assessment with sections: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10). Focus on the macro signal, do not discuss individual company details.",
+                  "context": "The current task is to analyze TSLA. If the macro regime is risk-off, focus the final verdict on downside scenarios and stop-loss levels. If risk-on, emphasize upside targets and momentum. I need you to provide a structured macro assessment that will help determine the overall risk environment.",
+                  "coworker": "Macro Strategist"
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "P8MIatbfKILF4-EP8OHTiAk",
+    "usage_metadata": {
+      "candidates_token_count": 175,
+      "prompt_token_count": 590,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 590
+        }
+      ],
+      "total_token_count": 765
+    }
+  }
+}

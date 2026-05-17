@@ -1,0 +1,49 @@
+{
+  "call_index": 7,
+  "latency_ms": 2466.47,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:19:45 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2412",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Revenue & Growth Analysis\n   - Revenue: $97.88B\n   - Revenue Growth: 15.8%\n   - Earnings Growth: 8.3%\n   - Quarterly Earnings Growth: 16.6%\n\n2. Profitability (Margins, ROIC)\n   - Gross Margin: 19.1%\n   - Operating Margin: 4.2%\n   - Net Margin: 3.9%\n   - EBITDA Margin: 11.3%\n   - Return on Equity (ROE): 4.9%\n   - Return on Assets (ROA): 2.2%\n\n3. Cash Flow Strength\n   - Operating Cash Flow: $16.53B\n   - Free Cash Flow: $5.25B\n\n4. Balance Sheet Quality\n   - Total Cash: $44.74B\n   - Total Debt: $15.89B\n   - Net Cash: $28.85B\n   - Debt-to-Equity: 18.738%\n   - Current Ratio: 2.043\n   - Book Value Per Share: $21.897\n\n5. Earnings Stability\n   - Trailing EPS: $1.10\n   - Forward EPS: $2.51\n\n6. Financial Risk Factors\n   - Debt-to-Equity ratio of 18.738% indicates a relatively low reliance on debt.\n   - Current ratio of 2.043 suggests good short-term liquidity.\n\n7. Conviction Score (1-10)\n   - 7"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "T8MIara5Co7XjuMP47SDgQg",
+    "usage_metadata": {
+      "candidates_token_count": 358,
+      "prompt_token_count": 1564,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1564
+        }
+      ],
+      "total_token_count": 1922
+    }
+  }
+}

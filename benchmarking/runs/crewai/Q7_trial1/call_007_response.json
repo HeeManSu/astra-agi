@@ -1,0 +1,49 @@
+{
+  "call_index": 7,
+  "latency_ms": 6257.56,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:15:40 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=6225",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## AAPL Fundamental Analysis\n\n**1. Revenue & Growth Analysis**\n*   **Revenue:** $451.44B\n*   **Revenue Growth:** 16.6%\n*   **Earnings Growth:** 21.8%\n*   **Quarterly Earnings Growth:** 19.4%\n*   **Trailing EPS:** $8.26\n*   **Forward EPS:** $9.59\n\n**2. Profitability (Margins, ROIC)**\n*   **Gross Margin:** 47.9%\n*   **Operating Margin:** 32.3%\n*   **Net Margin:** 27.2%\n*   **EBITDA Margin:** 35.4%\n*   **ROE:** 141.5%\n*   **ROA:** 26.2%\n\n**3. Cash Flow Strength**\n*   **Operating Cash Flow:** $140.22B\n*   **Free Cash Flow:** $101.09B\n\n**4. Balance Sheet Quality**\n*   **Total Cash:** $68.51B\n*   **Total Debt:** $84.71B\n*   **Net Cash:** -$16.20B\n*   **Debt-to-Equity:** 79.55%\n*   **Current Ratio:** 1.07\n*   **Book Value Per Share:** $7.26\n\n**5. Earnings Stability**\nApple demonstrates strong and consistent earnings growth, with both annual and quarterly figures showing robust expansion. The high ROE and ROA also indicate efficient use of shareholder equity and assets to generate profits.\n\n**6. Financial Risk Factors**\nApple has a negative net cash position and a debt-to-equity ratio of 79.55%, which is higher than its peers. The current ratio of 1.07 suggests adequate but not exceptional short-term liquidity.\n\n**7. Conviction Score (1-10)**\n7\n\n## MSFT Fundamental Analysis\n\n**1. Revenue & Growth Analysis**\n*   **Revenue:** $318.27B\n*   **Revenue Growth:** 18.3%\n*   **Earnings Growth:** 23.4%\n*   **Quarterly Earnings Growth:** 23.1%\n*   **Trailing EPS:** $16.79\n*   **Forward EPS:** $19.37\n\n**2. Profitability (Margins, ROIC)**\n*   **Gross Margin:** 68.3%\n*   **Operating Margin:** 46.3%\n*   **Net Margin:** 39.3%\n*   **EBITDA Margin:** 58.0%\n*   **ROE:** 34.0%\n*   **ROA:** 14.8%\n\n**3. Cash Flow Strength**\n*   **Operating Cash Flow:** $170.14B\n*   **Free Cash Flow:** $37.01B\n\n**4. Balance Sheet Quality**\n*   **Total Cash:** $78.23B\n*   **Total Debt:** $125.43B\n*   **Net Cash:** -$47.20B\n*   **Debt-to-Equity:** 30.27%\n*   **Current Ratio:** 1.28\n*   **Book Value Per Share:** $55.78\n\n**5. Earnings Stability**\nMicrosoft exhibits strong and consistent earnings growth, with both annual and quarterly figures showing robust expansion. Profitability margins are excellent, and ROE and ROA indicate efficient capital utilization.\n\n**6. Financial Risk Factors**\nMicrosoft has a negative net cash position, but its debt-to-equity ratio of 30.27% is manageable. The current ratio of 1.28 indicates healthy short-term liquidity.\n\n**7. Conviction Score (1-10)**\n9\n\n## GOOGL Fundamental Analysis\n\n**1. Revenue & Growth Analysis**\n*   **Revenue:** $422.50B\n*   **Revenue Growth:** 21.8%\n*   **Earnings Growth:** 82.0%\n*   **Quarterly Earnings Growth:** 81.2%\n*   **Trailing EPS:** $13.09\n*   **Forward EPS:** $14.45\n\n**2. Profitability (Margins, ROIC)**\n*   **Gross Margin:** 60.4%\n*   **Operating Margin:** 36.1%\n*   **Net Margin:** 37.9%\n*   **EBITDA Margin:** 38.2%\n*   **ROE:** 38.9%\n*   **ROA:** 14.6%\n\n**3. Cash Flow Strength**\n*   **Operating Cash Flow:** $174.35B\n*   **Free Cash Flow:** $27.92B\n\n**4. Balance Sheet Quality**\n*   **Total Cash:** $126.84B\n*   **Total Debt:** $95.88B\n*   **Net Cash:** $30.96B\n*   **Debt-to-Equity:** 20.03%\n*   **Current Ratio:** 1.92\n*   **Book Value Per Share:** $39.51\n\n**5. Earnings Stability**\nGoogle (GOOGL) demonstrates exceptional earnings growth, with both annual and quarterly figures showing very strong expansion. Profitability margins are robust, and ROE and ROA indicate efficient capital utilization.\n\n**6. Financial Risk Factors**\nGoogle has a strong balance sheet with a positive net cash position and a low debt-to-equity ratio of 20.03%. The current ratio of 1.92 indicates excellent short-term liquidity.\n\n**7. Conviction Score (1-10)**\n9"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "VsIIaoalLZ_PjuMPvIq_0Ao",
+    "usage_metadata": {
+      "candidates_token_count": 1306,
+      "prompt_token_count": 2732,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2732
+        }
+      ],
+      "total_token_count": 4038
+    }
+  }
+}

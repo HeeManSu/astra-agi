@@ -1,0 +1,56 @@
+{
+  "call_index": 8,
+  "latency_ms": 1998.71,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:09:46 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1976",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Revenue & Growth Analysis\n   - Revenue Growth: 73.2%\n   - Earnings Growth: 95.6%\n   - Quarterly Earnings Growth: 94.5%\n   - Trailing EPS: $4.89\n   - Forward EPS: $11.43\n   - PEG Ratio: 0.75\n\n2. Profitability (Margins, ROIC)\n   - Gross Margin: 71.1%\n   - Operating Margin: 65.0%\n   - Net Margin: 55.6%\n   - EBITDA Margin: 61.7%\n   - Return on Equity (ROE): 101.5%\n   - Return on Assets (ROA): 51.2%\n\n3. Cash Flow Strength\n   - Operating Cash Flow: $102.72B\n   - Free Cash Flow: $58.13B\n\n4. Balance Sheet Quality\n   - Total Cash: $62.56B\n   - Total Debt: $11.41B\n   - Net Cash: $51.14B\n   - Debt-to-Equity: 7.255\n   - Current Ratio: 3.905\n   - Book Value Per Share: $6.472\n\n5. Earnings Stability\n   - Strong and consistent growth in both revenue and earnings, with high quarterly earnings growth indicating sustained momentum.\n\n6. Financial Risk Factors\n   - The debt-to-equity ratio of 7.255 appears high, however, this is offset by a substantial net cash position of $51.14B and a very strong current ratio of 3.905, indicating excellent liquidity and ability to cover short-term obligations.\n\n7. Conviction Score (1-10)\n   - 9"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "-MAIavPwKPzH4-EP7LW2gA0",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1772
+        }
+      ],
+      "cached_content_token_count": 1772,
+      "candidates_token_count": 405,
+      "prompt_token_count": 2914,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2914
+        }
+      ],
+      "total_token_count": 3319
+    }
+  }
+}

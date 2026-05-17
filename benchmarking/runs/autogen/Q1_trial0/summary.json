@@ -1,0 +1,301 @@
+{
+  "num_calls": 12,
+  "prompt_tokens": 19436,
+  "completion_tokens": 2134,
+  "thoughts_tokens": 0,
+  "total_tokens": 21570,
+  "llm_latency_ms": 22527.92,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 229,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 232,
+      "latency_ms": 1271.35,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "MacroStrategist"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 893,
+      "completion_tokens": 48,
+      "thoughts_tokens": 0,
+      "total_tokens": 941,
+      "latency_ms": 1244.69,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        },
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        },
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1220,
+      "completion_tokens": 356,
+      "thoughts_tokens": 0,
+      "total_tokens": 1576,
+      "latency_ms": 2494.43,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary:\nThe current macro environment indicates a neutral monetary policy stance with stable rates. Inflation is rising, but core inflation remains below 3%. GDP growth is positive and trend"
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 586,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 589,
+      "latency_ms": 1078.55,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [],
+      "text_preview": "FinancialAnalyst"
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1284,
+      "completion_tokens": 72,
+      "thoughts_tokens": 0,
+      "total_tokens": 1356,
+      "latency_ms": 1893.64,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1829,
+      "completion_tokens": 443,
+      "thoughts_tokens": 0,
+      "total_tokens": 2272,
+      "latency_ms": 3197.52,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "### 1. Revenue & Growth Analysis\n\nApple (AAPL) demonstrates strong revenue growth of 16.6% and even more robust earnings growth of 21.8%. Quarterly earnings growth is also healthy at 19.4%, indicating"
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1034,
+      "completion_tokens": 4,
+      "thoughts_tokens": 0,
+      "total_tokens": 1038,
+      "latency_ms": 1431.13,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [],
+      "text_preview": "ValuationAnalyst"
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1954,
+      "completion_tokens": 89,
+      "thoughts_tokens": 0,
+      "total_tokens": 2043,
+      "latency_ms": 1207.64,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "symbol": "AAPL",
+            "discount_rate": 0.09,
+            "growth_rate": 0.07,
+            "projection_years": 5,
+            "terminal_growth": 0.03
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2486,
+      "completion_tokens": 509,
+      "thoughts_tokens": 0,
+      "total_tokens": 2995,
+      "latency_ms": 3346.79,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [],
+      "text_preview": "1. DCF Valuation\n\nUsing a 5-year projection, a 7% FCF growth rate, a 9% discount rate, and a 3% terminal growth rate, the DCF valuation for AAPL is:\n- Bear Case Intrinsic Value: $120.75\n- Base Case In"
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1549,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 1552,
+      "latency_ms": 952.4,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [],
+      "text_preview": "TechnicalAnalyst"
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2088,
+      "completion_tokens": 103,
+      "thoughts_tokens": 0,
+      "total_tokens": 2191,
+      "latency_ms": 1377.21,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "AAPL",
+            "days": 20
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4284,
+      "completion_tokens": 501,
+      "thoughts_tokens": 0,
+      "total_tokens": 4785,
+      "latency_ms": 3032.57,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [],
+      "text_preview": "### 1. Trend Structure\n\nAAPL is currently in a strong uptrend, with the price trading above its 20, 50, and 200-day Simple Moving Averages (SMAs). The 20-day SMA slope is 1.4344 and the 50-day SMA slo"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "call_index": 15,
+  "latency_ms": 2254.29,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:46:58 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2238",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### 1. DCF Valuation\n\n*   **Bear Case Intrinsic Value:** $120.75\n*   **Base Case Intrinsic Value:** $140.27\n*   **Bull Case Intrinsic Value:** $162.37\n\n(Assumptions: Discount Rate: 9%, FCF Growth Rate: 7%, Terminal Growth Rate: 3%)\n\n### 2. Comparable Multiples\n\n*   **Trailing P/E:** 36.35\n*   **Forward P/E:** 31.32\n*   **PEG Ratio:** 2.61\n*   **EV/EBITDA:** 27.66\n*   **Price/Sales:** 9.77\n*   **Price/Book:** 41.35\n\nApple exhibits a premium valuation across all key multiples compared to historical averages and potentially peers.\n\n### 3. Fair Value (Bear / Base / Bull)\n\n*   **Bear Case Fair Value:** $120.75\n*   **Base Case Fair Value:** $140.27\n*   **Bull Case Fair Value:** $162.37\n\n### 4. Margin of Safety\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "fair_value": 140.27,
+                  "current_price": 300.23
+                },
+                "name": "calculate_margin_of_safety"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "4PMIap-dGvyH4-EP7vvo4A0",
+    "usage_metadata": {
+      "candidates_token_count": 304,
+      "prompt_token_count": 1613,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1613
+        }
+      ],
+      "total_token_count": 1917
+    }
+  }
+}

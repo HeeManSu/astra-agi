@@ -1,0 +1,74 @@
+{
+  "call_index": 10,
+  "latency_ms": 1601.58,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:05:52 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1523",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "growth_rate": 0.08,
+                  "symbol": "AAPL",
+                  "projection_years": 5,
+                  "terminal_growth": 0.03,
+                  "discount_rate": 0.1
+                },
+                "name": "calculate_dcf"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_multiple_valuation"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_current_market_data"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "D8AIarD2KcLR4-EPxMKJmAk",
+    "usage_metadata": {
+      "candidates_token_count": 88,
+      "prompt_token_count": 1171,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1171
+        }
+      ],
+      "total_token_count": 1259
+    }
+  }
+}

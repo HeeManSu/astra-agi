@@ -1,0 +1,80 @@
+{
+  "call_index": 13,
+  "latency_ms": 1231.4,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 07:52:23 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1213",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "fair_value": 159.05,
+                  "current_price": 300.23
+                },
+                "name": "calculate_margin_of_safety"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "current_price": 421.92,
+                  "fair_value": 115.13
+                },
+                "name": "calculate_margin_of_safety"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "fair_value": 110.79,
+                  "current_price": 396.78
+                },
+                "name": "calculate_margin_of_safety"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "tnMJavnKMc-RjuMPoLDsqA4",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3768
+        }
+      ],
+      "cached_content_token_count": 3768,
+      "candidates_token_count": 114,
+      "prompt_token_count": 5218,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5218
+        }
+      ],
+      "total_token_count": 5332
+    }
+  }
+}

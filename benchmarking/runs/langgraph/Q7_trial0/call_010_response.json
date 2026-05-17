@@ -1,0 +1,193 @@
+{
+  "call_index": 10,
+  "latency_ms": 1938.5,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:41:27 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1861",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "days": 20,
+                  "symbol": "AAPL"
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "days": 20,
+                  "symbol": "MSFT"
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL",
+                  "days": 20
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_support_resistance"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "lfIIatDDLrnEg8UP566tgQo",
+    "usage_metadata": {
+      "candidates_token_count": 327,
+      "prompt_token_count": 3225,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3225
+        }
+      ],
+      "total_token_count": 3552
+    }
+  }
+}

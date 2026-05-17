@@ -1,0 +1,90 @@
+{
+  "call_index": 19,
+  "latency_ms": 3509.24,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:52:10 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3365",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1.  **Trend Structure:** AAPL is in a moderate uptrend, with both the 20-day and 50-day SMA slopes positive (1.4344 and 0.4749 respectively). The stock is currently at its 52-week high, indicating strong upward momentum.\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 88.4, which is significantly in the overbought territory, suggesting a potential for a pullback or consolidation.\n    *   **MACD:** MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), indicating a bullish crossover and continued upward momentum.\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 224.23, 200.7, and 193.5. The nearest support is 224.23.\n    *   **Resistance:** There are no identified resistance levels as the stock is at its 52-week high.\n4.  **Volume Analysis:** Recent trading days show varying volume, with some spikes (e.g., 91.8M on 2026-04-30, 79.9M on 2026-05-01) during the upward move, which generally supports the trend. The most recent day (2026-05-15) saw 54.7M volume on a closing price increase.\n5.  **Entry Timing Quality:** Poor. The stock is overbought according to RSI, and at its 52-week high, increasing the risk of a reversal or correction.\n6.  **Technical Risk Level:** High. The overbought RSI and being at the 52-week high suggest an elevated risk of a pullback.\n7.  **Technical Conviction Score (1-10):** 4\n\n### MSFT\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "days": 20,
+                  "symbol": "MSFT"
+                },
+                "name": "get_price_history"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "F_UIarDqCpLp4-EP8bbjqAk",
+    "usage_metadata": {
+      "candidates_token_count": 539,
+      "prompt_token_count": 2874,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2874
+        }
+      ],
+      "total_token_count": 3413
+    }
+  }
+}

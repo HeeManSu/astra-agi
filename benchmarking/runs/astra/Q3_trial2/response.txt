@@ -1,0 +1,142 @@
+## 1. MACRO ANALYSIS
+
+**Macro Summary:** The macro environment is characterized by a neutral monetary policy stance, rising inflation and GDP growth, and easing liquidity conditions. The yield curve shows a positive spread.
+
+**Monetary Policy Assessment:**
+*   **Fed Funds Rate:** 3.64% (stable trend)
+*   **10-Year Treasury:** 4.47%
+*   **2-Year Treasury:** 4.0%
+*   **Policy Stance:** Neutral
+
+**Inflation & Growth Assessment:**
+*   **CPI (YoY):** 3.95% (rising trend)
+*   **Core CPI (YoY):** 2.99%
+*   **GDP Growth (QoQ):** 0.49% (rising trend)
+*   **Unemployment Rate:** 4.3% (moderate labor trend)
+
+**Liquidity & Credit Conditions:**
+*   **Financial Conditions Index:** -0.524
+*   **Credit Spread:** 0.76
+*   **Liquidity Regime:** Easing
+
+**Yield Curve Interpretation:**
+*   **Yield Spread (10Y - 2Y):** 0.47% (positive spread, indicating a normal or steepening curve)
+
+**Equity Risk Regime:** Risk-On
+
+**Confidence Score:** 7/10
+
+## 2. FINANCIAL ANALYSIS
+
+**Revenue & Growth Analysis:**
+*   **Revenue:** $215.94B
+*   **Revenue Growth:** 73.2%
+*   **Earnings Growth:** 95.6%
+*   **Earnings Quarterly Growth:** 94.5%
+
+**Profitability (Margins, ROIC):**
+*   **Gross Margin:** 71.1%
+*   **Operating Margin:** 65.0%
+*   **Net Margin:** 55.6%
+*   **EBITDA Margin:** 61.7%
+*   **ROE:** 101.5%
+*   **ROA:** 51.2%
+
+**Cash Flow Strength:**
+*   **Operating Cash Flow:** $102.72B
+*   **Free Cash Flow:** $58.13B
+
+**Balance Sheet Quality:**
+*   **Total Cash:** $62.56B
+*   **Total Debt:** $11.41B
+*   **Net Cash:** $51.14B
+*   **Debt-to-Equity:** 7.255
+*   **Current Ratio:** 3.905
+*   **Book Value Per Share:** 6.472
+
+**Earnings Stability:**
+*   **Trailing EPS:** 4.89
+*   **Forward EPS:** 11.42896
+*   **PEG Ratio:** 0.75
+
+**Financial Risk Factors:**
+*   Debt-to-Equity ratio of 7.255 is high, indicating significant leverage.
+
+**Conviction Score:** 9/10
+
+## 3. VALUATION ANALYSIS
+
+**DCF Valuation:**
+*   **Current Price:** $225.32
+*   **Free Cash Flow Used:** $58.13B
+*   **Growth Rate:** 10.0%
+*   **Discount Rate:** 10.0%
+*   **Bear Case Fair Value:** $38.44
+*   **Base Case Fair Value:** $47.31
+*   **Bull Case Fair Value:** $57.84
+*   **Base Case Upside:** -79.0%
+
+**Comparable Multiples:**
+*   **Trailing P/E:** 46.08
+*   **Forward P/E:** 19.71
+*   **PEG Ratio:** 0.75
+*   **EV/EBITDA:** 40.71
+*   **EV/Revenue:** 25.12
+*   **Price/Book:** 34.81
+*   **Price/Sales:** 25.27
+*   **Assessment:** Fairly valued based on multiples.
+
+**Fair Value (Bear / Base / Bull):**
+*   **Bear Case:** $38.44
+*   **Base Case:** $47.31
+*   **Bull Case:** $57.84
+
+**Margin of Safety:**
+*   **Current Price:** $225.32
+*   **Fair Value (Base Case):** $47.31
+*   **Margin of Safety:** -376.3%
+*   **Upside Potential:** -79.0%
+
+**Valuation Risks:**
+*   The significant negative margin of safety indicates the stock is substantially overvalued based on the DCF analysis.
+
+**Final Valuation Verdict:** Overvalued - negative margin of safety.
+
+## 4. TECHNICAL ANALYSIS
+
+**Trend Structure:**
+*   **Current Price:** $225.32
+*   **SMA 20:** $210.3
+*   **SMA 50:** $193.07
+*   **SMA 200:** $185.96
+*   **Trend:** Strong uptrend
+*   **SMA20 Slope:** 1.2035
+*   **SMA50 Slope:** 0.5746
+*   **Higher Highs:** True
+*   **Lower Lows:** False
+*   **52-Week Range Position:** 90.0% (near 52-week high)
+*   **52-Week High:** $235.74
+*   **52-Week Low:** $131.26
+
+**Momentum Indicators (RSI, MACD):**
+*   **RSI (14-period):** 56.2 (neutral signal)
+*   **MACD:** 9.3348
+*   **Signal Line:** 7.4879
+*   **Histogram:** 1.8469
+*   **Crossover:** Bullish
+
+**Support & Resistance:**
+*   **Current Price:** $225.32
+*   **Support Levels:** $129.13, $140.83, $164.36
+*   **Nearest Support:** $164.36
+*   **Resistance Levels:** N/A (trading near 52-week high)
+
+**Volume Analysis:**
+*   Volume data for the last 20 trading days shows fluctuations, with some days exhibiting higher volume during price increases (e.g., April 24, April 27, May 6, May 14).
+
+**Entry Timing Quality:**
+*   The stock is in a strong uptrend with bullish MACD crossover, but the RSI is neutral, and the price is near its 52-week high, suggesting potential for overextension.
+
+**Technical Risk Level:** Moderate (due to being near 52-week highs and potential for pullback, despite strong trend).
+
+**Technical Conviction Score:** 7/10

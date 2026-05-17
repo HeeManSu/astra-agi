@@ -1,0 +1,49 @@
+{
+  "call_index": 5,
+  "latency_ms": 2652.4,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 16:14:38 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2552",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy stance, rising inflation, and rising GDP growth. Liquidity conditions are easing, and the overall risk regime is \"risk-on.\" The yield curve remains positive.\n\n2. Monetary Policy Assessment:\nThe Federal Funds Rate is stable at 3.64%, and the policy stance is neutral. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. This indicates that the market does not anticipate immediate rate hikes.\n\n3. Inflation & Growth Assessment:\nInflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ. The unemployment rate is moderate at 4.3%. This suggests a growing economy with some inflationary pressures.\n\n4. Liquidity & Credit Conditions:\nFinancial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. Corporate credit spreads are tight at 0.76%, suggesting low credit risk. The liquidity regime is \"easing,\" and the risk regime is \"risk-on.\"\n\n5. Yield Curve Interpretation:\nThe 10-year/2-year yield spread is positive at 0.47%, indicating a normal yield curve. This suggests that the market expects continued economic growth and no immediate recessionary concerns.\n\n6. Equity Risk Regime: Risk-On\n\n7. Confidence Score: 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "bOkJarO9CtDh4-EPnYDL0QE",
+    "usage_metadata": {
+      "candidates_token_count": 336,
+      "prompt_token_count": 1260,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1260
+        }
+      ],
+      "total_token_count": 1596
+    }
+  }
+}

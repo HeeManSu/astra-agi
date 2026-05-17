@@ -1,0 +1,56 @@
+{
+  "call_index": 8,
+  "latency_ms": 2192.0,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:08:12 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2174",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Revenue & Growth Analysis\n   - Revenue: $318.27B\n   - Revenue Growth: 18.3%\n   - Earnings Growth: 23.4%\n   - Quarterly Earnings Growth: 23.1%\n\nProfitability (Margins, ROIC)\n   - Gross Margin: 68.3%\n   - Operating Margin: 46.3%\n   - Net Margin: 39.3%\n   - EBITDA Margin: 58.0%\n   - Return on Equity (ROE): 34.0%\n   - Return on Assets (ROA): 14.8%\n\nCash Flow Strength\n   - Operating Cash Flow: $170.14B\n   - Free Cash Flow: $37.01B\n\nBalance Sheet Quality\n   - Total Cash: $78.23B\n   - Total Debt: $125.43B\n   - Net Cash: $-47.20B\n   - Debt-to-Equity: 30.271\n   - Current Ratio: 1.283\n   - Book Value Per Share: 55.777\n\nEarnings Stability\n   - Trailing EPS: $16.79\n   - Forward EPS: $19.37\n\nFinancial Risk Factors\n   - Net cash position is negative, indicating more debt than cash.\n   - Debt-to-Equity ratio of 30.271 is relatively high.\n\nConviction Score (1-10)\n   - 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "mcAIao-7Ov_ijuMPzemvyAM",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1745
+        }
+      ],
+      "cached_content_token_count": 1745,
+      "candidates_token_count": 345,
+      "prompt_token_count": 2612,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2612
+        }
+      ],
+      "total_token_count": 2957
+    }
+  }
+}

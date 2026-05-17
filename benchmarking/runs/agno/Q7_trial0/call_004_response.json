@@ -1,0 +1,55 @@
+{
+  "call_index": 4,
+  "latency_ms": 1837.75,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:51:20 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1757",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "member_id": "financial-analyst",
+                  "task": "Given the macro analysis, perform a head-to-head financial analysis of AAPL, MSFT, and GOOGL. Focus on key financial metrics such as revenue growth, profit margins, balance sheet health (debt, cash), and free cash flow generation. Compare their performance over recent periods and identify any significant strengths or weaknesses for each company. The output should be a detailed financial comparison that highlights their fundamental health and growth prospects."
+                },
+                "name": "delegate_task_to_member"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "5_QIaqqBCvzH4-EP7LW2gA0",
+    "usage_metadata": {
+      "candidates_token_count": 114,
+      "prompt_token_count": 1416,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1416
+        }
+      ],
+      "total_token_count": 1530
+    }
+  }
+}

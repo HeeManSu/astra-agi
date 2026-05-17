@@ -1,0 +1,49 @@
+{
+  "call_index": 15,
+  "latency_ms": 2763.58,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 18:35:30 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2638",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Macro Summary:\nThe current macro environment indicates a neutral monetary policy with stable rates, but rising inflation and strong GDP growth. Liquidity conditions are easing, and the credit spread is tight, pointing to a risk-on sentiment. The yield curve is positively sloped.\n\n2. Monetary Policy Assessment:\nThe Federal Funds Rate is 3.64% and stable. The Fed's policy stance is neutral, suggesting no immediate plans for significant rate changes. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%.\n\n3. Inflation & Growth Assessment:\nInflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ, indicating strong economic momentum. The unemployment rate is moderate at 4.3%, with a moderate labor trend.\n\n4. Liquidity & Credit Conditions:\nFinancial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. The corporate credit spread is tight at 0.76, suggesting low credit risk and ample liquidity in the market. The overall liquidity regime is easing, supporting a risk-on environment.\n\n5. Yield Curve Interpretation:\nThe 10-year/2-year yield spread is positive at 0.47%, indicating a normal, upward-sloping yield curve. This typically signals expectations of future economic growth and a healthy credit environment.\n\n6. Equity Risk Regime:\nRisk-On\n\n7. Confidence Score: 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "77gIaqauMf_ijuMPzemvyAM",
+    "usage_metadata": {
+      "candidates_token_count": 351,
+      "prompt_token_count": 1247,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1247
+        }
+      ],
+      "total_token_count": 1598
+    }
+  }
+}

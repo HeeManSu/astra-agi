@@ -1,0 +1,56 @@
+{
+  "call_index": 14,
+  "latency_ms": 5234.98,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:52:17 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=5213",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Apple (AAPL)\n\n1.  **Trend Structure**\n    AAPL is in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope is 1.4344 and the 50-day SMA slope is 0.4749, both indicating upward momentum. The stock is at its 52-week high.\n\n2.  **Momentum Indicators (RSI, MACD)**\n    *   **RSI (14):** 88.4, indicating the stock is significantly overbought.\n    *   **MACD (12/26/9):** MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), signaling a bullish crossover.\n\n3.  **Support & Resistance**\n    *   **Support Levels:** Key support levels are identified at $224.23, $200.7, and $193.5.\n    *   **Resistance Levels:** There are no identified resistance levels as the stock is at its 52-week high.\n\n4.  **Volume Analysis**\n    Over the last 20 trading days, daily volume has fluctuated, with a notable spike to 91.85M on 2026-04-30 and 79.92M on 2026-05-01, coinciding with price increases. The most recent trading day (2026-05-15) saw a volume of 54.72M, which is higher than the average volume over the past 20 days.\n\n5.  **Entry Timing Quality**\n    The stock is currently overbought (RSI 88.4) and at its 52-week high, suggesting that the entry timing quality is poor due to the high risk of a pullback.\n\n6.  **Technical Risk Level**\n    The technical risk level is high due to the overbought RSI and the stock trading at its 52-week high with no clear resistance levels above. A significant correction could occur.\n\n7.  **Technical Conviction Score (1-10)**\n    3 - While the trend is strong and MACD is bullish, the extremely overbought RSI and the stock being at its 52-week high present a high risk for new entries.\n\n## Microsoft (MSFT)\n\n1.  **Trend Structure**\n    MSFT is in an uptrend, though currently classified as sideways based on moving averages. The current price of $421.92 is above the 20-day SMA ($417.41) and 50-day SMA ($399.06), but below the 200-day SMA ($461.91). The 20-day SMA slope is 0.9795 and the 50-day SMA slope is 0.2627, indicating upward momentum. The stock has shown higher highs.\n\n2.  **Momentum Indicators (RSI, MACD)**\n    *   **RSI (14):** 48.1, indicating a neutral momentum.\n    *   **MACD (12/26/9):** MACD line (3.3845) is below the signal line (4.7006), with a negative histogram (-1.3161), signaling a bearish crossover.\n\n3.  **Support & Resistance**\n    *   **Support Levels:** Key support levels are identified at $394.72, $381.71, and $356.28.\n    *   **Resistance Levels:** Key resistance levels are identified at $514.26, $529.23, and $551.84.\n\n4.  **Volume Analysis**\n    Over the last 20 trading days, daily volume has been varied, with a significant spike to 70.91M on 2026-04-30, coinciding with a price drop. The most recent trading day (2026-05-15) saw a volume of 50.31M, which is higher than the average volume over the past 20 days.\n\n5.  **Entry Timing Quality**\n    The neutral RSI and bearish MACD crossover suggest that the entry timing quality is moderate to poor. While the stock is in an uptrend, the recent bearish MACD signal indicates potential short-term weakness.\n\n6.  **Technical Risk Level**\n    The technical risk level is moderate. The stock is trading below its 200-day SMA, and the bearish MACD crossover suggests potential for further downside in the short term. However, the presence of clear support levels provides some downside protection.\n\n7.  **Technical Conviction Score (1-10)**\n    5 - The overall uptrend is positive, but the bearish MACD crossover and neutral RSI suggest caution. The stock is not overbought, but also not showing strong immediate bullish momentum."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "zK4Iav7HA6b5juMPwoufIQ",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2897
+        }
+      ],
+      "cached_content_token_count": 2897,
+      "candidates_token_count": 1170,
+      "prompt_token_count": 7256,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 7256
+        }
+      ],
+      "total_token_count": 8426
+    }
+  }
+}

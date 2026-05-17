@@ -1,0 +1,499 @@
+{
+  "call_index": 27,
+  "method": "generate_content",
+  "is_async": true,
+  "is_stream": false,
+  "kwargs": {
+    "model": "gemini-2.5-flash",
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Compare AAPL, MSFT, and GOOGL head-to-head and produce a research report ranking them from best to worst investment today, with specific reasoning from each of macro, fundamentals, valuation, and technicals."
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "text": "1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy stance, rising inflation and GDP growth, easing liquidity, and a risk-on credit environment. The yield curve remains positively sloped.\n\n2. Monetary Policy Assessment:\nThe Federal Funds Rate is stable at 3.64%, and the policy stance is classified as neutral. This suggests that the Federal Reserve is neither aggressively tightening nor loosening monetary policy, likely aiming for a balanced approach given the current economic conditions.\n\n3. Inflation & Growth Assessment:\nInflation, as measured by CPI YoY, is rising at 3.95%, with core CPI at 2.99%. GDP growth QoQ is also rising at 0.49%. The unemployment rate is moderate at 4.3%, indicating a relatively healthy labor market. The combination of rising inflation and growth suggests a potentially overheating economy, but the moderate unemployment rate provides some stability.\n\n4. Liquidity & Credit Conditions:\nFinancial conditions are easing, with the Chicago Fed NFCI at -0.524. Corporate credit spreads are tight at 0.76, indicating a \"risk-on\" regime. This suggests that investors are willing to take on more risk, and credit is readily available.\n\n5. Yield Curve Interpretation:\nThe 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%. The yield spread of 0.47% is positive, indicating a normal, upward-sloping yield curve. This typically signals expectations of future economic growth and a healthy economic outlook.\n\n6. Equity Risk Regime:\nRisk-On. The combination of easing liquidity, tight credit spreads, rising GDP growth, and a positively sloped yield curve points to a risk-on environment for equities.\n\n7. Confidence Score: 8"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "text": "### AAPL\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue Growth: 16.6%\n    *   Earnings Growth: 21.8%\n    *   Quarterly Earnings Growth: 19.4%\n    *   Trailing EPS: $8.26\n    *   Forward EPS: $9.5861\n\n2.  **Profitability (Margins, ROIC)**\n    *   Gross Margin: 47.9%\n    *   Operating Margin: 32.3%\n    *   Net Margin: 27.2%\n    *   EBITDA Margin: 35.4%\n    *   ROE: 141.5%\n    *   ROA: 26.2%\n\n3.  **Cash Flow Strength**\n    *   Operating Cash Flow: $140.22B\n    *   Free Cash Flow: $101.09B\n\n4.  **Balance Sheet Quality**\n    *   Total Cash: $68.51B\n    *   Total Debt: $84.71B\n    *   Net Cash: -$16.20B (Net Debt position)\n    *   Debt-to-Equity: 79.548\n    *   Current Ratio: 1.07\n\n5.  **Earnings Stability**\n    *   Consistent positive earnings growth, with strong trailing and forward EPS.\n\n6.  **Financial Risk Factors**\n    *   High debt-to-equity ratio and a net debt position indicate a reliance on debt financing.\n    *   Current ratio is slightly above 1, suggesting adequate but not robust short-term liquidity.\n\n7.  **Conviction Score (1-10)**: 7\n\n### MSFT\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue Growth: 18.3%\n    *   Earnings Growth: 23.4%\n    *   Quarterly Earnings Growth: 23.1%\n    *   Trailing EPS: $16.79\n    *   Forward EPS: $19.37103\n\n2.  **Profitability (Margins, ROIC)**\n    *   Gross Margin: 68.3%\n    *   Operating Margin: 46.3%\n    *   Net Margin: 39.3%\n    *   EBITDA Margin: 58.0%\n    *   ROE: 34.0%\n    *   ROA: 14.8%\n\n3.  **Cash Flow Strength**\n    *   Operating Cash Flow: $170.14B\n    *   Free Cash Flow: $37.01B\n\n4.  **Balance Sheet Quality**\n    *   Total Cash: $78.23B\n    *   Total Debt: $125.43B\n    *   Net Cash: -$47.20B (Net Debt position)\n    *   Debt-to-Equity: 30.271\n    *   Current Ratio: 1.283\n\n5.  **Earnings Stability**\n    *   Strong and consistent earnings growth, with healthy trailing and forward EPS.\n\n6.  **Financial Risk Factors**\n    *   Net debt position, though debt-to-equity is lower than AAPL.\n    *   Current ratio indicates good short-term liquidity.\n\n7.  **Conviction Score (1-10)**: 8\n\n### GOOGL\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue Growth: 21.8%\n    *   Earnings Growth: 82.0%\n    *   Quarterly Earnings Growth: 81.2%\n    *   Trailing EPS: $13.09\n    *   Forward EPS: $14.45135\n\n2.  **Profitability (Margins, ROIC)**\n    *   Gross Margin: 60.4%\n    *   Operating Margin: 36.1%\n    *   Net Margin: 37.9%\n    *   EBITDA Margin: 38.2%\n    *   ROE: 38.9%\n    *   ROA: 14.6%\n\n3.  **Cash Flow Strength**\n    *   Operating Cash Flow: $174.35B\n    *   Free Cash Flow: $27.92B\n\n4.  **Balance Sheet Quality**\n    *   Total Cash: $126.84B\n    *   Total Debt: $95.88B\n    *   Net Cash: $30.96B (Net Cash position)\n    *   Debt-to-Equity: 20.026\n    *   Current Ratio: 1.922\n\n5.  **Earnings Stability**\n    *   Exceptional earnings growth, both trailing and forward.\n\n6.  **Financial Risk Factors**\n    *   Strong net cash position and low debt-to-equity ratio indicate a very healthy balance sheet.\n    *   High current ratio suggests excellent short-term liquidity.\n\n7.  **Conviction Score (1-10)**: 9"
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "text": "### AAPL\n\n1.  **DCF Valuation**\n    *   Using a discount rate of 9%, a FCF growth rate of 7% for 5 years, and a terminal growth rate of 3%, the intrinsic value per share is estimated as:\n        *   Bear Case: $120.75\n        *   Base Case: $140.27\n        *   Bull Case: $162.37\n\n2.  **Comparable Multiples**\n    *   Trailing P/E: 36.35\n    *   Forward P/E: 31.32\n    *   PEG Ratio: 2.61\n    *   EV/EBITDA: 27.66\n    *   Price/Book: 41.35\n    *   Assessment: Premium valuation compared to peers.\n\n3.  **Fair Value (Bear / Base / Bull)**\n    *   Bear Case: $120.75\n    *   Base Case: $140.27\n    *   Bull Case: $162.37\n\n4.  **Margin of Safety**\n    *   Current Price: $300.23\n    *   Fair Value (Base Case): $140.27\n    *   Margin of Safety: -114.0%\n    *   Verdict: Overvalued - negative margin of safety.\n\n5.  **Valuation Risks**\n    *   The DCF analysis suggests significant overvaluation, even in the bull case.\n    *   High multiples across the board indicate that the market has priced in substantial future growth, which may not materialize.\n\n6.  **Final Valuation Verdict**\n    *   **PASS** due to significant overvaluation based on both intrinsic value and comparable multiples.\n\n### MSFT\n\n1.  **DCF Valuation**\n    *   Using a discount rate of 9%, a FCF growth rate of 8% for 5 years, and a terminal growth rate of 3%, the intrinsic value per share is estimated as:\n        *   Bear Case: $89.32\n        *   Base Case: $105.91\n        *   Bull Case: $125.01\n\n2.  **Comparable Multiples**\n    *   Trailing P/E: 25.13\n    *   Forward P/E: 21.78\n    *   PEG Ratio: 1.26\n    *   EV/EBITDA: 17.25\n    *   Price/Book: 7.56\n    *   Assessment: Fairly valued compared to peers.\n\n3.  **Fair Value (Bear / Base / Bull)**\n    *   Bear Case: $89.32\n    *   Base Case: $105.91\n    *   Bull Case: $125.01\n\n4.  **Margin of Safety**\n    *   Current Price: $421.92\n    *   Fair Value (Base Case): $105.91\n    *   Margin of Safety: -298.4%\n    *   Verdict: Overvalued - negative margin of safety.\n\n5.  **Valuation Risks**\n    *   The DCF analysis indicates substantial overvaluation.\n    *   While comparable multiples suggest fair valuation, the intrinsic value calculation presents a strong counter-argument.\n\n6.  **Final Valuation Verdict**\n    *   **PASS** due to significant overvaluation based on intrinsic value, despite comparable multiples suggesting fair value.\n\n### GOOGL\n\n1.  **DCF Valuation**\n    *   Using a discount rate of 9%, a FCF growth rate of 10% for 5 years, and a terminal growth rate of 3%, the intrinsic value per share is estimated as:\n        *   Bear Case: $89.73\n        *   Base Case: $110.79\n        *   Bull Case: $135.83\n\n2.  **Comparable Multiples**\n    *   Trailing P/E: 30.31\n    *   Forward P/E: 27.46\n    *   PEG Ratio: 1.58\n    *   EV/EBITDA: 29.61\n    *   Price/Book: 10.04\n    *   Assessment: Premium valuation compared to peers.\n\n3.  **Fair Value (Bear / Base / Bull)**\n    *   Bear Case: $89.73\n    *   Base Case: $110.79\n    *   Bull Case: $135.83\n\n4.  **Margin of Safety**\n    *   Current Price: $396.78\n    *   Fair Value (Base Case): $110.79\n    *   Margin of Safety: -258.1%\n    *   Verdict: Overvalued - negative margin of safety.\n\n5.  **Valuation Risks**\n    *   The DCF analysis points to significant overvaluation across all scenarios.\n    *   High multiples suggest that the market has high expectations for future growth, which may be difficult to sustain.\n\n6.  **Final Valuation Verdict**\n    *   **PASS** due to significant overvaluation based on both intrinsic value and comparable multiples."
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "detect_trend"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "calculate_moving_averages"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "detect_trend",
+              "response": {
+                "result": "{'symbol': 'AAPL', 'trend': 'uptrend', 'strength': 'moderate', 'sma20_slope': 1.4344, 'sma50_slope': 0.4749, 'higher_highs': False, 'lower_lows': False, '52w_range_position': '100.0%', '52w_high': 300.23, '52w_low': 194.5}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_moving_averages",
+              "response": {
+                "result": "{'symbol': 'AAPL', 'current_price': 300.23, 'sma_20': 281.36, 'sma_50': 265.97, 'sma_200': 258.65, 'trend': 'strong uptrend', 'ma_cross': 'none'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "calculate_rsi"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "calculate_macd"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "calculate_rsi",
+              "response": {
+                "result": "{'symbol': 'AAPL', 'rsi': 88.4, 'period': 14, 'signal': 'overbought'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_macd",
+              "response": {
+                "result": "{'symbol': 'AAPL', 'macd': 9.5172, 'signal_line': 7.7411, 'histogram': 1.7762, 'crossover': 'bullish'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "detect_support_resistance"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL",
+                "days": 20
+              },
+              "name": "get_price_history"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "detect_support_resistance",
+              "response": {
+                "result": "{'symbol': 'AAPL', 'current_price': 300.23, 'support_levels': [193.5, 200.7, 224.23], 'resistance_levels': [], 'nearest_support': 224.23, 'nearest_resistance': 'N/A'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "get_price_history",
+              "response": {
+                "result": "{'symbol': 'AAPL', 'period': 'Last 20 trading days', 'current_price': 300.23, 'prices': [{'date': '2026-04-20', 'open': 270.08, 'high': 274.03, 'low': 270.04, 'close': 272.8, 'volume': 36590200}, {'date': '2026-04-21', 'open': 271.25, 'high': 272.55, 'low': 265.16, 'close': 265.93, 'volume': 50209800}, {'date': '2026-04-22', 'open': 267.57, 'high': 273.49, 'low': 266.62, 'close': 272.92, 'volume': 43249200}, {'date': '2026-04-23', 'open': 274.8, 'high': 275.52, 'low': 271.4, 'close': 273.18, 'volume': 33399600}, {'date': '2026-04-24', 'open': 272.51, 'high': 272.81, 'low': 269.4, 'close': 270.81, 'volume': 38157100}, {'date': '2026-04-27', 'open': 265.85, 'high': 268.11, 'low': 264.83, 'close': 267.36, 'volume': 41466800}, {'date': '2026-04-28', 'open': 272.09, 'high': 272.98, 'low': 268.41, 'close': 270.46, 'volume': 40018900}, {'date': '2026-04-29', 'open': 267.3, 'high': 270.79, 'low': 266.79, 'close': 269.92, 'volume': 30047900}, {'date': '2026-04-30', 'open': 270.25, 'high': 275.75, 'low': 267.89, 'close': 271.1, 'volume': 91848200}, {'date': '2026-05-01', 'open': 278.6, 'high': 286.96, 'low': 278.11, 'close': 279.88, 'volume': 79915400}, {'date': '2026-05-04', 'open': 279.4, 'high': 280.37, 'low': 274.61, 'close': 276.58, 'volume': 46668400}, {'date': '2026-05-05', 'open': 276.68, 'high': 284.31, 'low': 276.25, 'close': 283.92, 'volume': 49311700}, {'date': '2026-05-06', 'open': 281.66, 'high': 287.76, 'low': 280.81, 'close': 287.25, 'volume': 58336100}, {'date': '2026-05-07', 'open': 289.0, 'high': 291.86, 'low': 285.52, 'close': 287.18, 'volume': 45224300}, {'date': '2026-05-08', 'open': 289.74, 'high': 294.49, 'low': 289.73, 'close': 293.05, 'volume': 52692800}, {'date': '2026-05-11', 'open': 291.98, 'high': 293.88, 'low': 290.23, 'close': 292.68, 'volume': 42247300}, {'date': '2026-05-12', 'open': 292.56, 'high': 295.27, 'low': 292.56, 'close': 294.8, 'volume': 45748100}, {'date': '2026-05-13', 'open': 293.5, 'high': 300.92, 'low': 293.5, 'close': 298.87, 'volume': 52684300}, {'date': '2026-05-14', 'open': 299.82, 'high': 300.45, 'low': 295.38, 'close': 298.21, 'volume': 35324900}, {'date': '2026-05-15', 'open': 297.9, 'high': 303.2, 'low': 296.52, 'close': 300.23, 'volume': 54721100}]}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "detect_trend"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "calculate_moving_averages"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "detect_trend",
+              "response": {
+                "result": "{'symbol': 'MSFT', 'trend': 'uptrend', 'strength': 'strong', 'sma20_slope': 0.9795, 'sma50_slope': 0.2627, 'higher_highs': True, 'lower_lows': False, '52w_range_position': '35.6%', '52w_high': 539.83, '52w_low': 356.77}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_moving_averages",
+              "response": {
+                "result": "{'symbol': 'MSFT', 'current_price': 421.92, 'sma_20': 417.41, 'sma_50': 399.06, 'sma_200': 461.91, 'trend': 'sideways', 'ma_cross': 'none'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "calculate_rsi"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "calculate_macd"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "calculate_rsi",
+              "response": {
+                "result": "{'symbol': 'MSFT', 'rsi': 48.1, 'period': 14, 'signal': 'neutral'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_macd",
+              "response": {
+                "result": "{'symbol': 'MSFT', 'macd': 3.3845, 'signal_line': 4.7006, 'histogram': -1.3161, 'crossover': 'bearish'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "detect_support_resistance"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "days": 20,
+                "symbol": "MSFT"
+              },
+              "name": "get_price_history"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "detect_support_resistance",
+              "response": {
+                "result": "{'symbol': 'MSFT', 'current_price': 421.92, 'support_levels': [356.28, 381.71, 394.72], 'resistance_levels': [514.26, 529.23, 551.84], 'nearest_support': 394.72, 'nearest_resistance': 514.26}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "get_price_history",
+              "response": {
+                "result": "{'symbol': 'MSFT', 'period': 'Last 20 trading days', 'current_price': 421.92, 'prices': [{'date': '2026-04-20', 'open': 421.15, 'high': 423.33, 'low': 416.3, 'close': 418.07, 'volume': 27582200}, {'date': '2026-04-21', 'open': 420.24, 'high': 427.18, 'low': 417.2, 'close': 424.16, 'volume': 32048500}, {'date': '2026-04-22', 'open': 426.19, 'high': 433.7, 'low': 423.67, 'close': 432.92, 'volume': 29378200}, {'date': '2026-04-23', 'open': 419.89, 'high': 423.66, 'low': 411.41, 'close': 415.75, 'volume': 38308000}, {'date': '2026-04-24', 'open': 416.97, 'high': 424.95, 'low': 415.8, 'close': 424.62, 'volume': 27457400}, {'date': '2026-04-27', 'open': 422.38, 'high': 427.11, 'low': 417.07, 'close': 424.82, 'volume': 30867300}, {'date': '2026-04-28', 'open': 424.57, 'high': 429.92, 'low': 421.9, 'close': 429.25, 'volume': 30438100}, {'date': '2026-04-29', 'open': 424.58, 'high': 426.82, 'low': 420.29, 'close': 424.46, 'volume': 38288300}, {'date': '2026-04-30', 'open': 410.81, 'high': 414.42, 'low': 398.01, 'close': 407.78, 'volume': 70909400}, {'date': '2026-05-01', 'open': 412.8, 'high': 417.11, 'low': 410.44, 'close': 414.44, 'volume': 31372400}, {'date': '2026-05-04', 'open': 411.54, 'high': 420.78, 'low': 410.8, 'close': 413.62, 'volume': 28066500}, {'date': '2026-05-05', 'open': 415.32, 'high': 416.78, 'low': 408.8, 'close': 411.38, 'volume': 25700900}, {'date': '2026-05-06', 'open': 408.0, 'high': 418.42, 'low': 405.11, 'close': 413.96, 'volume': 30285900}, {'date': '2026-05-07', 'open': 420.11, 'high': 427.98, 'low': 418.76, 'close': 420.77, 'volume': 34942400}, {'date': '2026-05-08', 'open': 417.39, 'high': 418.63, 'low': 414.0, 'close': 415.12, 'volume': 33383800}, {'date': '2026-05-11', 'open': 407.87, 'high': 412.69, 'low': 405.5, 'close': 412.66, 'volume': 35657900}, {'date': '2026-05-12', 'open': 414.48, 'high': 415.5, 'low': 406.64, 'close': 407.77, 'volume': 38594200}, {'date': '2026-05-13', 'open': 403.2, 'high': 406.31, 'low': 401.03, 'close': 405.21, 'volume': 29667100}, {'date': '2026-05-14', 'open': 404.48, 'high': 411.84, 'low': 400.88, 'close': 409.43, 'volume': 27077500}, {'date': '2026-05-15', 'open': 414.27, 'high': 428.17, 'low': 412.91, 'close': 421.92, 'volume': 50310800}]}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "detect_trend"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "calculate_moving_averages"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "detect_trend",
+              "response": {
+                "result": "{'symbol': 'GOOGL', 'trend': 'uptrend', 'strength': 'strong', 'sma20_slope': 3.1709, 'sma50_slope': 1.5903, 'higher_highs': True, 'lower_lows': False, '52w_range_position': '97.6%', '52w_high': 402.62, '52w_low': 163.41}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_moving_averages",
+              "response": {
+                "result": "{'symbol': 'GOOGL', 'current_price': 396.78, 'sma_20': 372.89, 'sma_50': 332.74, 'sma_200': 291.06, 'trend': 'strong uptrend', 'ma_cross': 'none'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "calculate_rsi"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "calculate_macd"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "calculate_rsi",
+              "response": {
+                "result": "{'symbol': 'GOOGL', 'rsi': 75.5, 'period': 14, 'signal': 'overbought'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_macd",
+              "response": {
+                "result": "{'symbol': 'GOOGL', 'macd': 20.134, 'signal_line': 19.7444, 'histogram': 0.3897, 'crossover': 'bullish'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "config": {
+      "system_instruction": "Current date and time: Saturday, May 16, 2026 23:56 \n\n\nTEAM CONTEXT\n------------\nYou are one of four specialists in a research team coordinated by a manager LLM.\nThe other specialists handle whichever domains you do not. When the user query\nspans multiple domains (e.g., \"compare AAPL and MSFT\" or \"rank these three\nstocks\"), produce your domain-specific section anyway --- the other analysts\nwill handle the rest. Do NOT refuse the task because it mentions concerns\noutside your role. Always produce your assigned section using the OUTPUT FORMAT\nbelow, scoped to whichever symbol(s) the query names.\n\n\nYou are the Technical Analyst for a $10M US equity fund.\n\nYou analyze price action and momentum only.\n\nDo NOT:\n- Discuss fundamentals\n- Discuss valuation\n- Discuss macro\n\n--------------------------------------------------\nOUTPUT FORMAT\n--------------------------------------------------\n\n1. Trend Structure\n2. Momentum Indicators (RSI, MACD)\n3. Support & Resistance\n4. Volume Analysis\n5. Entry Timing Quality\n6. Technical Risk Level\n7. Technical Conviction Score (1-10)\n\n--------------------------------------------------\n\nBe structured.\nBe concise.\nBe numerical where possible.\n",
+      "temperature": 0.0,
+      "tools": [
+        {
+          "function_declarations": [
+            {
+              "description": "Get recent OHLCV price data for a stock. Returns last N trading days.\n\nArgs:\n    symbol (str): Stock ticker symbol (e.g. AAPL, NVDA).\n    days (int): Number of recent trading days to return (default 20).\n",
+              "name": "get_price_history",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "symbol",
+                    "type": "STRING"
+                  },
+                  "days": {
+                    "description": "days",
+                    "type": "INTEGER"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate the Relative Strength Index (RSI) for a stock. Returns value and overbought/oversold signal.\n\nArgs:\n    symbol (str): Stock ticker symbol.\n    period (int): RSI lookback period (default 14).\n",
+              "name": "calculate_rsi",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "symbol",
+                    "type": "STRING"
+                  },
+                  "period": {
+                    "description": "period",
+                    "type": "INTEGER"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate MACD (12/26/9) for a stock. Returns MACD line, signal line, histogram, and crossover direction.\n\nArgs:\n    symbol (str): Stock ticker symbol.\n",
+              "name": "calculate_macd",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "symbol",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate 20/50/200-day SMAs and classify trend based on price position relative to MAs.\n\nArgs:\n    symbol (str): Stock ticker symbol.\n",
+              "name": "calculate_moving_averages",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "symbol",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Detect the current price trend using SMA slopes, higher-highs/lows analysis. Returns direction and strength.\n\nArgs:\n    symbol (str): Stock ticker symbol.\n",
+              "name": "detect_trend",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "symbol",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Detect key support and resistance levels from recent price action using pivot highs/lows.\n\nArgs:\n    symbol (str): Stock ticker symbol.\n",
+              "name": "detect_support_resistance",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "symbol",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            }
+          ]
+        }
+      ],
+      "thinking_config": {
+        "include_thoughts": false,
+        "thinking_budget": 0
+      }
+    }
+  }
+}

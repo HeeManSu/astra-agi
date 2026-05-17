@@ -1,0 +1,47 @@
+{
+  "fund_name": "Astra US Equity Fund",
+  "nav": 10000000,
+  "cash": 1500000,
+  "min_cash_pct": 5.0,
+  "max_positions": 15,
+  "max_position_pct": 10.0,
+  "max_sector_pct": 30.0,
+  "target_beta_range": [0.8, 1.2],
+  "positions": [
+    {
+      "symbol": "AAPL",
+      "shares": 500,
+      "avg_cost": 165.0,
+      "sector": "Technology",
+      "entry_date": "2025-06-15"
+    },
+    {
+      "symbol": "MSFT",
+      "shares": 300,
+      "avg_cost": 380.0,
+      "sector": "Technology",
+      "entry_date": "2025-07-20"
+    },
+    {
+      "symbol": "JNJ",
+      "shares": 400,
+      "avg_cost": 155.0,
+      "sector": "Healthcare",
+      "entry_date": "2025-08-10"
+    },
+    {
+      "symbol": "JPM",
+      "shares": 200,
+      "avg_cost": 195.0,
+      "sector": "Financials",
+      "entry_date": "2025-09-01"
+    },
+    {
+      "symbol": "XOM",
+      "shares": 350,
+      "avg_cost": 105.0,
+      "sector": "Energy",
+      "entry_date": "2025-10-05"
+    }
+  ]
+}

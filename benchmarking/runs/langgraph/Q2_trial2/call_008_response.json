@@ -1,0 +1,56 @@
+{
+  "call_index": 8,
+  "latency_ms": 3374.26,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:37:02 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3355",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### Microsoft (MSFT) Technical Research Report\n\n**1. Trend Structure**\nMSFT is currently in a strong uptrend, characterized by higher highs and a positive SMA20 slope of 0.9795 and SMA50 slope of 0.2627. The stock is positioned at 35.6% of its 52-week range, with a 52-week high of $539.83 and a 52-week low of $356.77.\n\n**2. Momentum Indicators**\n*   **RSI (14):** 48.1 (Neutral)\n*   **MACD (12/26/9):** MACD line is 3.3845, Signal line is 4.7006, and the Histogram is -1.3161. This indicates a bearish crossover.\n\n**3. Support & Resistance**\n*   **Current Price:** $421.92\n*   **Nearest Support:** $394.72\n*   **Key Support Levels:** $356.28, $381.71\n*   **Nearest Resistance:** $514.26\n*   **Key Resistance Levels:** $529.23, $551.84\n\n**4. Volume Analysis**\nOver the last 20 trading days, average daily volume has been approximately 33.9 million shares. The highest volume day was 2026-04-30 with 70.9 million shares, coinciding with a significant price drop. The most recent trading day (2026-05-15) saw 50.3 million shares, above the recent average, accompanying a price increase.\n\n**5. Entry Timing Quality**\nThe current entry timing quality is **Poor**. While the overall trend is strong uptrend, the bearish MACD crossover suggests a potential short-term pullback or consolidation. The RSI is neutral, offering no clear directional signal for immediate entry.\n\n**6. Technical Risk Level**\nThe technical risk level is **Moderate to High**. The bearish MACD crossover indicates increasing downside momentum in the short term, despite the strong overarching uptrend. The stock is also trading closer to its 52-week low than its 52-week high, suggesting it has room to fall before hitting strong support.\n\n**7. Technical Conviction Score (1-10)**\n**4/10**"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "i_EIapCyCIqmjuMP_aeQwQM",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1865
+        }
+      ],
+      "cached_content_token_count": 1865,
+      "candidates_token_count": 542,
+      "prompt_token_count": 4353,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 4353
+        }
+      ],
+      "total_token_count": 4895
+    }
+  }
+}

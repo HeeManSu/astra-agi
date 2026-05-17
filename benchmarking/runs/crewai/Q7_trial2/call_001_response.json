@@ -1,0 +1,56 @@
+{
+  "call_index": 1,
+  "latency_ms": 1873.82,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:16:35 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1727",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "coworker": "Macro Strategist",
+                  "task": "Assess the macro regime and equity risk environment relevant to comparing AAPL, MSFT, and GOOGL head-to-head and producing a research report ranking them from best to worst investment today. Gather current readings on monetary policy, inflation, growth, liquidity, and the yield curve. Produce a structured output with sections: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10). Focus on the macro signal, do not discuss individual company details.",
+                  "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a macro assessment that will feed into this larger report. The macro assessment should be structured as follows: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10)."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "ksIIar3YFN2p4-EP4O-U6Q8",
+    "usage_metadata": {
+      "candidates_token_count": 217,
+      "prompt_token_count": 599,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 599
+        }
+      ],
+      "total_token_count": 816
+    }
+  }
+}

@@ -1,0 +1,132 @@
+## 1. MACRO ANALYSIS
+
+**Macro Summary:** The macro environment indicates a neutral monetary policy with rising inflation and growth. Liquidity conditions are easing, leading to a risk-on equity regime. The yield curve is positively sloped.
+
+**Monetary Policy Assessment:** The Fed Funds Rate is stable at 3.64%, with a neutral policy stance. The 10-year Treasury is at 4.47% and the 2-year Treasury at 4.0%, resulting in a positive yield spread of 0.47%.
+
+**Inflation & Growth Assessment:** CPI (YoY) is rising at 3.95%, with core CPI (YoY) at 2.99%. GDP growth (QoQ) is rising at 0.49%. The unemployment rate is moderate at 4.3%.
+
+**Liquidity & Credit Conditions:** The Financial Conditions Index is -0.524, and credit spreads are tight at 0.76, indicating an easing liquidity regime and a risk-on environment.
+
+**Yield Curve Interpretation:** The 10-year minus 2-year yield spread is 0.47%, indicating a positively sloped yield curve.
+
+**Equity Risk Regime:** Risk-On
+
+**Confidence Score:** 7/10
+
+## 2. FINANCIAL ANALYSIS
+
+**Revenue & Growth Analysis:**
+*   Revenue: $318.27B
+*   Revenue Growth: 18.3%
+*   Earnings Growth: 23.4%
+*   Earnings Quarterly Growth: 23.1%
+*   Trailing EPS: 16.79
+*   Forward EPS: 19.37
+*   PEG Ratio: 1.26
+
+**Profitability (Margins, ROIC):**
+*   Gross Margin: 68.3%
+*   Operating Margin: 46.3%
+*   Net Margin: 39.3%
+*   EBITDA Margin: 58.0%
+*   ROE: 34.0%
+*   ROA: 14.8%
+
+**Cash Flow Strength:**
+*   Operating Cash Flow: $170.14B
+*   Free Cash Flow: $37.01B
+
+**Balance Sheet Quality:**
+*   Total Cash: $78.23B
+*   Total Debt: $125.43B
+*   Net Cash: $-47.20B
+*   Debt to Equity: 30.271
+*   Current Ratio: 1.283
+*   Book Value Per Share: 55.777
+
+**Earnings Stability:**
+*   Trailing P/E: 25.13
+*   Forward P/E: 21.78
+
+**Financial Risk Factors:**
+*   Net cash position is negative ($-47.20B).
+*   Debt to Equity ratio is 30.271.
+
+**Conviction Score:** 8/10
+
+## 3. VALUATION ANALYSIS
+
+**DCF Valuation:**
+*   Bear Case: $79.81
+*   Base Case: $98.22
+*   Bull Case: $120.08
+*   Base Case Upside: -76.7% (compared to current price of $421.92)
+
+**Comparable Multiples:**
+*   Trailing P/E: 25.13
+*   Forward P/E: 21.78
+*   PEG Ratio: 1.26
+*   EV/EBITDA: 17.25
+*   EV/Revenue: 10.0
+*   Price/Book: 7.56
+*   Price/Sales: 9.85
+*   Assessment: Fairly valued based on multiples.
+
+**Fair Value (Bear / Base / Bull):**
+*   Bear Case: $79.81
+*   Base Case: $98.22
+*   Bull Case: $120.08
+
+**Margin of Safety:**
+*   Current Price: $421.92
+*   Fair Value (Base Case): $98.22
+*   Margin of Safety: -329.6%
+*   Upside Potential: -76.7%
+
+**Valuation Risks:**
+*   Significant overvaluation based on DCF analysis.
+*   The current price is substantially higher than the calculated intrinsic value across all DCF scenarios.
+
+**Final Valuation Verdict:** Overvalued - negative margin of safety.
+
+## 4. TECHNICAL ANALYSIS
+
+**Trend Structure:**
+*   Trend: Uptrend
+*   Strength: Strong
+*   SMA20 Slope: 0.9795
+*   SMA50 Slope: 0.2627
+*   Higher Highs: True
+*   Lower Lows: False
+*   52-Week Range Position: 35.6% (Current price is 35.6% above its 52-week low)
+*   52-Week High: $539.83
+*   52-Week Low: $356.77
+
+**Momentum Indicators (RSI, MACD):**
+*   RSI (14-period): 48.1 (Neutral signal)
+*   MACD: 3.3845
+*   Signal Line: 4.7006
+*   Histogram: -1.3161
+*   Crossover: Bearish
+
+**Support & Resistance:**
+*   Current Price: $421.92
+*   Nearest Support: $394.72
+*   Support Levels: $356.28, $381.71, $394.72
+*   Nearest Resistance: $514.26
+*   Resistance Levels: $514.26, $529.23, $551.84
+
+**Volume Analysis:**
+*   Volume on 2026-05-15: 50,310,800 (Higher than average recent volume)
+
+**Entry Timing Quality:**
+*   SMA 20: $417.41
+*   SMA 50: $399.06
+*   SMA 200: $461.91
+*   Trend based on MAs: Sideways
+*   MA Cross: None
+
+**Technical Risk Level:** Moderate (Uptrend is strong, but MACD shows a bearish crossover and the stock is in a sideways trend based on SMAs, indicating potential consolidation or weakening momentum).
+
+**Technical Conviction Score:** 6/10

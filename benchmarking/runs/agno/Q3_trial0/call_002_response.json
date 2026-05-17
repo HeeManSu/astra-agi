@@ -1,0 +1,67 @@
+{
+  "call_index": 2,
+  "latency_ms": 1493.8,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:42:57 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1406",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I cannot provide an outlook for the technology sector or make company-specific comments about NVDA. My role is to analyze macroeconomic conditions only and determine the overall equity risk environment. I do not analyze individual stocks or make allocation decisions.\n\nI will now proceed with a comprehensive macro analysis based on the available tools."
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_monetary_policy_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_inflation_and_growth_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_liquidity_and_credit_conditions"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "8PIIaoPwFNn7juMPn5HOiAk",
+    "usage_metadata": {
+      "candidates_token_count": 110,
+      "prompt_token_count": 840,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 840
+        }
+      ],
+      "total_token_count": 950
+    }
+  }
+}

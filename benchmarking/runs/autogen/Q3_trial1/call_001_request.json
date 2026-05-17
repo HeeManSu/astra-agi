@@ -1,0 +1,26 @@
+{
+  "call_index": 1,
+  "method": "generate_content",
+  "is_async": true,
+  "is_stream": false,
+  "kwargs": {
+    "model": "gemini-2.5-flash",
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "You are coordinating a research team of four specialists:\n\n- MacroStrategist: macro regime, rates, inflation, growth, liquidity, yield curve.\n- FinancialAnalyst: company fundamentals — revenue, margins, cash flow, balance sheet.\n- ValuationAnalyst: intrinsic value via DCF and comparables; margin of safety.\n- TechnicalAnalyst: price action, momentum (RSI, MACD), support/resistance, trend.\n\nYou read the conversation so far and decide who should speak next.\n\nRules:\n1. Each specialist must speak at least once before the discussion ends.\n2. Pick the specialist whose expertise is most needed by the current state of the conversation.\n3. Do NOT pick the same specialist twice in a row.\n4. Do NOT pick yourself.\n\nConversation so far:\nuser: Analyze NVDA and produce a full research report.\n\n\n\nAvailable speakers (you must pick exactly one): ['MacroStrategist', 'FinancialAnalyst', 'ValuationAnalyst', 'TechnicalAnalyst']\n\nReply with ONLY the chosen speaker's name and nothing else.\n"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "config": {
+      "temperature": 0.0,
+      "thinking_config": {
+        "include_thoughts": false,
+        "thinking_budget": 0
+      }
+    }
+  }
+}

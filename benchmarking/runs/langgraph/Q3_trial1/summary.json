@@ -1,0 +1,237 @@
+{
+  "num_calls": 8,
+  "prompt_tokens": 16786,
+  "completion_tokens": 2956,
+  "thoughts_tokens": 0,
+  "total_tokens": 19742,
+  "llm_latency_ms": 20926.18,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 833,
+      "completion_tokens": 48,
+      "thoughts_tokens": 0,
+      "total_tokens": 881,
+      "latency_ms": 1534.08,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        },
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        },
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1160,
+      "completion_tokens": 325,
+      "thoughts_tokens": 0,
+      "total_tokens": 1485,
+      "latency_ms": 2407.97,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "1.  **Macro Summary:** The current macro environment is characterized by a neutral monetary policy, rising inflation and GDP growth, easing liquidity, and a risk-on credit regime. The yield curve rema"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1153,
+      "completion_tokens": 76,
+      "thoughts_tokens": 0,
+      "total_tokens": 1229,
+      "latency_ms": 1503.72,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1708,
+      "completion_tokens": 684,
+      "thoughts_tokens": 0,
+      "total_tokens": 2392,
+      "latency_ms": 3489.33,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [],
+      "text_preview": "## NVIDIA (NVDA) - Fundamental Analysis\n\n### 1. Revenue & Growth Analysis\n\nNVIDIA demonstrates exceptional revenue growth, with a reported annual revenue of $215.94 billion, representing a 73.2% year-"
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2067,
+      "completion_tokens": 91,
+      "thoughts_tokens": 0,
+      "total_tokens": 2158,
+      "latency_ms": 1580.05,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "discount_rate": 0.1,
+            "terminal_growth": 0.03,
+            "growth_rate": 0.15,
+            "projection_years": 5,
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2605,
+      "completion_tokens": 802,
+      "thoughts_tokens": 0,
+      "total_tokens": 3407,
+      "latency_ms": 4132.0,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "1.  **DCF Valuation**\n\n    *   **Free Cash Flow (FCF) Used:** $58.13 billion\n    *   **Growth Rate:** 15.0% (reflecting strong fundamental growth)\n    *   **Discount Rate (WACC):** 10.0%\n    *   **Pro"
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2519,
+      "completion_tokens": 109,
+      "thoughts_tokens": 0,
+      "total_tokens": 2628,
+      "latency_ms": 1534.55,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "days": 20,
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4741,
+      "completion_tokens": 821,
+      "thoughts_tokens": 0,
+      "total_tokens": 5562,
+      "latency_ms": 4744.48,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "### NVIDIA (NVDA) - Technical Research Report\n\n**1. Trend Structure**\nNVDA is in a strong uptrend, with the current price of $225.32 significantly above its 20-day SMA ($210.3), 50-day SMA ($193.07), "
+    }
+  ]
+}

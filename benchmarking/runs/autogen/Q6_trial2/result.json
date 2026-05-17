@@ -1,0 +1,16 @@
+{
+  "framework": "autogen",
+  "query_id": "Q6",
+  "trial": 2,
+  "ok": true,
+  "error": null,
+  "attempts_used": 1,
+  "num_llm_calls": 19,
+  "prompt_tokens": 41827,
+  "completion_tokens": 4172,
+  "thoughts_tokens": 0,
+  "total_tokens": 45999,
+  "wall_ms": 50301.99,
+  "llm_latency_ms": 39783.29,
+  "response_chars": 9388
+}

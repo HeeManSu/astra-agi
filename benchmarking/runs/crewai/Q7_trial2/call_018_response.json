@@ -1,0 +1,56 @@
+{
+  "call_index": 18,
+  "latency_ms": 6127.27,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:17:42 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=6045",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Technical Analysis: AAPL, MSFT, and GOOGL\n\n### AAPL\n\n1.  **Trend Structure:** AAPL is in a strong uptrend. The current price (300.23) is above the 20-day SMA (281.36), 50-day SMA (265.97), and 200-day SMA (258.65). The 20-day SMA slope (1.4344) and 50-day SMA slope (0.4749) are positive, indicating upward momentum. The stock is at its 52-week high (300.23).\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 88.4, indicating the stock is significantly overbought.\n    *   **MACD:** MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), indicating a bullish crossover.\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 224.23, 200.7, and 193.5. The nearest support is 224.23.\n    *   **Resistance:** No clear resistance levels are identified as the stock is at its 52-week high.\n4.  **Volume Analysis:** Recent trading days show varying volume, with a notable spike on 2026-04-30 (91,848,200) and 2026-05-01 (79,915,400) during the recent upward move. The volume on 2026-05-15 was 54,721,100, which is higher than the average of the last 20 days.\n5.  **Entry Timing Quality:** Poor. The stock is significantly overbought (RSI 88.4) and at its 52-week high, suggesting a high risk of a pullback.\n6.  **Technical Risk Level:** High. The overbought RSI and extended price action without clear resistance indicate elevated risk.\n7.  **Technical Conviction Score (1-10):** 4\n\n### MSFT\n\n1.  **Trend Structure:** MSFT is in an uptrend, but the trend strength is currently classified as \"sideways\" based on moving averages. The current price (421.92) is above the 20-day SMA (417.41) and 50-day SMA (399.06), but below the 200-day SMA (461.91). The 20-day SMA slope (0.9795) and 50-day SMA slope (0.2627) are positive. The stock has shown higher highs.\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 48.1, indicating a neutral momentum.\n    *   **MACD:** MACD line (3.3845) is below the signal line (4.7006), with a negative histogram (-1.3161), indicating a bearish crossover.\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 394.72, 381.71, and 356.28. The nearest support is 394.72.\n    *   **Resistance:** Key resistance levels are identified at 514.26, 529.23, and 551.84. The nearest resistance is 514.26.\n4.  **Volume Analysis:** Volume has been mixed, with a notable spike on 2026-04-30 (70,909,400) and 2026-05-15 (50,310,800). The recent volume on 2026-05-15 is higher than the average of the last 20 days.\n5.  **Entry Timing Quality:** Neutral to Poor. The neutral RSI and bearish MACD crossover suggest caution. The price is currently in a sideways trend, making entry timing less clear.\n6.  **Technical Risk Level:** Moderate. The sideways trend and bearish MACD crossover suggest potential for further consolidation or downside.\n7.  **Technical Conviction Score (1-10):** 5\n\n### GOOGL\n\n1.  **Trend Structure:** GOOGL is in a strong uptrend. The current price (396.78) is significantly above the 20-day SMA (372.89), 50-day SMA (332.74), and 200-day SMA (291.06). The 20-day SMA slope (3.1709) and 50-day SMA slope (1.5903) are strongly positive. The stock is near its 52-week high (402.62).\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 75.5, indicating the stock is overbought.\n    *   **MACD:** MACD line (20.134) is above the signal line (19.7444), with a positive histogram (0.3897), indicating a bullish crossover.\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 187.4, 172.38, and 163.18. The nearest support is 187.4.\n    *   **Resistance:** No clear resistance levels are identified as the stock is near its 52-week high.\n4.  **Volume Analysis:** Volume has been strong during recent upward moves, with a significant spike on 2026-04-30 (72,040,000). The volume on 2026-05-15 was 20,205,600, which is lower than the average of the last 20 days.\n5.  **Entry Timing Quality:** Poor. The stock is overbought (RSI 75.5) and near its 52-week high, suggesting a high risk of a pullback.\n6.  **Technical Risk Level:** High. The overbought RSI and extended price action without clear resistance indicate elevated risk.\n7.  **Technical Conviction Score (1-10):** 4"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "0MIIap7mMOmojuMPlY-12Qo",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 12875
+        }
+      ],
+      "cached_content_token_count": 12875,
+      "candidates_token_count": 1513,
+      "prompt_token_count": 15006,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 15006
+        }
+      ],
+      "total_token_count": 16519
+    }
+  }
+}

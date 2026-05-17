@@ -1,0 +1,97 @@
+{
+  "call_index": 20,
+  "latency_ms": 3337.52,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:52:13 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3232",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1.  **Trend Structure:** MSFT is in a strong uptrend, with positive slopes for both the 20-day (0.9795) and 50-day (0.2627) SMAs. The stock has been making higher highs, confirming the uptrend. It is currently at 35.6% of its 52-week range.\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 48.1, which is in the neutral zone, indicating neither overbought nor oversold conditions.\n    *   **MACD:** MACD line (3.3845) is below the signal line (4.7006), with a negative histogram (-1.3161), indicating a bearish crossover. This suggests a recent weakening of upward momentum or a potential short-term downtrend.\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are at 394.72, 381.71, and 356.28. The nearest support is 394.72.\n    *   **Resistance:** Key resistance levels are at 514.26, 529.23, and 551.84. The nearest resistance is 514.26.\n4.  **Volume Analysis:** Volume has been mixed, with some higher volume days (e.g., 70.9M on 2026-04-30) during price declines, which could indicate selling pressure. The most recent day (2026-05-15) saw 50.3M volume on a closing price increase.\n5.  **Entry Timing Quality:** Neutral to Poor. While the overall trend is strong, the bearish MACD crossover suggests caution for immediate entry.\n6.  **Technical Risk Level:** Moderate. The strong uptrend provides a buffer, but the bearish MACD crossover and proximity to support levels warrant attention.\n7.  **Technical Conviction Score (1-10):** 6\n\n### GOOGL\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL",
+                  "days": 20
+                },
+                "name": "get_price_history"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "GvUIatDmMemojuMPlY-12Qo",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2839
+        }
+      ],
+      "cached_content_token_count": 2839,
+      "candidates_token_count": 568,
+      "prompt_token_count": 5435,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5435
+        }
+      ],
+      "total_token_count": 6003
+    }
+  }
+}

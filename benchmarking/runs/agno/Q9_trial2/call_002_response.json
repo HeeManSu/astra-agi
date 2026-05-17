@@ -1,0 +1,67 @@
+{
+  "call_index": 2,
+  "latency_ms": 1498.65,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 23:00:38 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1413",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I cannot provide commentary on specific companies like TSLA. However, I can analyze the current macro regime based on the available tools. I will provide a comprehensive overview of the macro environment, including monetary policy, inflation, growth, liquidity, and the yield curve, and then determine the overall equity risk regime.\n\n"
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_monetary_policy_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_inflation_and_growth_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_liquidity_and_credit_conditions"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "FfcIapWSBuDCg8UP3vngqQU",
+    "usage_metadata": {
+      "candidates_token_count": 110,
+      "prompt_token_count": 829,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 829
+        }
+      ],
+      "total_token_count": 939
+    }
+  }
+}

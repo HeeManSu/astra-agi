@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 14749,
+  "completion_tokens": 4000,
+  "thoughts_tokens": 0,
+  "total_tokens": 18749,
+  "llm_latency_ms": 17348.19,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3982,
+      "completion_tokens": 1544,
+      "thoughts_tokens": 0,
+      "total_tokens": 5526,
+      "latency_ms": 6650.79,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\n  \"status\": \"success\",\n  \"summary\": \"The Research Team will produce a full research packet for NVDA by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst seque"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5481,
+      "completion_tokens": 877,
+      "thoughts_tokens": 0,
+      "total_tokens": 6358,
+      "latency_ms": 4148.92,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_strategist_step_1 = macro_strategist.get_monetary_policy_data()\nmacro_strategist_step_2 = macro_strategist.get_inflation_and_growth_data()\nmacro_strategist_step_3 = macro_strategist.get_liquidit"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5286,
+      "completion_tokens": 1579,
+      "thoughts_tokens": 0,
+      "total_tokens": 6865,
+      "latency_ms": 6548.48,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "## 1. MACRO ANALYSIS\n\n**Macro Summary:** The macro environment is characterized by a neutral monetary policy stance, rising inflation and GDP growth, and easing liquidity conditions. The yield curve s"
+    }
+  ]
+}

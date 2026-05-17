@@ -1,0 +1,55 @@
+{
+  "call_index": 1,
+  "latency_ms": 1850.61,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:57:19 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1727",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "task": "Analyze the current macro regime (interest rates, inflation, GDP growth, and liquidity) and provide an outlook for the next 12-18 months. This analysis should set the stage for evaluating technology companies like AAPL, MSFT, and GOOGL. Focus on how these macro factors might impact the broader technology sector and, specifically, these large-cap tech giants. The output should be a comprehensive macro analysis report.",
+                  "member_id": "macro-strategist"
+                },
+                "name": "delegate_task_to_member"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "TfYIarmSKYSxjuMP1pX7eA",
+    "usage_metadata": {
+      "candidates_token_count": 114,
+      "prompt_token_count": 814,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 814
+        }
+      ],
+      "total_token_count": 928
+    }
+  }
+}

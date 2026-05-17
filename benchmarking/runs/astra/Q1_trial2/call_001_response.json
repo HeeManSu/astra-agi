@@ -1,0 +1,50 @@
+{
+  "call_index": 1,
+  "latency_ms": 6801.85,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:30:39 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=6716",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\n  \"status\": \"success\",\n  \"summary\": \"The Research Team will produce a full research packet for AAPL by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst sequentially. Each analyst will use their specialized tools to gather data and generate their respective sections of the report, with the output of prior analysts informing the subsequent ones.\",\n  \"steps\": [\n    {\n      \"id\": 1,\n      \"agent\": \"macro-strategist\",\n      \"tool_name\": \"get_monetary_policy_data\",\n      \"tool_slug\": \"get-monetary-policy-data\",\n      \"purpose\": \"Gather current monetary policy data to establish the macro regime.\",\n      \"depends_on\": []\n    },\n    {\n      \"id\": 2,\n      \"agent\": \"macro-strategist\",\n      \"tool_name\": \"get_inflation_and_growth_data\",\n      \"tool_slug\": \"get-inflation-and-growth-data\",\n      \"purpose\": \"Gather current inflation and growth data to establish the macro regime.\",\n      \"depends_on\": [\n        1\n      ]\n    },\n    {\n      \"id\": 3,\n      \"agent\": \"macro-strategist\",\n      \"tool_name\": \"get_liquidity_and_credit_conditions\",\n      \"tool_slug\": \"get-liquidity-and-credit-conditions\",\n      \"purpose\": \"Gather current liquidity and credit conditions to establish the macro regime.\",\n      \"depends_on\": [\n        2\n      ]\n    },\n    {\n      \"id\": 4,\n      \"agent\": \"financial-analyst\",\n      \"tool_name\": \"get_financial_statements\",\n      \"tool_slug\": \"get-financial-statements\",\n      \"purpose\": \"Retrieve income statement and cash flow highlights for AAPL.\",\n      \"depends_on\": [\n        3\n      ]\n    },\n    {\n      \"id\": 5,\n      \"agent\": \"financial-analyst\",\n      \"tool_name\": \"get_key_financial_metrics\",\n      \"tool_slug\": \"get-key-financial-metrics\",\n      \"purpose\": \"Retrieve profitability and efficiency metrics for AAPL.\",\n      \"depends_on\": [\n        4\n      ]\n    },\n    {\n      \"id\": 6,\n      \"agent\": \"financial-analyst\",\n      \"tool_name\": \"get_growth_metrics\",\n      \"tool_slug\": \"get-growth-metrics\",\n      \"purpose\": \"Retrieve growth rates for AAPL.\",\n      \"depends_on\": [\n        5\n      ]\n    },\n    {\n      \"id\": 7,\n      \"agent\": \"financial-analyst\",\n      \"tool_name\": \"get_balance_sheet_strength\",\n      \"tool_slug\": \"get-balance-sheet-strength\",\n      \"purpose\": \"Retrieve balance sheet health for AAPL.\",\n      \"depends_on\": [\n        6\n      ]\n    },\n    {\n      \"id\": 8,\n      \"agent\": \"valuation-analyst\",\n      \"tool_name\": \"get_current_market_data\",\n      \"tool_slug\": \"get-current-market-data\",\n      \"purpose\": \"Get current market data for AAPL to support valuation analysis.\",\n      \"depends_on\": [\n        7\n      ]\n    },\n    {\n      \"id\": 9,\n      \"agent\": \"valuation-analyst\",\n      \"tool_name\": \"calculate_dcf\",\n      \"tool_slug\": \"calculate-dcf\",\n      \"purpose\": \"Perform a Discounted Cash Flow (DCF) valuation for AAPL.\",\n      \"depends_on\": [\n        8\n      ]\n    },\n    {\n      \"id\": 10,\n      \"agent\": \"valuation-analyst\",\n      \"tool_name\": \"calculate_multiple_valuation\",\n      \"tool_slug\": \"calculate-multiple-valuation\",\n      \"purpose\": \"Calculate relative valuation using price multiples for AAPL.\",\n      \"depends_on\": [\n        9\n      ]\n    },\n    {\n      \"id\": 11,\n      \"agent\": \"valuation-analyst\",\n      \"tool_name\": \"calculate_margin_of_safety\",\n      \"tool_slug\": \"calculate-margin-of-safety\",\n      \"purpose\": \"Calculate the margin of safety for AAPL based on DCF and current price.\",\n      \"depends_on\": [\n        10\n      ]\n    },\n    {\n      \"id\": 12,\n      \"agent\": \"technical-analyst\",\n      \"tool_name\": \"get_price_history\",\n      \"tool_slug\": \"get-price-history\",\n      \"purpose\": \"Retrieve recent OHLCV price data for AAPL.\",\n      \"depends_on\": [\n        11\n      ]\n    },\n    {\n      \"id\": 13,\n      \"agent\": \"technical-analyst\",\n      \"tool_name\": \"calculate_rsi\",\n      \"tool_slug\": \"calculate-rsi\",\n      \"purpose\": \"Calculate the Relative Strength Index (RSI) for AAPL.\",\n      \"depends_on\": [\n        12\n      ]\n    },\n    {\n      \"id\": 14,\n      \"agent\": \"technical-analyst\",\n      \"tool_name\": \"calculate_macd\",\n      \"tool_slug\": \"calculate-macd\",\n      \"purpose\": \"Calculate MACD for AAPL.\",\n      \"depends_on\": [\n        13\n      ]\n    },\n    {\n      \"id\": 15,\n      \"agent\": \"technical-analyst\",\n      \"tool_name\": \"calculate_moving_averages\",\n      \"tool_slug\": \"calculate-moving-averages\",\n      \"purpose\": \"Calculate moving averages and classify the trend for AAPL.\",\n      \"depends_on\": [\n        14\n      ]\n    },\n    {\n      \"id\": 16,\n      \"agent\": \"technical-analyst\",\n      \"tool_name\": \"detect_trend\",\n      \"tool_slug\": \"detect-trend\",\n      \"purpose\": \"Detect the current price trend for AAPL.\",\n      \"depends_on\": [\n        15\n      ]\n    },\n    {\n      \"id\": 17,\n      \"agent\": \"technical-analyst\",\n      \"tool_name\": \"detect_support_resistance\",\n      \"tool_slug\": \"detect-support-resistance\",\n      \"purpose\": \"Detect key support and resistance levels for AAPL.\",\n      \"depends_on\": [\n        16\n      ]\n    }\n  ]\n}"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "2MUIaoC7Ia23qfkPzrfGqAM",
+    "usage_metadata": {
+      "candidates_token_count": 1548,
+      "prompt_token_count": 3982,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3982
+        }
+      ],
+      "total_token_count": 5530
+    },
+    "automatic_function_calling_history": []
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "call_index": 10,
+  "latency_ms": 1929.68,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:10:46 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1910",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "coworker": "Valuation Analyst",
+                  "task": "Determine intrinsic value and margin of safety for NVDA. Use the valuation tools to run DCF and comparable multiples. Produce the structured output specified in your backstory.",
+                  "context": "The current task is to determine the intrinsic value and margin of safety for NVDA. This analysis will be used as context for a full research report on NVDA. The output should be a structured valuation packet with sections: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict. The macro environment is characterized by a neutral monetary policy, rising inflation and growth, easing liquidity, and a risk-on equity regime. NVDA shows strong revenue and earnings growth, high profitability, strong cash flow, and a solid balance sheet with good liquidity despite a relatively high debt-to-equity ratio."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "NMEIasapGtflg8UPy9Dn0QM",
+    "usage_metadata": {
+      "candidates_token_count": 197,
+      "prompt_token_count": 3989,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3989
+        }
+      ],
+      "total_token_count": 4186
+    }
+  }
+}

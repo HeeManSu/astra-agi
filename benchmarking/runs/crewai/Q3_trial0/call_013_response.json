@@ -1,0 +1,56 @@
+{
+  "call_index": 13,
+  "latency_ms": 2082.08,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:09:10 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2059",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "context": "The current task is to assess price action, momentum, and technical structure for NVDA. This will be part of a full research report. The output should be a structured technical report with sections: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10). Do not discuss fundamentals, valuation, or macro. The macro environment is 'Risk-On'. NVDA has strong fundamentals but appears significantly overvalued based on DCF, with a current price of $225.32.",
+                  "coworker": "Technical Analyst",
+                  "task": "Assess price action, momentum, and technical structure for NVDA. Use the technical tools to compute indicators (RSI, MACD, moving averages) and identify trend, support, and resistance. Produce the structured output specified in your backstory. Do not discuss fundamentals, valuation, or macro."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "1MAIavCWMYybjuMPz-bLYQ",
+    "usage_metadata": {
+      "candidates_token_count": 206,
+      "prompt_token_count": 7174,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 7174
+        }
+      ],
+      "total_token_count": 7380
+    }
+  }
+}

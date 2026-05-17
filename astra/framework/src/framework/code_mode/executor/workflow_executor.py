@@ -215,6 +215,14 @@ async def _execute_action(
             if key.lower() == lowered:
                 tool_fn = fn
                 break
+    if tool_fn is None and "." in node.tool:
+        # Fallback: synthesize_response is a top-level terminal function,
+        # but on more complex queries (especially conditional ones) the LLM
+        # occasionally prefixes it with an agent name as if it were a method
+        # call. Strip the prefix and try the bare name.
+        suffix = node.tool.split(".")[-1]
+        if suffix == "synthesize_response":
+            tool_fn = tools.get("synthesize_response")
     if tool_fn is None:
         raise ValueError(f"Tool not found: '{node.tool}'")
 

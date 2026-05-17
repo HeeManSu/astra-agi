@@ -1,0 +1,49 @@
+{
+  "call_index": 17,
+  "latency_ms": 3848.37,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:46:05 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3826",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### 1. Trend Structure\n\nAAPL is currently in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope is 1.4344, and the 50-day SMA slope is 0.4749, both indicating upward momentum. The stock is at its 52-week high, representing 100% of its 52-week range.\n\n### 2. Momentum Indicators (RSI, MACD)\n\n*   **RSI:** The 14-period RSI is 88.4, indicating that AAPL is significantly overbought.\n*   **MACD:** The MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), signaling a bullish crossover.\n\n### 3. Support & Resistance\n\n*   **Current Price:** $300.23\n*   **Support Levels:** Key support levels are identified at $224.23, $200.70, and $193.50. The nearest support is $224.23.\n*   **Resistance Levels:** There are no identified resistance levels as the stock is at its 52-week high.\n\n### 4. Volume Analysis\n\nOver the last 20 trading days, daily volume has fluctuated. Notable high volume days include April 30th (91.85M), May 1st (79.92M), and May 6th (58.34M). The most recent trading day (May 15th) saw a volume of 54.72M, which is above the average for the period. The increased volume on recent upward price movements supports the current uptrend.\n\n### 5. Entry Timing Quality\n\nGiven the RSI of 88.4, AAPL is currently in an overbought condition, suggesting that an immediate entry might carry increased risk of a short-term pullback. While the MACD shows a bullish crossover and the trend is strong, the overbought RSI warrants caution for new long positions.\n\n### 6. Technical Risk Level\n\nThe technical risk level is **High**. The stock is significantly overbought according to the RSI, and while in a strong uptrend, being at the 52-week high with no clear resistance above could lead to increased volatility or a sharp correction if momentum shifts.\n\n### 7. Technical Conviction Score (1-10)\n\n**6/10**\n\nWhile the trend is strong and MACD is bullish, the extremely overbought RSI indicates a high probability of a near-term pullback, which reduces the conviction for new long entries at the current price."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "Wa0IaoHQD_uLqfkPgaGhUQ",
+    "usage_metadata": {
+      "candidates_token_count": 641,
+      "prompt_token_count": 4349,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 4349
+        }
+      ],
+      "total_token_count": 4990
+    }
+  }
+}

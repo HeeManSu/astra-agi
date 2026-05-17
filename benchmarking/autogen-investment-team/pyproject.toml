@@ -1,0 +1,35 @@
+[project]
+name = "autogen-investment-team"
+version = "1.0.0"
+requires-python = ">=3.12,<4"
+description = "AutoGen v0.4 investment research team — benchmark against Astra, Agno, CrewAI, LangGraph"
+
+dependencies = [
+  "autogen-agentchat>=0.7,<0.8",
+  "autogen-core>=0.7,<0.8",
+  "autogen-ext[gemini]>=0.7,<0.8",
+  "google-genai",
+  "bench-harness",
+  "yfinance",
+  "fredapi",
+  "pandas",
+  "pydantic",
+  "python-dotenv",
+]
+
+[tool.uv.sources]
+bench-harness = { path = "../harness", editable = true }
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agents*", "teams*", "tools*", "context*"]
+
+[tool.ruff]
+line-length = 120
+exclude = [".venv*"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]

@@ -1,0 +1,49 @@
+{
+  "call_index": 8,
+  "latency_ms": 3439.09,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:48:25 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3399",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### MSFT - Fundamental Analysis\n\n1.  **Revenue & Growth Analysis**\n    *   **Revenue:** $318.27 billion\n    *   **Revenue Growth:** 18.3%\n    *   **Earnings Growth:** 23.4%\n    *   **Quarterly Earnings Growth:** 23.1%\n    *   Microsoft demonstrates strong top-line and bottom-line growth, with both revenue and earnings growing at a healthy double-digit pace.\n\n2.  **Profitability (Margins, ROIC)**\n    *   **Gross Margin:** 68.3%\n    *   **Operating Margin:** 46.3%\n    *   **Net Margin:** 39.3%\n    *   **EBITDA Margin:** 58.0%\n    *   **Return on Equity (ROE):** 34.0%\n    *   **Return on Assets (ROA):** 14.8%\n    *   Microsoft exhibits excellent profitability across all margin metrics, indicating efficient operations and strong pricing power. The high ROE and ROA suggest effective asset utilization and shareholder value creation.\n\n3.  **Cash Flow Strength**\n    *   **Operating Cash Flow:** $170.14 billion\n    *   **Free Cash Flow:** $37.01 billion\n    *   The company generates substantial operating cash flow, indicating a strong ability to fund its operations and investments internally. While free cash flow is positive, it is significantly lower than operating cash flow, suggesting considerable capital expenditures.\n\n4.  **Balance Sheet Quality**\n    *   **Total Cash:** $78.23 billion\n    *   **Total Debt:** $125.43 billion\n    *   **Net Cash:** -$47.20 billion\n    *   **Debt-to-Equity:** 30.27%\n    *   **Current Ratio:** 1.283\n    *   Microsoft has a solid balance sheet with a healthy cash position, although it carries more debt than cash. The debt-to-equity ratio is manageable, and the current ratio indicates good short-term liquidity.\n\n5.  **Earnings Stability**\n    *   **Trailing EPS:** $16.79\n    *   **Forward EPS:** $19.37\n    *   The consistent growth in earnings and the positive outlook for forward EPS suggest strong earnings stability.\n\n6.  **Financial Risk Factors**\n    *   The primary financial risk factor is the net debt position of -$47.20 billion. While manageable given the company's strong cash flow generation, it's a factor to monitor.\n\n7.  **Conviction Score (1-10)**\n    *   8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "5a0IatS2KrO1g8UP1N2tMA",
+    "usage_metadata": {
+      "candidates_token_count": 597,
+      "prompt_token_count": 1831,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1831
+        }
+      ],
+      "total_token_count": 2428
+    }
+  }
+}

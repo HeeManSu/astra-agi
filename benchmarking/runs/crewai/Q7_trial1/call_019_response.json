@@ -1,0 +1,56 @@
+{
+  "call_index": 19,
+  "latency_ms": 6764.58,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:16:29 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=6686",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## AAPL Technical Analysis\n\n1.  **Trend Structure:** AAPL is in a strong uptrend. The current price (300.23) is above the 20-day SMA (281.36), 50-day SMA (265.97), and 200-day SMA (258.65). The 20-day SMA slope (1.4344) and 50-day SMA slope (0.4749) confirm upward momentum. The stock is at its 52-week high.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 88.4, indicating the stock is significantly overbought.\n    *   **MACD:** MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), indicating bullish momentum. A bullish crossover has occurred.\n\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 224.23, 200.7, and 193.5. The nearest support is 224.23.\n    *   **Resistance:** No clear resistance levels are identified as the stock is at its 52-week high.\n\n4.  **Volume Analysis:** Over the last 20 trading days, volume has been mixed. There was a significant spike in volume on April 30th (91.85M) and May 1st (79.92M) during a price increase, and another spike on May 15th (54.72M) as the price reached its current high. This suggests strong buying interest accompanying the recent price appreciation.\n\n5.  **Entry Timing Quality:** Poor. The stock is significantly overbought according to the RSI (88.4) and trading at its 52-week high. While MACD shows bullish momentum, the extended RSI suggests a high probability of a pullback or consolidation in the near term.\n\n6.  **Technical Risk Level:** High. The overbought RSI and the stock trading at its 52-week high indicate an elevated risk of a correction.\n\n7.  **Technical Conviction Score (1-10):** 4 - While the trend is strong and MACD is bullish, the extremely overbought RSI and lack of overhead resistance (due to being at 52-week highs) suggest caution.\n\n## MSFT Technical Analysis\n\n1.  **Trend Structure:** MSFT is in a strong uptrend based on the trend detection, but moving averages classify it as sideways. The current price (421.92) is above the 20-day SMA (417.41) and 50-day SMA (399.06), but below the 200-day SMA (461.91). The 20-day SMA slope (0.9795) and 50-day SMA slope (0.2627) are positive. The stock is at 35.6% of its 52-week range.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 48.1, indicating a neutral momentum.\n    *   **MACD:** MACD line (3.3845) is below the signal line (4.7006), with a negative histogram (-1.3161), indicating bearish momentum. A bearish crossover has occurred.\n\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 394.72, 381.71, and 356.28. The nearest support is 394.72.\n    *   **Resistance:** Key resistance levels are identified at 514.26, 529.23, and 551.84. The nearest resistance is 514.26.\n\n4.  **Volume Analysis:** Volume has been mixed over the last 20 trading days. There was a notable spike on April 30th (70.91M) during a price decline, and another spike on May 15th (50.31M) during a price increase. This suggests some indecision and increased activity around price swings.\n\n5.  **Entry Timing Quality:** Neutral to Poor. The neutral RSI and bearish MACD crossover suggest a lack of immediate upward momentum. While the price is above short-term moving averages, the position below the 200-day SMA and the bearish MACD indicate caution.\n\n6.  **Technical Risk Level:** Moderate. The bearish MACD crossover and neutral RSI suggest potential for further downside or continued consolidation.\n\n7.  **Technical Conviction Score (1-10):** 5 - The mixed signals from trend classification and momentum indicators suggest a neutral to slightly cautious outlook.\n\n## GOOGL Technical Analysis\n\n1.  **Trend Structure:** GOOGL is in a strong uptrend. The current price (396.78) is significantly above the 20-day SMA (372.89), 50-day SMA (332.74), and 200-day SMA (291.06). The 20-day SMA slope (3.1709) and 50-day SMA slope (1.5903) are strongly positive. The stock is at 97.6% of its 52-week range.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** 75.5, indicating the stock is overbought.\n    *   **MACD:** MACD line (20.134) is above the signal line (19.7444), with a positive histogram (0.3897), indicating bullish momentum. A bullish crossover has occurred.\n\n3.  **Support & Resistance:**\n    *   **Support:** Key support levels are identified at 187.4, 172.38, and 163.18. The nearest support is 187.4.\n    *   **Resistance:** No clear resistance levels are identified as the stock is near its 52-week high.\n\n4.  **Volume Analysis:** Volume has been elevated during recent price increases. There was a significant spike on April 30th (72.04M) during a sharp price increase, and consistent moderate to high volume during the subsequent uptrend. This indicates strong buying pressure supporting the current trend.\n\n5.  **Entry Timing Quality:** Poor. The stock is overbought according to the RSI (75.5) and trading near its 52-week high. While MACD is bullish, the extended RSI suggests a high probability of a pullback or consolidation.\n\n6.  **Technical Risk Level:** High. The overbought RSI and the stock trading near its 52-week high indicate an elevated risk of a correction.\n\n7.  **Technical Conviction Score (1-10):** 6 - The strong uptrend and bullish MACD are compelling, but the overbought RSI warrants caution."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "hsIIar-8OLi3juMP8Yzm0Qo",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 13900
+        }
+      ],
+      "cached_content_token_count": 13900,
+      "candidates_token_count": 1610,
+      "prompt_token_count": 16248,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 16248
+        }
+      ],
+      "total_token_count": 17858
+    }
+  }
+}

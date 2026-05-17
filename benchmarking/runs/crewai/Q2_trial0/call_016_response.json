@@ -1,0 +1,49 @@
+{
+  "call_index": 16,
+  "latency_ms": 3710.73,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:06:58 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3579",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1.  **Trend Structure**\n    *   **Overall Trend:** MSFT is in a strong uptrend, characterized by higher highs and a 20-day SMA slope of 0.9795 and a 50-day SMA slope of 0.2627.\n    *   **Moving Averages:** Current price ($421.92) is above the 20-day SMA ($417.41) and 50-day SMA ($399.06), but below the 200-day SMA ($461.91). This indicates a short-to-medium term bullish bias within a longer-term sideways to slightly bearish context.\n    *   **52-Week Range:** The current price is at 35.6% of its 52-week range, with a 52-week high of $539.83 and a low of $356.77.\n\n2.  **Momentum Indicators**\n    *   **RSI (14-period):** The RSI is 48.1, indicating a neutral momentum. It is neither overbought nor oversold.\n    *   **MACD (12/26/9):** The MACD line (3.3845) is below the signal line (4.7006), and the histogram is negative (-1.3161). This indicates a bearish crossover, suggesting weakening momentum.\n\n3.  **Support & Resistance**\n    *   **Current Price:** $421.92\n    *   **Nearest Support:** $394.72\n    *   **Key Support Levels:** $356.28, $381.71, $394.72\n    *   **Nearest Resistance:** $514.26\n    *   **Key Resistance Levels:** $514.26, $529.23, $551.84\n\n4.  **Volume Analysis**\n    *   Over the last 20 trading days, daily volume has fluctuated. The highest volume day was 2026-04-30 with 70,909,400 shares, coinciding with a significant price drop. The most recent trading day (2026-05-15) saw a volume of 50,310,800, which is higher than the average for the period, accompanying a price increase. This suggests increased interest on recent upward movement.\n\n5.  **Entry Timing Quality**\n    *   The bearish MACD crossover and the price being below the 200-day SMA suggest that while the short-term trend is up, there might be underlying weakness or a lack of strong conviction for a sustained upward move. The neutral RSI does not provide a strong signal for immediate entry.\n\n6.  **Technical Risk Level**\n    *   **Medium to High.** The bearish MACD crossover and the price trading below the 200-day SMA introduce a degree of risk, despite the short-term uptrend. The distance to the nearest resistance is substantial, while the nearest support is closer.\n\n7.  **Technical Conviction Score (1-10)**\n    *   **5/10.** The strong short-term uptrend and price above the 20 and 50-day SMAs are positive. However, the bearish MACD crossover, neutral RSI, and price below the 200-day SMA temper conviction."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "T8AIavi1Je-G4-EPxIGvoQk",
+    "usage_metadata": {
+      "candidates_token_count": 776,
+      "prompt_token_count": 7940,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 7940
+        }
+      ],
+      "total_token_count": 8716
+    }
+  }
+}

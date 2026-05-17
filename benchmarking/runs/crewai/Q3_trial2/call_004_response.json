@@ -1,0 +1,56 @@
+{
+  "call_index": 4,
+  "latency_ms": 2497.48,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:10:33 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2481",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy stance with stable rates and a positive yield curve spread. Inflation shows a rising trend, though core inflation remains below the headline figure. Economic growth is rising, accompanied by a moderate labor market. Liquidity conditions are easing, supporting a risk-on environment.\n\nMonetary Policy Assessment:\nThe Federal Funds Rate is at 3.64%, with a stable rate trend. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. The overall monetary policy stance is assessed as neutral.\n\nInflation & Growth Assessment:\nCPI year-over-year is 3.95% and is on a rising trend. Core CPI year-over-year is 2.99%. GDP growth quarter-over-quarter is 0.49% and is also on a rising trend. The unemployment rate is 4.3%, indicating a moderate trend in the labor market.\n\nLiquidity & Credit Conditions:\nThe Chicago Fed National Financial Conditions Index (NFCI) is -0.524, and the corporate credit spread is 0.76. The liquidity regime is currently easing, and the overall risk regime is classified as risk-on.\n\nYield Curve Interpretation:\nThe 10-year/2-year Treasury yield spread is positive at 0.47%, indicating a normal and healthy yield curve, which typically signals expectations of future economic growth.\n\nEquity Risk Regime:\nRisk-On\n\nConfidence Score:\n8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "J8EIasDYB_iG4-EP_fOjgAs",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 778
+        }
+      ],
+      "cached_content_token_count": 778,
+      "candidates_token_count": 342,
+      "prompt_token_count": 1430,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1430
+        }
+      ],
+      "total_token_count": 1772
+    }
+  }
+}

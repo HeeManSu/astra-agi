@@ -1,0 +1,16 @@
+[project]
+name = "bench-harness"
+version = "0.1.0"
+requires-python = ">=3.12,<4"
+description = "Shared measurement harness — TokenCounter (full SDK request/response capture)"
+
+dependencies = [
+  "google-genai",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["harness*"]

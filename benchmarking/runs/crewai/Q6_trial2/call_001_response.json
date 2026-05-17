@@ -1,0 +1,56 @@
+{
+  "call_index": 1,
+  "latency_ms": 1956.59,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:13:13 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1813",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "context": "The final output should be a structured macro assessment with sections: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10).",
+                  "coworker": "Macro Strategist",
+                  "task": "Assess the macro regime and equity risk environment relevant to comparing AAPL and MSFT head-to-head and producing a research report recommending which one is the better investment today. Use the macro data tools to gather current readings on monetary policy, inflation, growth, liquidity, and the yield curve. Produce the structured output specified in your backstory. Focus on the macro signal, do not discuss individual company details."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "x8EIat_KOPfYjuMP-NHBuQM",
+    "usage_metadata": {
+      "candidates_token_count": 155,
+      "prompt_token_count": 578,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 578
+        }
+      ],
+      "total_token_count": 733
+    }
+  }
+}

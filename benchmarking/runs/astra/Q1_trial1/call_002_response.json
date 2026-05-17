@@ -1,0 +1,50 @@
+{
+  "call_index": 2,
+  "latency_ms": 3610.26,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:30:14 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=3589",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "macro_strategist_step_1 = macro_strategist.get_monetary_policy_data()\nmacro_strategist_step_2 = macro_strategist.get_inflation_and_growth_data()\nmacro_strategist_step_3 = macro_strategist.get_liquidity_and_credit_conditions()\nfinancial_analyst_step_1 = financial_analyst.get_financial_statements(symbol='AAPL')\nfinancial_analyst_step_2 = financial_analyst.get_key_financial_metrics(symbol='AAPL')\nfinancial_analyst_step_3 = financial_analyst.get_growth_metrics(symbol='AAPL')\nfinancial_analyst_step_4 = financial_analyst.get_balance_sheet_strength(symbol='AAPL')\nvaluation_analyst_step_1 = valuation_analyst.get_current_market_data(symbol='AAPL')\nvaluation_analyst_step_2 = valuation_analyst.calculate_dcf(symbol='AAPL')\nvaluation_analyst_step_3 = valuation_analyst.calculate_multiple_valuation(symbol='AAPL')\nvaluation_analyst_step_4 = valuation_analyst.calculate_margin_of_safety(current_price=valuation_analyst_step_1.get('result', {}).get('current_price'), fair_value=valuation_analyst_step_2.get('result', {}).get('base_case'))\ntechnical_analyst_step_1 = technical_analyst.get_price_history(symbol='AAPL')\ntechnical_analyst_step_2 = technical_analyst.calculate_rsi(symbol='AAPL')\ntechnical_analyst_step_3 = technical_analyst.calculate_macd(symbol='AAPL')\ntechnical_analyst_step_4 = technical_analyst.calculate_moving_averages(symbol='AAPL')\ntechnical_analyst_step_5 = technical_analyst.detect_trend(symbol='AAPL')\ntechnical_analyst_step_6 = technical_analyst.detect_support_resistance(symbol='AAPL')\nsynthesize_response({\n    \"status\": \"success\",\n    \"results\": {\n        \"step_results\": {\n            \"macro_strategist_step_1\": macro_strategist_step_1,\n            \"macro_strategist_step_2\": macro_strategist_step_2,\n            \"macro_strategist_step_3\": macro_strategist_step_3,\n            \"financial_analyst_step_1\": financial_analyst_step_1,\n            \"financial_analyst_step_2\": financial_analyst_step_2,\n            \"financial_analyst_step_3\": financial_analyst_step_3,\n            \"financial_analyst_step_4\": financial_analyst_step_4,\n            \"valuation_analyst_step_1\": valuation_analyst_step_1,\n            \"valuation_analyst_step_2\": valuation_analyst_step_2,\n            \"valuation_analyst_step_3\": valuation_analyst_step_3,\n            \"valuation_analyst_step_4\": valuation_analyst_step_4,\n            \"technical_analyst_step_1\": technical_analyst_step_1,\n            \"technical_analyst_step_2\": technical_analyst_step_2,\n            \"technical_analyst_step_3\": technical_analyst_step_3,\n            \"technical_analyst_step_4\": technical_analyst_step_4,\n            \"technical_analyst_step_5\": technical_analyst_step_5,\n            \"technical_analyst_step_6\": technical_analyst_step_6\n        }\n    }\n})"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "w8UIauurFvzH4-EP7LW2gA0",
+    "usage_metadata": {
+      "candidates_token_count": 864,
+      "prompt_token_count": 5481,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5481
+        }
+      ],
+      "total_token_count": 6345
+    },
+    "automatic_function_calling_history": []
+  }
+}

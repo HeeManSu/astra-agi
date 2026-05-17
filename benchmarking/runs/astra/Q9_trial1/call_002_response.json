@@ -1,0 +1,50 @@
+{
+  "call_index": 2,
+  "latency_ms": 4103.63,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:38:29 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=4083",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "macro_data = macro_strategist.get_monetary_policy_data()\ninflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nliquidity_credit_data = macro_strategist.get_liquidity_and_credit_conditions()\nmacro_summary = str({\"monetary_policy\": macro_data, \"inflation_growth\": inflation_growth_data, \"liquidity_credit\": liquidity_credit_data})\nmacro_regime = liquidity_credit_data.get(\"result\", {}).get(\"risk_regime\")\nfinancial_statements = financial_analyst.get_financial_statements(symbol='TSLA')\nkey_financial_metrics = financial_analyst.get_key_financial_metrics(symbol='TSLA')\ngrowth_metrics = financial_analyst.get_growth_metrics(symbol='TSLA')\nbalance_sheet_strength = financial_analyst.get_balance_sheet_strength(symbol='TSLA')\ncurrent_market_data = valuation_analyst.get_current_market_data(symbol='TSLA')\ndcf_valuation = valuation_analyst.calculate_dcf(symbol='TSLA')\nmultiple_valuation = valuation_analyst.calculate_multiple_valuation(symbol='TSLA')\ncurrent_price = current_market_data.get(\"result\", {}).get(\"current_price\")\nfair_value = dcf_valuation.get(\"result\", {}).get(\"base_case\")\nmargin_of_safety = valuation_analyst.calculate_margin_of_safety(current_price=current_price, fair_value=fair_value)\nprice_history = technical_analyst.get_price_history(symbol='TSLA')\nrsi = technical_analyst.calculate_rsi(symbol='TSLA')\nmacd = technical_analyst.calculate_macd(symbol='TSLA')\nmoving_averages = technical_analyst.calculate_moving_averages(symbol='TSLA')\ntrend = technical_analyst.detect_trend(symbol='TSLA')\nsupport_resistance = technical_analyst.detect_support_resistance(symbol='TSLA')\nsynthesize_response({\n    \"status\": \"success\",\n    \"results\": {\n        \"step_results\": {\n            \"step_1\": macro_data,\n            \"step_2\": inflation_growth_data,\n            \"step_3\": liquidity_credit_data,\n            \"step_4\": macro_summary,\n            \"step_5\": macro_regime,\n            \"step_6\": financial_statements,\n            \"step_7\": key_financial_metrics,\n            \"step_8\": growth_metrics,\n            \"step_9\": balance_sheet_strength,\n            \"step_10\": current_market_data,\n            \"step_11\": dcf_valuation,\n            \"step_12\": multiple_valuation,\n            \"step_13\": current_price,\n            \"step_14\": fair_value,\n            \"step_15\": margin_of_safety,\n            \"step_16\": price_history,\n            \"step_17\": rsi,\n            \"step_18\": macd,\n            \"step_19\": moving_averages,\n            \"step_20\": trend,\n            \"step_21\": support_resistance\n        }\n    }\n})"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "sccIaoLOOdaNjuMP27qx4AM",
+    "usage_metadata": {
+      "candidates_token_count": 773,
+      "prompt_token_count": 5553,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5553
+        }
+      ],
+      "total_token_count": 6326
+    },
+    "automatic_function_calling_history": []
+  }
+}

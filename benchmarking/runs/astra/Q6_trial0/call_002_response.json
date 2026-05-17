@@ -1,0 +1,50 @@
+{
+  "call_index": 2,
+  "latency_ms": 6325.38,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:33:59 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=6295",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "step_1_macro_data_monetary = macro_strategist.get_monetary_policy_data()\nstep_2_macro_data_inflation_growth = macro_strategist.get_inflation_and_growth_data()\nstep_3_macro_data_liquidity_credit = macro_strategist.get_liquidity_and_credit_conditions()\nstep_4_aapl_financial_statements = financial_analyst.get_financial_statements(symbol='AAPL')\nstep_5_aapl_key_financial_metrics = financial_analyst.get_key_financial_metrics(symbol='AAPL')\nstep_6_aapl_growth_metrics = financial_analyst.get_growth_metrics(symbol='AAPL')\nstep_7_aapl_balance_sheet_strength = financial_analyst.get_balance_sheet_strength(symbol='AAPL')\nstep_8_msft_financial_statements = financial_analyst.get_financial_statements(symbol='MSFT')\nstep_9_msft_key_financial_metrics = financial_analyst.get_key_financial_metrics(symbol='MSFT')\nstep_10_msft_growth_metrics = financial_analyst.get_growth_metrics(symbol='MSFT')\nstep_11_msft_balance_sheet_strength = financial_analyst.get_balance_sheet_strength(symbol='MSFT')\nstep_12_aapl_current_market_data = valuation_analyst.get_current_market_data(symbol='AAPL')\nstep_13_aapl_dcf = valuation_analyst.calculate_dcf(symbol='AAPL')\nstep_14_aapl_multiple_valuation = valuation_analyst.calculate_multiple_valuation(symbol='AAPL')\nstep_15_aapl_margin_of_safety = valuation_analyst.calculate_margin_of_safety(current_price=step_12_aapl_current_market_data.get('result', {}).get('current_price'), fair_value=step_13_aapl_dcf.get('result', {}).get('base_case'))\nstep_16_msft_current_market_data = valuation_analyst.get_current_market_data(symbol='MSFT')\nstep_17_msft_dcf = valuation_analyst.calculate_dcf(symbol='MSFT')\nstep_18_msft_multiple_valuation = valuation_analyst.calculate_multiple_valuation(symbol='MSFT')\nstep_19_msft_margin_of_safety = valuation_analyst.calculate_margin_of_safety(current_price=step_16_msft_current_market_data.get('result', {}).get('current_price'), fair_value=step_17_msft_dcf.get('result', {}).get('base_case'))\nstep_20_aapl_price_history = technical_analyst.get_price_history(symbol='AAPL')\nstep_21_aapl_rsi = technical_analyst.calculate_rsi(symbol='AAPL')\nstep_22_aapl_macd = technical_analyst.calculate_macd(symbol='AAPL')\nstep_23_aapl_moving_averages = technical_analyst.calculate_moving_averages(symbol='AAPL')\nstep_24_aapl_trend = technical_analyst.detect_trend(symbol='AAPL')\nstep_25_aapl_support_resistance = technical_analyst.detect_support_resistance(symbol='AAPL')\nstep_26_msft_price_history = technical_analyst.get_price_history(symbol='MSFT')\nstep_27_msft_rsi = technical_analyst.calculate_rsi(symbol='MSFT')\nstep_28_msft_macd = technical_analyst.calculate_macd(symbol='MSFT')\nstep_29_msft_moving_averages = technical_analyst.calculate_moving_averages(symbol='MSFT')\nstep_30_msft_trend = technical_analyst.detect_trend(symbol='MSFT')\nstep_31_msft_support_resistance = technical_analyst.detect_support_resistance(symbol='MSFT')\nsynthesize_response({\n    \"status\": \"success\",\n    \"results\": {\n        \"step_results\": {\n            \"step_1\": step_1_macro_data_monetary,\n            \"step_2\": step_2_macro_data_inflation_growth,\n            \"step_3\": step_3_macro_data_liquidity_credit,\n            \"step_4\": step_4_aapl_financial_statements,\n            \"step_5\": step_5_aapl_key_financial_metrics,\n            \"step_6\": step_6_aapl_growth_metrics,\n            \"step_7\": step_7_aapl_balance_sheet_strength,\n            \"step_8\": step_8_msft_financial_statements,\n            \"step_9\": step_9_msft_key_financial_metrics,\n            \"step_10\": step_10_msft_growth_metrics,\n            \"step_11\": step_11_msft_balance_sheet_strength,\n            \"step_12\": step_12_aapl_current_market_data,\n            \"step_13\": step_13_aapl_dcf,\n            \"step_14\": step_14_aapl_multiple_valuation,\n            \"step_15\": step_15_aapl_margin_of_safety,\n            \"step_16\": step_16_msft_current_market_data,\n            \"step_17\": step_17_msft_dcf,\n            \"step_18\": step_18_msft_multiple_valuation,\n            \"step_19\": step_19_msft_margin_of_safety,\n            \"step_20\": step_20_aapl_price_history,\n            \"step_21\": step_21_aapl_rsi,\n            \"step_22\": step_22_aapl_macd,\n            \"step_23\": step_23_aapl_moving_averages,\n            \"step_24\": step_24_aapl_trend,\n            \"step_25\": step_25_aapl_support_resistance,\n            \"step_26\": step_26_msft_price_history,\n            \"step_27\": step_27_msft_rsi,\n            \"step_28\": step_28_msft_macd,\n            \"step_29\": step_29_msft_moving_averages,\n            \"step_30\": step_30_msft_trend,\n            \"step_31\": step_31_msft_support_resistance\n        }\n    }\n})"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "ocYIavq0IaKDjuMP7_fP6QM",
+    "usage_metadata": {
+      "candidates_token_count": 1632,
+      "prompt_token_count": 5530,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5530
+        }
+      ],
+      "total_token_count": 7162
+    },
+    "automatic_function_calling_history": []
+  }
+}

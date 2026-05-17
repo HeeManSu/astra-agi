@@ -1,0 +1,95 @@
+{
+  "call_index": 21,
+  "latency_ms": 1655.77,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 16:15:16 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1562",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "days": 20,
+                  "symbol": "GOOGL"
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_moving_averages"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "kukJaqmkLZrdg8UPloi-mA4",
+    "usage_metadata": {
+      "candidates_token_count": 115,
+      "prompt_token_count": 7938,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 7938
+        }
+      ],
+      "total_token_count": 8053
+    }
+  }
+}

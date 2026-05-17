@@ -1,0 +1,49 @@
+{
+  "call_index": 17,
+  "latency_ms": 5881.27,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:14:01 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=5844",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## AAPL Technical Analysis\n\n1.  **Trend Structure:** AAPL is in a strong uptrend. The current price (300.23) is significantly above its 20-day SMA (281.36), 50-day SMA (265.97), and 200-day SMA (258.65). Both the 20-day and 50-day SMA slopes are positive (1.4344 and 0.4749 respectively). The stock is at its 52-week high.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI (14):** 88.4, indicating AAPL is significantly overbought.\n    *   **MACD (12/26/9):** MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), indicating a bullish crossover.\n\n3.  **Support & Resistance:**\n    *   **Support Levels:** 224.23, 200.7, 193.5.\n    *   **Resistance Levels:** No clear resistance levels detected as the stock is at its 52-week high.\n\n4.  **Volume Analysis:** Over the last 20 trading days, volume has fluctuated. Recent days show increased volume on up moves (e.g., May 13th, May 15th), supporting the uptrend, but also some higher volume on down moves (e.g., April 30th).\n\n5.  **Entry Timing Quality:** Poor. The stock is overbought according to RSI and at its 52-week high, suggesting a high risk of a pullback. While MACD is bullish, the extended RSI is a significant concern for new long entries.\n\n6.  **Technical Risk Level:** High. The overbought RSI and the stock being at its 52-week high indicate elevated risk for new long positions. A correction or consolidation is likely.\n\n7.  **Technical Conviction Score (1-10):** 3 (Low conviction for new long positions due to overextended conditions, despite strong trend).\n\n## MSFT Technical Analysis\n\n1.  **Trend Structure:** MSFT is in an uptrend, but the trend strength is moderate. The current price (421.92) is above its 20-day SMA (417.41) and 50-day SMA (399.06), but below its 200-day SMA (461.91). The 20-day SMA slope is positive (0.9795), while the 50-day SMA slope is also positive (0.2627). The stock has shown higher highs but is only at 35.6% of its 52-week range.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI (14):** 48.1, indicating a neutral momentum.\n    *   **MACD (12/26/9):** MACD line (3.3845) is below the signal line (4.7006), with a negative histogram (-1.3161), indicating a bearish crossover.\n\n3.  **Support & Resistance:**\n    *   **Support Levels:** 394.72, 381.71, 356.28.\n    *   **Resistance Levels:** 514.26, 529.23, 551.84.\n    *   **Nearest Support:** 394.72.\n    *   **Nearest Resistance:** 514.26.\n\n4.  **Volume Analysis:** Volume has been mixed over the last 20 trading days. There was a significant spike in volume on April 30th during a down move, and another spike on May 15th during an up move. The overall volume pattern does not provide a strong directional signal.\n\n5.  **Entry Timing Quality:** Poor. While the RSI is neutral, the bearish MACD crossover and the price being below the 200-day SMA suggest caution. The stock is currently trading between its 50-day and 200-day SMAs, indicating a lack of clear strong upward momentum.\n\n6.  **Technical Risk Level:** Moderate. The bearish MACD crossover and the price trading below the 200-day SMA indicate potential for further downside or continued sideways movement.\n\n7.  **Technical Conviction Score (1-10):** 4 (Low to moderate conviction due to mixed signals and lack of strong upward momentum)."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "9MEIat7dBqXw4-EPgoPhiAk",
+    "usage_metadata": {
+      "candidates_token_count": 1057,
+      "prompt_token_count": 5299,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5299
+        }
+      ],
+      "total_token_count": 6356
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "call_index": 15,
+  "latency_ms": 2068.31,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:17:26 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2049",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a technical analysis that will feed into this larger report. The technical analysis should be structured as follows: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10). Do not discuss fundamentals, valuation, or macro. The companies to analyze are AAPL, MSFT, and GOOGL.",
+                  "coworker": "Technical Analyst",
+                  "task": "Assess price action, momentum, and technical structure for AAPL, MSFT, and GOOGL. Compute indicators (RSI, MACD, moving averages) and identify trend, support, and resistance. Produce a structured output with sections: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10)."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "xMIIao2NE76ug8UP-4_UkAs",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 987
+        }
+      ],
+      "cached_content_token_count": 987,
+      "candidates_token_count": 215,
+      "prompt_token_count": 13201,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 13201
+        }
+      ],
+      "total_token_count": 13416
+    }
+  }
+}

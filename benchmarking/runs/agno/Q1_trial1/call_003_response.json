@@ -1,0 +1,49 @@
+{
+  "call_index": 3,
+  "latency_ms": 2650.23,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 12:02:35 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2528",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1.  **Macro Summary:** The macro environment is characterized by a neutral monetary policy, rising inflation and GDP growth, and easing liquidity conditions. The yield curve is positively sloped.\n\n2.  **Monetary Policy Assessment:** The Fed Funds Rate is stable at 3.64%, indicating a neutral monetary policy stance.\n\n3.  **Inflation & Growth Assessment:** Both CPI (3.95% YoY) and core CPI (2.99% YoY) are rising, suggesting inflationary pressures. GDP growth is also rising at 0.49% QoQ, indicating positive economic momentum. The unemployment rate is moderate at 4.3%.\n\n4.  **Liquidity & Credit Conditions:** Financial conditions are easing with a Chicago Fed NFCI of -0.524 and a tight credit spread of 0.76. This points to an overall \"risk-on\" liquidity regime.\n\n5.  **Yield Curve Interpretation:** The 10Y-2Y treasury yield spread is positive at 0.47% (10Y at 4.47%, 2Y at 4.0%), indicating a normal, upward-sloping yield curve. This typically signals expectations of future economic growth.\n\n6.  **Equity Risk Regime:** Risk-On\n\n7.  **Confidence Score:** 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "Wa4JaofvHYr4juMP-tzDgQk",
+    "usage_metadata": {
+      "candidates_token_count": 280,
+      "prompt_token_count": 1145,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1145
+        }
+      ],
+      "total_token_count": 1425
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "call_index": 9,
+  "latency_ms": 1641.58,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:19:49 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1582",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "coworker": "Valuation Analyst",
+                  "context": "The current task is to analyze TSLA. The macro regime is currently 'risk-on', so the final verdict should emphasize upside targets and momentum. I need you to provide a structured valuation packet with sections: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict.",
+                  "task": "Determine intrinsic value and margin of safety for TSLA. Use the valuation tools to run DCF and comparable multiples."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "U8MIarzPI9K_juMPocTP2Ac",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 928
+        }
+      ],
+      "cached_content_token_count": 928,
+      "candidates_token_count": 125,
+      "prompt_token_count": 4453,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 4453
+        }
+      ],
+      "total_token_count": 4578
+    }
+  }
+}

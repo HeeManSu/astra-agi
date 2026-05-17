@@ -1,0 +1,393 @@
+{
+  "num_calls": 17,
+  "prompt_tokens": 28865,
+  "completion_tokens": 2465,
+  "thoughts_tokens": 0,
+  "total_tokens": 31330,
+  "llm_latency_ms": 27736.22,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 229,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 232,
+      "latency_ms": 1026.92,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "MacroStrategist"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 893,
+      "completion_tokens": 96,
+      "thoughts_tokens": 0,
+      "total_tokens": 989,
+      "latency_ms": 2044.68,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        }
+      ],
+      "text_preview": "1. Macro Summary:\nThe current macroeconomic environment indicates a complex interplay of factors. Monetary policy is restrictive, with the Fed Funds Rate at 5.5% and a tightening bias. Inflation shows"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1008,
+      "completion_tokens": 16,
+      "thoughts_tokens": 0,
+      "total_tokens": 1024,
+      "latency_ms": 949.37,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1134,
+      "completion_tokens": 17,
+      "thoughts_tokens": 0,
+      "total_tokens": 1151,
+      "latency_ms": 717.24,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1224,
+      "completion_tokens": 374,
+      "thoughts_tokens": 0,
+      "total_tokens": 1598,
+      "latency_ms": 2219.36,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary\nThe current macroeconomic environment is characterized by a neutral monetary policy stance with stable interest rates. Inflation is rising, though core inflation remains below 3%. GDP"
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 604,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 607,
+      "latency_ms": 1125.11,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "FinancialAnalyst"
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1302,
+      "completion_tokens": 72,
+      "thoughts_tokens": 0,
+      "total_tokens": 1374,
+      "latency_ms": 1553.48,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1847,
+      "completion_tokens": 421,
+      "thoughts_tokens": 0,
+      "total_tokens": 2268,
+      "latency_ms": 2322.48,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "### 1. Revenue & Growth Analysis\nAAPL reported revenue of $451.44B, representing a 16.6% year-over-year growth. Quarterly earnings growth stands at 19.4%, with a trailing EPS of $8.26 and a forward EP"
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1030,
+      "completion_tokens": 4,
+      "thoughts_tokens": 0,
+      "total_tokens": 1034,
+      "latency_ms": 1195.18,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [],
+      "text_preview": "ValuationAnalyst"
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1950,
+      "completion_tokens": 61,
+      "thoughts_tokens": 0,
+      "total_tokens": 2011,
+      "latency_ms": 1476.16,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "growth_rate": 0.07,
+            "projection_years": 5,
+            "terminal_growth": 0.03,
+            "discount_rate": 0.09,
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": "### 1. DCF Valuation\n\n"
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2140,
+      "completion_tokens": 17,
+      "thoughts_tokens": 0,
+      "total_tokens": 2157,
+      "latency_ms": 1066.12,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2287,
+      "completion_tokens": 19,
+      "thoughts_tokens": 0,
+      "total_tokens": 2306,
+      "latency_ms": 1092.99,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 13,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2486,
+      "completion_tokens": 38,
+      "thoughts_tokens": 0,
+      "total_tokens": 2524,
+      "latency_ms": 833.91,
+      "request_dump": "call_013_request.json",
+      "response_dump": "call_013_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_margin_of_safety",
+          "args": {
+            "current_price": 300.23,
+            "fair_value": 140.27
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 14,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2617,
+      "completion_tokens": 577,
+      "thoughts_tokens": 0,
+      "total_tokens": 3194,
+      "latency_ms": 2991.44,
+      "request_dump": "call_014_request.json",
+      "response_dump": "call_014_response.json",
+      "tool_calls": [],
+      "text_preview": "### 1. DCF Valuation\n\nUsing a 5-year projection, a 7% Free Cash Flow (FCF) growth rate, a 9% discount rate, and a 3% terminal growth rate, the DCF valuation for AAPL is as follows:\n\n*   **Bear Case In"
+    },
+    {
+      "call_index": 15,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1612,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 1615,
+      "latency_ms": 1202.0,
+      "request_dump": "call_015_request.json",
+      "response_dump": "call_015_response.json",
+      "tool_calls": [],
+      "text_preview": "TechnicalAnalyst"
+    },
+    {
+      "call_index": 16,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2153,
+      "completion_tokens": 103,
+      "thoughts_tokens": 0,
+      "total_tokens": 2256,
+      "latency_ms": 2071.41,
+      "request_dump": "call_016_request.json",
+      "response_dump": "call_016_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "AAPL",
+            "days": 20
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 17,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4349,
+      "completion_tokens": 641,
+      "thoughts_tokens": 0,
+      "total_tokens": 4990,
+      "latency_ms": 3848.37,
+      "request_dump": "call_017_request.json",
+      "response_dump": "call_017_response.json",
+      "tool_calls": [],
+      "text_preview": "### 1. Trend Structure\n\nAAPL is currently in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope is "
+    }
+  ]
+}

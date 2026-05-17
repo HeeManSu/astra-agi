@@ -1,0 +1,56 @@
+{
+  "call_index": 5,
+  "latency_ms": 1674.7,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:12:21 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1648",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "context": "The final output should be a structured fundamentals report with sections: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10).",
+                  "task": "Analyze the company fundamentals for AAPL and MSFT. Using the financial tools, evaluate revenue, margins, profitability, cash flow, balance sheet, and growth. Produce the structured output specified in your backstory. Focus on company fundamentals only.",
+                  "coworker": "Financial Analyst"
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "lMEIat_jEb6ug8UP-4_UkAs",
+    "usage_metadata": {
+      "candidates_token_count": 118,
+      "prompt_token_count": 2292,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2292
+        }
+      ],
+      "total_token_count": 2410
+    }
+  }
+}

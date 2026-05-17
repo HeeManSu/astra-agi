@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 17519,
+  "completion_tokens": 5615,
+  "thoughts_tokens": 0,
+  "total_tokens": 23134,
+  "llm_latency_ms": 22907.2,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3997,
+      "completion_tokens": 2038,
+      "thoughts_tokens": 0,
+      "total_tokens": 6035,
+      "latency_ms": 7565.68,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\"status\": \"success\", \"summary\": \"The Research Team will produce a comprehensive research packet comparing AAPL and MSFT. The Macro Strategist will first establish the macro regime. Then, for each sto"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5525,
+      "completion_tokens": 1307,
+      "thoughts_tokens": 0,
+      "total_tokens": 6832,
+      "latency_ms": 6211.49,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_regime = macro_strategist.get_monetary_policy_data()\ninflation_growth = macro_strategist.get_inflation_and_growth_data()\nliquidity_credit = macro_strategist.get_liquidity_and_credit_conditions()"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 7997,
+      "completion_tokens": 2270,
+      "thoughts_tokens": 0,
+      "total_tokens": 10267,
+      "latency_ms": 9130.03,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "Here is a research packet comparing AAPL and MSFT:\n\n## 1. MACRO ANALYSIS\n\n**Macro Summary**\nThe current macro regime indicates a neutral monetary policy stance with rising inflation and growth. Liquid"
+    }
+  ]
+}

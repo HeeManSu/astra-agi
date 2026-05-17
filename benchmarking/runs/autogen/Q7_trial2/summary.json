@@ -1,0 +1,742 @@
+{
+  "num_calls": 28,
+  "prompt_tokens": 111291,
+  "completion_tokens": 6508,
+  "thoughts_tokens": 0,
+  "total_tokens": 117799,
+  "llm_latency_ms": 80551.5,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 265,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 268,
+      "latency_ms": 1278.53,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "MacroStrategist"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 929,
+      "completion_tokens": 48,
+      "thoughts_tokens": 0,
+      "total_tokens": 977,
+      "latency_ms": 1576.14,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        },
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        },
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1256,
+      "completion_tokens": 385,
+      "thoughts_tokens": 0,
+      "total_tokens": 1641,
+      "latency_ms": 2729.36,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy stance, rising inflation and GDP growth, easing liquidity, and a risk-on credit environment. The yield cur"
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 651,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 654,
+      "latency_ms": 1283.99,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [],
+      "text_preview": "FinancialAnalyst"
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1349,
+      "completion_tokens": 228,
+      "thoughts_tokens": 0,
+      "total_tokens": 1577,
+      "latency_ms": 2325.88,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3016,
+      "completion_tokens": 1170,
+      "thoughts_tokens": 0,
+      "total_tokens": 4186,
+      "latency_ms": 4721.26,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "### AAPL\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue Growth: 16.6%\n    *   Earnings Growth: 21.8%\n    *   Quarterly Earnings Growth: 19.4%\n    *   Trailing EPS: $8.26\n    *   Forward EPS: $9.58"
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1826,
+      "completion_tokens": 4,
+      "thoughts_tokens": 0,
+      "total_tokens": 1830,
+      "latency_ms": 992.68,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [],
+      "text_preview": "ValuationAnalyst"
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2746,
+      "completion_tokens": 67,
+      "thoughts_tokens": 0,
+      "total_tokens": 2813,
+      "latency_ms": 1537.4,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "terminal_growth": 0.03,
+            "discount_rate": 0.09,
+            "growth_rate": 0.07,
+            "projection_years": 5,
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": "### AAPL\n\n1.  **DCF Valuation**\n    "
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2936,
+      "completion_tokens": 17,
+      "thoughts_tokens": 0,
+      "total_tokens": 2953,
+      "latency_ms": 1079.3,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3083,
+      "completion_tokens": 38,
+      "thoughts_tokens": 0,
+      "total_tokens": 3121,
+      "latency_ms": 1173.46,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_margin_of_safety",
+          "args": {
+            "current_price": 300.23,
+            "fair_value": 140.27
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3214,
+      "completion_tokens": 462,
+      "thoughts_tokens": 0,
+      "total_tokens": 3676,
+      "latency_ms": 26142.15,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "growth_rate": 0.08,
+            "projection_years": 5,
+            "terminal_growth": 0.03,
+            "symbol": "MSFT",
+            "discount_rate": 0.09
+          }
+        }
+      ],
+      "text_preview": "### AAPL Valuation\n\n1.  **DCF Valuation**\n    *   Using a discount rate of 9%, a FCF growth rate of 7% for 5 years, and a terminal growth rate of 3%, the intrinsic value per share is estimated as foll"
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3404,
+      "completion_tokens": 18,
+      "thoughts_tokens": 0,
+      "total_tokens": 3422,
+      "latency_ms": 1324.04,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "MSFT"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 13,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3554,
+      "completion_tokens": 38,
+      "thoughts_tokens": 0,
+      "total_tokens": 3592,
+      "latency_ms": 1225.84,
+      "request_dump": "call_013_request.json",
+      "response_dump": "call_013_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_margin_of_safety",
+          "args": {
+            "fair_value": 105.91,
+            "current_price": 421.92
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 14,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3685,
+      "completion_tokens": 54,
+      "thoughts_tokens": 0,
+      "total_tokens": 3739,
+      "latency_ms": 918.4,
+      "request_dump": "call_014_request.json",
+      "response_dump": "call_014_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "discount_rate": 0.09,
+            "terminal_growth": 0.03,
+            "symbol": "GOOGL",
+            "projection_years": 5,
+            "growth_rate": 0.1
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 15,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3877,
+      "completion_tokens": 19,
+      "thoughts_tokens": 0,
+      "total_tokens": 3896,
+      "latency_ms": 1206.55,
+      "request_dump": "call_015_request.json",
+      "response_dump": "call_015_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 16,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4030,
+      "completion_tokens": 38,
+      "thoughts_tokens": 0,
+      "total_tokens": 4068,
+      "latency_ms": 1311.64,
+      "request_dump": "call_016_request.json",
+      "response_dump": "call_016_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_margin_of_safety",
+          "args": {
+            "current_price": 396.78,
+            "fair_value": 110.79
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 17,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4161,
+      "completion_tokens": 1188,
+      "thoughts_tokens": 0,
+      "total_tokens": 5349,
+      "latency_ms": 5367.05,
+      "request_dump": "call_017_request.json",
+      "response_dump": "call_017_response.json",
+      "tool_calls": [],
+      "text_preview": "### AAPL\n\n1.  **DCF Valuation**\n    *   Using a discount rate of 9%, a FCF growth rate of 7% for 5 years, and a terminal growth rate of 3%, the intrinsic value per share is estimated as:\n        *   B"
+    },
+    {
+      "call_index": 18,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3019,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 3022,
+      "latency_ms": 1515.26,
+      "request_dump": "call_018_request.json",
+      "response_dump": "call_018_response.json",
+      "tool_calls": [],
+      "text_preview": "TechnicalAnalyst"
+    },
+    {
+      "call_index": 19,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3559,
+      "completion_tokens": 46,
+      "thoughts_tokens": 0,
+      "total_tokens": 3605,
+      "latency_ms": 1466.66,
+      "request_dump": "call_019_request.json",
+      "response_dump": "call_019_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": "### AAPL\n\n1.  **Trend Structure**\n    "
+    },
+    {
+      "call_index": 20,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3833,
+      "completion_tokens": 30,
+      "thoughts_tokens": 0,
+      "total_tokens": 3863,
+      "latency_ms": 1105.99,
+      "request_dump": "call_020_request.json",
+      "response_dump": "call_020_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 21,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3980,
+      "completion_tokens": 40,
+      "thoughts_tokens": 0,
+      "total_tokens": 4020,
+      "latency_ms": 1442.81,
+      "request_dump": "call_021_request.json",
+      "response_dump": "call_021_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "AAPL",
+            "days": 20
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 22,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5759,
+      "completion_tokens": 588,
+      "thoughts_tokens": 0,
+      "total_tokens": 6347,
+      "latency_ms": 3618.19,
+      "request_dump": "call_022_request.json",
+      "response_dump": "call_022_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "MSFT"
+          }
+        }
+      ],
+      "text_preview": "### AAPL\n\n1.  **Trend Structure**\n    AAPL is in a strong uptrend, with the current price of $300.23 significantly above its 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The "
+    },
+    {
+      "call_index": 23,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 6036,
+      "completion_tokens": 32,
+      "thoughts_tokens": 0,
+      "total_tokens": 6068,
+      "latency_ms": 1205.51,
+      "request_dump": "call_023_request.json",
+      "response_dump": "call_023_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "MSFT"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 24,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 6186,
+      "completion_tokens": 42,
+      "thoughts_tokens": 0,
+      "total_tokens": 6228,
+      "latency_ms": 1466.31,
+      "request_dump": "call_024_request.json",
+      "response_dump": "call_024_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "days": 20,
+            "symbol": "MSFT"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 25,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 7997,
+      "completion_tokens": 37,
+      "thoughts_tokens": 0,
+      "total_tokens": 8034,
+      "latency_ms": 1004.87,
+      "request_dump": "call_025_request.json",
+      "response_dump": "call_025_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 26,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 8279,
+      "completion_tokens": 34,
+      "thoughts_tokens": 0,
+      "total_tokens": 8313,
+      "latency_ms": 983.2,
+      "request_dump": "call_026_request.json",
+      "response_dump": "call_026_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 27,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 8435,
+      "completion_tokens": 44,
+      "thoughts_tokens": 0,
+      "total_tokens": 8479,
+      "latency_ms": 1531.41,
+      "request_dump": "call_027_request.json",
+      "response_dump": "call_027_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "days": 20,
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 28,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 10226,
+      "completion_tokens": 1832,
+      "thoughts_tokens": 0,
+      "total_tokens": 12058,
+      "latency_ms": 9017.62,
+      "request_dump": "call_028_request.json",
+      "response_dump": "call_028_response.json",
+      "tool_calls": [],
+      "text_preview": "### AAPL\n\n1.  **Trend Structure**\n    AAPL is in a strong uptrend, with the current price of $300.23 significantly above its 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The "
+    }
+  ]
+}

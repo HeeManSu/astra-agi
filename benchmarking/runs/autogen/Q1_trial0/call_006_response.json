@@ -1,0 +1,49 @@
+{
+  "call_index": 6,
+  "latency_ms": 3197.52,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:44:44 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3077",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### 1. Revenue & Growth Analysis\n\nApple (AAPL) demonstrates strong revenue growth of 16.6% and even more robust earnings growth of 21.8%. Quarterly earnings growth is also healthy at 19.4%, indicating consistent performance.\n\n### 2. Profitability (Margins, ROIC)\n\nAAPL exhibits excellent profitability with a gross margin of 47.9%, an operating margin of 32.3%, and a net margin of 27.2%. The EBITDA margin stands at 35.4%. Return on Equity (ROE) is exceptionally high at 141.5%, and Return on Assets (ROA) is a solid 26.2%.\n\n### 3. Cash Flow Strength\n\nAAPL generates substantial cash flow, with operating cash flow at $140.22 billion and free cash flow at $101.09 billion, indicating strong liquidity and ability to fund operations and investments.\n\n### 4. Balance Sheet Quality\n\nAAPL's balance sheet shows total cash of $68.51 billion and total debt of $84.71 billion, resulting in a net cash position of -$16.20 billion. The debt-to-equity ratio is 79.55%, and the current ratio is 1.07, suggesting a reasonable level of liquidity to cover short-term obligations. Book value per share is $7.26.\n\n### 5. Earnings Stability\n\nWith consistent revenue and earnings growth, along with strong margins, AAPL demonstrates high earnings stability. The trailing EPS is $8.26, and the forward EPS is projected at $9.59.\n\n### 6. Financial Risk Factors\n\nThe primary financial risk factor is the negative net cash position, indicating that total debt exceeds total cash. However, the strong cash flow generation and healthy current ratio mitigate this to some extent. The debt-to-equity ratio of 79.55% is manageable given the company's profitability and cash flow.\n\n### 7. Conviction Score (1-10)\n\n8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "Ca0IaouoHdCkqfkP8prg0QM",
+    "usage_metadata": {
+      "candidates_token_count": 443,
+      "prompt_token_count": 1829,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1829
+        }
+      ],
+      "total_token_count": 2272
+    }
+  }
+}

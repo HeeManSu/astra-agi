@@ -1,0 +1,58 @@
+{
+  "call_index": 11,
+  "latency_ms": 2464.62,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:51:45 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2443",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Here's a comprehensive valuation analysis for AAPL, MSFT, and GOOGL, incorporating DCF and comparable multiples, along with a final valuation verdict.\n\n### **AAPL Valuation Analysis**\n\n**1. DCF Valuation**\n*   **Bear Case Intrinsic Value:** $143.07\n*   **Base Case Intrinsic Value:** $176.97\n*   **Bull Case Intrinsic Value:** $217.30\n*   **Current Price:** $300.23\n*   **Base Case Upside:** -41.1%\n\n**2. Comparable Multiples**\n*   **Trailing P/E:** 36.35\n*   **Forward P/E:** 31.32\n*   **PEG Ratio:** 2.61\n*   **EV/EBITDA:** 27.66\n*   **Price/Sales:** 9.77\n*   **Price/Book:** 41.35\n*   **Assessment:** Premium valuation\n\n**3. Fair Value (Bear / Base / Bull)**\n*   **Bear:** $143.07\n*   **Base:** $176.97\n*   **Bull:** $217.30\n\n**4. Margin of Safety**\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "current_price": 300.23,
+                  "fair_value": 176.97
+                },
+                "name": "calculate_margin_of_safety"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "_vQIasXjNM-Cg8UP8IPL8AM",
+    "usage_metadata": {
+      "candidates_token_count": 328,
+      "prompt_token_count": 2810,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2810
+        }
+      ],
+      "total_token_count": 3138
+    }
+  }
+}

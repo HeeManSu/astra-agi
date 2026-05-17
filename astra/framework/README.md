@@ -1,6 +1,6 @@
 # astra-framework
 
-**The execution engine for compiler-based multi-agent AI.** Instead of ReAct loops where the LLM decides each step at runtime, Astra compiles the entire execution plan upfront — one LLM call, deterministic output.
+**The execution engine for compiler-based multi-agent AI.** Instead of ReAct loops where the LLM decides each step at runtime, Astra compiles the execution plan from a single planning call, runs the typed graph deterministically, and uses one final call to synthesize the response. Three model calls per query, no matter how many tools the workflow involves.
 
 ```
 LLM call → restricted Python → AST validation → ExecutionGraph → deterministic run
@@ -12,10 +12,10 @@ LLM call → restricted Python → AST validation → ExecutionGraph → determi
 
 | | ReAct / Tool-calling | Astra |
 |---|---|---|
-| LLM calls per task | Unbounded (N loops) | **Fixed — 1 planning call** |
+| LLM calls per task | Unbounded (N loops) | **Fixed: 3 calls (planner + code-gen + synthesize)** |
 | Execution path | Decided at runtime | **Compiled upfront** |
 | Tool call order | Non-deterministic | **Guaranteed** |
-| Debuggability | Hard — emergent behavior | **Inspect the graph before running** |
+| Debuggability | Hard. Emergent behavior | **Inspect the graph before running** |
 | Token cost | Grows with task complexity | **Constant** |
 
 ---
@@ -59,21 +59,21 @@ risk_officer = Agent(
     tools=[calculate_risk_score],
 )
 
-# 2. Build the semantic layer — describes your team to the compiler
+# 2. Build the semantic layer (describes your team to the compiler)
 semantic_layer = build_entity_semantic_layer(
     agents=[market_analyst, risk_officer],
     task="Analyse AAPL and assess investment risk",
 )
 
-# 3. Generate stubs — typed Python signatures the LLM can reason over
+# 3. Generate stubs (typed Python signatures the LLM can reason over)
 stubs = generate_stubs(semantic_layer)
 
-# 4. Run the compiler — one LLM call produces the entire execution plan
+# 4. Run the compiler. Three model calls total (planner + code-gen + synthesize).
 sandbox = Sandbox(agents=[market_analyst, risk_officer])
 result = await sandbox.execute(semantic_layer=semantic_layer, stubs=stubs)
 
 print(result.output)   # Final answer
-print(result.plan)     # The compiled ExecutionGraph — inspect it
+print(result.plan)     # The compiled ExecutionGraph. Inspect it.
 ```
 
 ---
@@ -98,7 +98,7 @@ semantic_layer = build_entity_semantic_layer(
 
 ### Compiler
 
-The compiler takes the semantic layer and produces a restricted Python program, then validates it against an AST whitelist before lowering it to an `ExecutionGraph`. Only a safe subset of Python is allowed — no imports, no file I/O, no network calls — just tool calls and data flow.
+The compiler takes the semantic layer and produces a restricted Python program, then validates it against an AST whitelist before lowering it to an `ExecutionGraph`. Only a safe subset of Python is allowed (no imports, no file I/O, no network calls): just tool calls and data flow.
 
 ```
 semantic_layer
@@ -115,10 +115,10 @@ The `Sandbox` executes the validated `ExecutionGraph` deterministically. Each no
 ```python
 result = await sandbox.execute(semantic_layer=semantic_layer, stubs=stubs)
 
-result.output        # str — the final answer
-result.plan          # ExecutionGraph — the compiled plan
-result.tool_calls    # list — every tool call made, in order
-result.duration_ms   # int — total wall-clock time
+result.output        # str: the final answer
+result.plan          # ExecutionGraph: the compiled plan
+result.tool_calls    # list: every tool call made, in order
+result.duration_ms   # int: total wall-clock time
 ```
 
 ### MCP Support
@@ -152,7 +152,7 @@ Builds a typed `EntitySemanticLayer` from a list of `Agent` instances and a task
 
 ### `build_domain_schema(semantic_layer)`
 
-Converts an `EntitySemanticLayer` into a `DomainSchema` — the structured representation used by the compiler.
+Converts an `EntitySemanticLayer` into a `DomainSchema`, the structured representation used by the compiler.
 
 ### `generate_stubs(semantic_layer)`
 
@@ -174,7 +174,7 @@ The execution engine. Call `.execute(semantic_layer, stubs)` to run the full com
 
 ### `Agent(name, model, instructions, tools, memory)`
 
-An agent with a model, instructions, and tools. Agents are passive — the `Sandbox` drives their execution according to the compiled plan.
+An agent with a model, instructions, and tools. Agents are passive; the `Sandbox` drives their execution according to the compiled plan.
 
 ### `Memory(num_history_turns)`
 
@@ -203,4 +203,4 @@ Conversation memory. Plugs into `Agent` to include recent history in context.
 
 ## License
 
-[MIT](LICENSE) — Copyright © 2025 Himanshu Sharma
+[MIT](LICENSE). Copyright © 2025 Himanshu Sharma

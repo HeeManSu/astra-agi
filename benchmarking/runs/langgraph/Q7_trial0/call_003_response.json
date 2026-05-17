@@ -1,0 +1,81 @@
+{
+  "call_index": 3,
+  "latency_ms": 2168.45,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:41:08 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2078",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I cannot fulfill this request entirely as my role is limited to fundamental analysis. I do not perform valuation, analyze price charts (technicals), or make portfolio allocation decisions. Therefore, I cannot rank the companies as a \"best to worst investment today\" or provide reasoning based on valuation and technicals.\n\nHowever, I can provide a comprehensive fundamental analysis for AAPL, MSFT, and GOOGL, which you can then use for your overall investment decision. I will focus on revenue and growth, profitability, cash flow strength, balance sheet quality, earnings stability, and financial risk factors.\n\nLet's start with Apple (AAPL)."
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_growth_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_key_financial_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_financial_statements"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_balance_sheet_strength"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "gvIIavzZDo7XjuMP47SDgQg",
+    "usage_metadata": {
+      "candidates_token_count": 201,
+      "prompt_token_count": 1231,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1231
+        }
+      ],
+      "total_token_count": 1432
+    }
+  }
+}

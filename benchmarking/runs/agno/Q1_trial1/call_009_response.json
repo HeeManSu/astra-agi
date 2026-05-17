@@ -1,0 +1,80 @@
+{
+  "call_index": 9,
+  "latency_ms": 2263.5,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 12:02:58 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2245",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "The DCF valuation for AAPL, using a 9% discount rate, 7% FCF growth for 5 years, and a 3% terminal growth rate, yields the following intrinsic values per share:\n\n*   **Bear Case:** $120.75\n*   **Base Case:** $140.27\n*   **Bull Case:** $162.37\n\nThe current market price of AAPL is $300.23, indicating a significant downside according to this DCF model.\n\n### 2. Comparable Multiples\n\nFor comparable multiples, we will consider other large-cap technology companies with strong brand recognition, significant market share, and a mix of hardware and services revenue. While direct comparisons are challenging due to Apple's unique ecosystem, companies like Microsoft (MSFT) and Alphabet (GOOGL) offer some relevant benchmarks.\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_multiple_valuation"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_multiple_valuation"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_multiple_valuation"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "cK4JasfoJ9WJjuMPgqaY-QI",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1723
+        }
+      ],
+      "cached_content_token_count": 1723,
+      "candidates_token_count": 241,
+      "prompt_token_count": 2213,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2213
+        }
+      ],
+      "total_token_count": 2454
+    }
+  }
+}

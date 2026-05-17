@@ -1,0 +1,16 @@
+{
+  "framework": "crewai",
+  "query_id": "Q2",
+  "trial": 0,
+  "ok": true,
+  "error": null,
+  "attempts_used": 1,
+  "num_llm_calls": 16,
+  "prompt_tokens": 41864,
+  "completion_tokens": 5090,
+  "thoughts_tokens": 0,
+  "total_tokens": 46954,
+  "wall_ms": 45330.2,
+  "llm_latency_ms": 38130.94,
+  "response_chars": 6941
+}

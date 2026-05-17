@@ -1,0 +1,335 @@
+{
+  "num_calls": 14,
+  "prompt_tokens": 21500,
+  "completion_tokens": 2397,
+  "thoughts_tokens": 0,
+  "total_tokens": 23897,
+  "llm_latency_ms": 24475.27,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 229,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 232,
+      "latency_ms": 1250.42,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "MacroStrategist"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 893,
+      "completion_tokens": 90,
+      "thoughts_tokens": 0,
+      "total_tokens": 983,
+      "latency_ms": 1869.99,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        }
+      ],
+      "text_preview": "1. Macro Summary:\nThe current macroeconomic environment presents a mixed picture with some indicators pointing towards a neutral to slightly risk-off equity regime. Monetary policy is restrictive, inf"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1008,
+      "completion_tokens": 16,
+      "thoughts_tokens": 0,
+      "total_tokens": 1024,
+      "latency_ms": 1280.49,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1134,
+      "completion_tokens": 17,
+      "thoughts_tokens": 0,
+      "total_tokens": 1151,
+      "latency_ms": 1142.1,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1224,
+      "completion_tokens": 379,
+      "thoughts_tokens": 0,
+      "total_tokens": 1603,
+      "latency_ms": 2171.62,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary\nThe current macroeconomic environment indicates a neutral monetary policy stance with stable interest rates and a positive yield spread. Inflation is rising, while GDP growth is also "
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 609,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 612,
+      "latency_ms": 954.41,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "FinancialAnalyst"
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1307,
+      "completion_tokens": 76,
+      "thoughts_tokens": 0,
+      "total_tokens": 1383,
+      "latency_ms": 1406.35,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1862,
+      "completion_tokens": 416,
+      "thoughts_tokens": 0,
+      "total_tokens": 2278,
+      "latency_ms": 2639.81,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Revenue & Growth Analysis\n   - Revenue: $215.94B\n   - Revenue Growth (YoY): 73.2%\n   - Earnings Growth (YoY): 95.6%\n   - Quarterly Earnings Growth: 94.5%\n\n2. Profitability (Margins, ROIC)\n   - Gros"
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1031,
+      "completion_tokens": 4,
+      "thoughts_tokens": 0,
+      "total_tokens": 1035,
+      "latency_ms": 733.43,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [],
+      "text_preview": "ValuationAnalyst"
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1950,
+      "completion_tokens": 90,
+      "thoughts_tokens": 0,
+      "total_tokens": 2040,
+      "latency_ms": 1622.38,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "growth_rate": 0.2,
+            "projection_years": 5,
+            "symbol": "NVDA",
+            "terminal_growth": 0.03,
+            "discount_rate": 0.1
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2488,
+      "completion_tokens": 452,
+      "thoughts_tokens": 0,
+      "total_tokens": 2940,
+      "latency_ms": 3136.14,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [],
+      "text_preview": "1. DCF Valuation\n   - Using a discount rate of 10%, a FCF growth rate of 20% for 5 years, and a terminal growth rate of 3%, the DCF model yields the following intrinsic values per share:\n     - Bear C"
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1489,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 1492,
+      "latency_ms": 988.19,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [],
+      "text_preview": "TechnicalAnalyst"
+    },
+    {
+      "call_index": 13,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2027,
+      "completion_tokens": 109,
+      "thoughts_tokens": 0,
+      "total_tokens": 2136,
+      "latency_ms": 1210.91,
+      "request_dump": "call_013_request.json",
+      "response_dump": "call_013_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "NVDA",
+            "days": 20
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 14,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4249,
+      "completion_tokens": 739,
+      "thoughts_tokens": 0,
+      "total_tokens": 4988,
+      "latency_ms": 4069.03,
+      "request_dump": "call_014_request.json",
+      "response_dump": "call_014_response.json",
+      "tool_calls": [],
+      "text_preview": "### NVDA Technical Analysis\n\n1.  **Trend Structure**\n    NVDA is in a strong uptrend, with the current price of $225.32 significantly above its 20-day SMA ($210.30), 50-day SMA ($193.07), and 200-day "
+    }
+  ]
+}

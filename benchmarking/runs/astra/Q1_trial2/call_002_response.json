@@ -1,0 +1,50 @@
+{
+  "call_index": 2,
+  "latency_ms": 3604.14,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:30:42 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=3585",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "macro_policy_data = macro_strategist.get_monetary_policy_data()\nmacro_inflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nmacro_liquidity_data = macro_strategist.get_liquidity_and_credit_conditions()\nfinancial_statements_data = financial_analyst.get_financial_statements(symbol='AAPL')\nkey_financial_metrics_data = financial_analyst.get_key_financial_metrics(symbol='AAPL')\ngrowth_metrics_data = financial_analyst.get_growth_metrics(symbol='AAPL')\nbalance_sheet_strength_data = financial_analyst.get_balance_sheet_strength(symbol='AAPL')\ncurrent_market_data = valuation_analyst.get_current_market_data(symbol='AAPL')\ndcf_valuation_data = valuation_analyst.calculate_dcf(symbol='AAPL')\nmultiple_valuation_data = valuation_analyst.calculate_multiple_valuation(symbol='AAPL')\ncurrent_price = current_market_data.get('result', {}).get('current_price')\nfair_value = dcf_valuation_data.get('result', {}).get('base_case')\nmargin_of_safety_data = valuation_analyst.calculate_margin_of_safety(current_price=current_price, fair_value=fair_value)\nprice_history_data = technical_analyst.get_price_history(symbol='AAPL')\nrsi_data = technical_analyst.calculate_rsi(symbol='AAPL')\nmacd_data = technical_analyst.calculate_macd(symbol='AAPL')\nmoving_averages_data = technical_analyst.calculate_moving_averages(symbol='AAPL')\ntrend_data = technical_analyst.detect_trend(symbol='AAPL')\nsupport_resistance_data = technical_analyst.detect_support_resistance(symbol='AAPL')\nsynthesize_response({\n    \"status\": \"success\",\n    \"results\": {\n        \"step_results\": {\n            \"step_1\": macro_policy_data,\n            \"step_2\": macro_inflation_growth_data,\n            \"step_3\": macro_liquidity_data,\n            \"step_4\": financial_statements_data,\n            \"step_5\": key_financial_metrics_data,\n            \"step_6\": growth_metrics_data,\n            \"step_7\": balance_sheet_strength_data,\n            \"step_8\": current_market_data,\n            \"step_9\": dcf_valuation_data,\n            \"step_10\": multiple_valuation_data,\n            \"step_11\": margin_of_safety_data,\n            \"step_12\": price_history_data,\n            \"step_13\": rsi_data,\n            \"step_14\": macd_data,\n            \"step_15\": moving_averages_data,\n            \"step_16\": trend_data,\n            \"step_17\": support_resistance_data\n        }\n    }\n})"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "38UIaqCjEtXAg8UPiZXCyAc",
+    "usage_metadata": {
+      "candidates_token_count": 710,
+      "prompt_token_count": 5485,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 5485
+        }
+      ],
+      "total_token_count": 6195
+    },
+    "automatic_function_calling_history": []
+  }
+}

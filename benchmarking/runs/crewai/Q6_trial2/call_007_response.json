@@ -1,0 +1,49 @@
+{
+  "call_index": 7,
+  "latency_ms": 4653.49,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:13:32 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=4630",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Apple (AAPL) - Fundamental Analysis\n\n### 1. Revenue & Growth Analysis\n*   **Revenue:** $451.44 billion\n*   **Revenue Growth:** 16.6%\n*   **Earnings Growth:** 21.8%\n*   **Quarterly Earnings Growth:** 19.4%\n\n### 2. Profitability (Margins, ROIC)\n*   **Gross Margin:** 47.9%\n*   **Operating Margin:** 32.3%\n*   **Net Margin:** 27.2%\n*   **EBITDA Margin:** 35.4%\n*   **Return on Equity (ROE):** 141.5%\n*   **Return on Assets (ROA):** 26.2%\n\n### 3. Cash Flow Strength\n*   **Operating Cash Flow:** $140.22 billion\n*   **Free Cash Flow:** $101.09 billion\n\n### 4. Balance Sheet Quality\n*   **Total Cash:** $68.51 billion\n*   **Total Debt:** $84.71 billion\n*   **Net Cash:** -$16.20 billion (Net debt position)\n*   **Debt-to-Equity:** 79.548\n*   **Current Ratio:** 1.07\n*   **Book Value Per Share:** $7.26\n\n### 5. Earnings Stability\n*   **Trailing EPS:** $8.26\n*   **Forward EPS:** $9.5861 (Indicates expected growth)\n\n### 6. Financial Risk Factors\n*   **Net Debt Position:** Apple has more debt than cash, indicating a reliance on future cash flows or refinancing to manage obligations.\n*   **Current Ratio:** A current ratio of 1.07 is slightly above 1, suggesting adequate short-term liquidity but not a significant buffer.\n*   **Debt-to-Equity:** A debt-to-equity ratio of 79.548 indicates a moderate level of financial leverage.\n\n### 7. Conviction Score (1-10)\n8\n\n---\n\n## Microsoft (MSFT) - Fundamental Analysis\n\n### 1. Revenue & Growth Analysis\n*   **Revenue:** $318.27 billion\n*   **Revenue Growth:** 18.3%\n*   **Earnings Growth:** 23.4%\n*   **Quarterly Earnings Growth:** 23.1%\n\n### 2. Profitability (Margins, ROIC)\n*   **Gross Margin:** 68.3%\n*   **Operating Margin:** 46.3%\n*   **Net Margin:** 39.3%\n*   **EBITDA Margin:** 58.0%\n*   **Return on Equity (ROE):** 34.0%\n*   **Return on Assets (ROA):** 14.8%\n\n### 3. Cash Flow Strength\n*   **Operating Cash Flow:** $170.14 billion\n*   **Free Cash Flow:** $37.01 billion\n\n### 4. Balance Sheet Quality\n*   **Total Cash:** $78.23 billion\n*   **Total Debt:** $125.43 billion\n*   **Net Cash:** -$47.20 billion (Net debt position)\n*   **Debt-to-Equity:** 30.271\n*   **Current Ratio:** 1.283\n*   **Book Value Per Share:** $55.777\n\n### 5. Earnings Stability\n*   **Trailing EPS:** $16.79\n*   **Forward EPS:** $19.37103 (Indicates expected growth)\n\n### 6. Financial Risk Factors\n*   **Net Debt Position:** Microsoft has a net debt position, similar to Apple, indicating a reliance on future cash flows or refinancing.\n*   **Current Ratio:** A current ratio of 1.283 suggests good short-term liquidity.\n*   **Debt-to-Equity:** A debt-to-equity ratio of 30.271 indicates a lower level of financial leverage compared to Apple.\n\n### 7. Conviction Score (1-10)\n9"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "2MEIaq6KAtCng8UPraLB-Qg",
+    "usage_metadata": {
+      "candidates_token_count": 945,
+      "prompt_token_count": 2106,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2106
+        }
+      ],
+      "total_token_count": 3051
+    }
+  }
+}

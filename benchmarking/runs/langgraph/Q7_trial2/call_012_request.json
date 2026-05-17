@@ -1,0 +1,443 @@
+{
+  "call_index": 12,
+  "method": "generate_content",
+  "is_async": false,
+  "is_stream": false,
+  "kwargs": {
+    "model": "gemini-2.5-flash",
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Assess price action, momentum, and technical structure for the target in: Compare AAPL, MSFT, and GOOGL head-to-head and produce a research report ranking them from best to worst investment today, with specific reasoning from each of macro, fundamentals, valuation, and technicals.\n\n--- PRIOR MACRO ANALYSIS (context only) ---\n1. Macro Summary: The current macro environment is characterized by a neutral monetary policy, rising inflation and growth, easing liquidity, and a positively sloped yield curve.\n\n2. Monetary Policy Assessment: The Federal Reserve's policy stance is neutral, with the fed funds rate at 3.64% and a stable rate trend.\n\n3. Inflation & Growth Assessment: Inflation is rising, with CPI YoY at 3.95% and core CPI at 2.99%. GDP growth is also rising at 0.49% QoQ, while the unemployment rate is moderate at 4.3%.\n\n4. Liquidity & Credit Conditions: Liquidity conditions are easing, as indicated by a negative Chicago Fed National Financial Conditions Index (-0.524). Corporate credit spreads are tight at 0.76, suggesting a healthy credit environment.\n\n5. Yield Curve Interpretation: The 10-year/2-year Treasury yield spread is positive at 0.47% (10-year at 4.47%, 2-year at 4.0%), indicating an expansionary signal.\n\n6. Equity Risk Regime: Risk-On\n\n7. Confidence Score: 8\n\n--- PRIOR FUNDAMENTALS ANALYSIS (context only) ---\n## Research Report: AAPL, MSFT, GOOGL\n\n### 1. Revenue & Growth Analysis\n\n*   **AAPL:** Revenue growth of 16.6% and earnings growth of 21.8%. Quarterly earnings growth is 19.4%.\n*   **MSFT:** Revenue growth of 18.3% and earnings growth of 23.4%. Quarterly earnings growth is 23.1%.\n*   **GOOGL:** Revenue growth of 21.8% and earnings growth of 82.0%. Quarterly earnings growth is 81.2%.\n\n**Analysis:** GOOGL demonstrates the strongest revenue and earnings growth, significantly outperforming AAPL and MSFT in both annual and quarterly earnings growth. MSFT shows slightly better growth than AAPL.\n\n### 2. Profitability (Margins, ROIC)\n\n*   **AAPL:** Gross Margin: 47.9%, Operating Margin: 32.3%, Net Margin: 27.2%, EBITDA Margin: 35.4%, ROE: 141.5%, ROA: 26.2%.\n*   **MSFT:** Gross Margin: 68.3%, Operating Margin: 46.3%, Net Margin: 39.3%, EBITDA Margin: 58.0%, ROE: 34.0%, ROA: 14.8%.\n*   **GOOGL:** Gross Margin: 60.4%, Operating Margin: 36.1%, Net Margin: 37.9%, EBITDA Margin: 38.2%, ROE: 38.9%, ROA: 14.6%.\n\n**Analysis:** MSFT exhibits the highest gross, operating, net, and EBITDA margins, indicating superior operational efficiency. AAPL has an exceptionally high ROE, but its ROA is comparable to MSFT and GOOGL. GOOGL's margins are strong, but generally lower than MSFT's.\n\n### 3. Cash Flow Strength\n\n*   **AAPL:** Operating Cash Flow: $140.22B, Free Cash Flow: $101.09B.\n*   **MSFT:** Operating Cash Flow: $170.14B, Free Cash Flow: $37.01B.\n*   **GOOGL:** Operating Cash Flow: $174.35B, Free Cash Flow: $27.92B.\n\n**Analysis:** While GOOGL has the highest operating cash flow, AAPL demonstrates significantly stronger free cash flow, indicating a greater ability to generate cash after capital expenditures. MSFT's operating cash flow is also strong, but its free cash flow is lower than AAPL's.\n\n### 4. Balance Sheet Quality\n\n*   **AAPL:** Total Cash: $68.51B, Total Debt: $84.71B, Net Cash: -$16.20B, Debt-to-Equity: 79.548, Current Ratio: 1.07.\n*   **MSFT:** Total Cash: $78.23B, Total Debt: $125.43B, Net Cash: -$47.20B, Debt-to-Equity: 30.271, Current Ratio: 1.283.\n*   **GOOGL:** Total Cash: $126.84B, Total Debt: $95.88B, Net Cash: $30.96B, Debt-to-Equity: 20.026, Current Ratio: 1.922.\n\n**Analysis:** GOOGL has the strongest balance sheet with a positive net cash position, the lowest debt-to-equity ratio, and the highest current ratio, indicating excellent liquidity and lower financial risk. MSFT has a better debt-to-equity and current ratio than AAPL, but both have negative net cash.\n\n### 5. Earnings Stability\n\n*   **AAPL:** Trailing EPS: 8.26, Forward EPS: 9.5861.\n*   **MSFT:** Trailing EPS: 16.79, Forward EPS: 19.37103.\n*   **GOOGL:** Trailing EPS: 13.09, Forward EPS: 14.45135.\n\n**Analysis:** All three companies show positive forward EPS, suggesting expected earnings growth. GOOGL's significantly higher earnings growth rate (82.0% annual, 81.2% quarterly) suggests strong recent momentum, which could imply higher volatility but also higher potential for continued growth. MSFT and AAPL show more moderate, but still healthy, earnings growth.\n\n### 6. Financial Risk Factors\n\n*   **AAPL:** High debt-to-equity ratio (79.548) and negative net cash position (-$16.20B) indicate a higher reliance on debt and less cash on hand compared to GOOGL. Current ratio is just above 1.\n*   **MSFT:** Negative net cash position (-$47.20B) and a higher total debt than cash. However, its debt-to-equity ratio (30.271) is significantly better than AAPL's.\n*   **GOOGL:** Strongest financial position with positive net cash ($30.96B) and the lowest debt-to-equity ratio (20.026), indicating lower financial risk.\n\n**Analysis:** GOOGL presents the lowest financial risk due to its robust cash position and conservative debt levels. AAPL carries the highest financial risk among the three, primarily due to its higher debt and negative net cash.\n\n### 7. Conviction Score (1-10)\n\n1.  **GOOGL: 9/10** - GOOGL demonstrates superior growth metrics, a very strong balance sheet with significant net cash, and healthy profitability. While its free cash flow is lower than AAPL's, its overall financial health and growth trajectory are compelling.\n2.  **MSFT: 8/10** - MSFT excels in profitability with the highest margins across the board. Its growth is strong, and its balance sheet, while having negative net cash, is better than AAPL's.\n3.  **AAPL: 7/10** - AAPL shows solid growth and exceptional free cash flow. However, its higher debt-to-equity ratio and negative net cash position present a higher financial risk compared to MSFT and GOOGL. Its margins are also lower than the other two.\n\n--- PRIOR VALUATION ANALYSIS (context only) ---\n### 1. DCF Valuation\n\n**AAPL:**\n*   **Bear Case Intrinsic Value:** $128.82\n*   **Base Case Intrinsic Value:** $159.05\n*   **Bull Case Intrinsic Value:** $194.99\n*   **FCF Used:** $101.09B\n*   **Growth Rate (assumed):** 10.0%\n*   **Discount Rate (assumed):** 9.0%\n*   **Terminal Growth (assumed):** 3.0%\n\n**MSFT:**\n*   **Bear Case Intrinsic Value:** $93.25\n*   **Base Case Intrinsic Value:** $115.13\n*   **Bull Case Intrinsic Value:** $141.15\n*   **FCF Used:** $37.01B\n*   **Growth Rate (assumed):** 10.0%\n*   **Discount Rate (assumed):** 9.0%\n*   **Terminal Growth (assumed):** 3.0%\n\n**GOOGL:**\n*   **Bear Case Intrinsic Value:** $89.73\n*   **Base Case Intrinsic Value:** $110.79\n*   **Bull Case Intrinsic Value:** $135.83\n*   **FCF Used:** $27.92B\n*   **Growth Rate (assumed):** 10.0%\n*   **Discount Rate (assumed):** 9.0%\n*   **Terminal Growth (assumed):** 3.0%\n\n### 2. Comparable Multiples\n\n**AAPL:**\n*   **Trailing P/E:** 36.35\n*   **Forward P/E:** 31.32\n*   **PEG Ratio:** 2.61\n*   **EV/EBITDA:** 27.66\n*   **Price/Book:** 41.35\n*   **Assessment:** Premium valuation\n\n**MSFT:**\n*   **Trailing P/E:** 25.13\n*   **Forward P/E:** 21.78\n*   **PEG Ratio:** 1.26\n*   **EV/EBITDA:** 17.25\n*   **Price/Book:** 7.56\n*   **Assessment:** Fairly valued\n\n**GOOGL:**\n*   **Trailing P/E:** 30.31\n*   **Forward P/E:** 27.46\n*   **PEG Ratio:** 1.58\n*   **EV/EBITDA:** 29.61\n*   **Price/Book:** 10.04\n*   **Assessment:** Premium valuation\n\n### 3. Fair Value (Bear / Base / Bull)\n\nBased on the DCF analysis, the fair value ranges are:\n\n*   **AAPL:** Bear: $128.82, Base: $159.05, Bull: $194.99\n*   **MSFT:** Bear: $93.25, Base: $115.13, Bull: $141.15\n*   **GOOGL:** Bear: $89.73, Base: $110.79, Bull: $135.83\n\n### 4. Margin of Safety\n\n*   **AAPL:**\n    *   Current Price: $300.23\n    *   Fair Value (Base Case): $159.05\n    *   Margin of Safety: -88.8%\n    *   Verdict: Overvalued - negative margin of safety\n\n*   **MSFT:**\n    *   Current Price: $421.92\n    *   Fair Value (Base Case): $115.13\n    *   Margin of Safety: -266.5%\n    *   Verdict: Overvalued - negative margin of safety\n\n*   **GOOGL:**\n    *   Current Price: $396.78\n    *   Fair Value (Base Case): $110.79\n    *   Margin of Safety: -258.1%\n    *   Verdict: Overvalued - negative margin of safety\n\n### 5. Valuation Risks\n\n*   **Aggressive Growth Assumptions:** The DCF models assume a 10% FCF growth rate, which may be optimistic given the current market environment and the size of these companies. Any deviation from this growth rate could significantly impact the intrinsic value.\n*   **Discount Rate Sensitivity:** A 9% discount rate was used. Small changes in this rate can lead to substantial differences in the calculated intrinsic value, especially for companies with long growth runways.\n*   **Terminal Growth Rate:** The 3% terminal growth rate is a long-term assumption and is subject to significant uncertainty.\n*   **Market Sentiment:** Current market prices for all three companies appear to reflect significant future growth expectations, potentially leading to overvaluation if these expectations are not met.\n*   **Competitive Landscape:** The technology sector is highly competitive. Future innovation and market share shifts could impact the long-term cash flow generation of these companies.\n*   **Regulatory Scrutiny:** All three companies face increasing regulatory scrutiny, which could impact their business models and profitability.\n\n### 6. Final Valuation Verdict\n\nAll three companies (AAPL, MSFT, GOOGL) appear to be significantly overvalued based on the DCF analysis with a 10% FCF growth rate and a 9% discount rate. The negative margins of safety across all cases indicate that their current market prices are substantially higher than their calculated intrinsic values.\n\nWhile MSFT appears \"Fairly valued\" based on comparable multiples, the DCF analysis suggests otherwise. AAPL and GOOGL are assessed as having \"Premium valuation\" based on multiples, which aligns with the DCF findings of overvaluation.\n\nGiven the substantial negative margins of safety, a \"PASS\" verdict is recommended for all three companies from a pure valuation perspective at their current prices."
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL",
+                "days": 60
+              },
+              "name": "get_price_history"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "calculate_rsi"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "calculate_macd"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "calculate_moving_averages"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "detect_trend"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "AAPL"
+              },
+              "name": "detect_support_resistance"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT",
+                "days": 60
+              },
+              "name": "get_price_history"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "calculate_rsi"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "calculate_macd"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "calculate_moving_averages"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "detect_trend"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "MSFT"
+              },
+              "name": "detect_support_resistance"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL",
+                "days": 60
+              },
+              "name": "get_price_history"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "calculate_rsi"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "calculate_macd"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "calculate_moving_averages"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "detect_trend"
+            }
+          },
+          {
+            "function_call": {
+              "args": {
+                "symbol": "GOOGL"
+              },
+              "name": "detect_support_resistance"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "get_price_history",
+              "response": {
+                "output": "{'symbol': 'AAPL', 'period': 'Last 60 trading days', 'current_price': 300.23, 'prices': [{'date': '2026-02-20', 'open': 258.73, 'high': 264.51, 'low': 257.92, 'close': 264.34, 'volume': 42070500}, {'date': '2026-02-23', 'open': 263.25, 'high': 269.18, 'low': 263.14, 'close': 265.93, 'volume': 37308200}, {'date': '2026-02-24', 'open': 267.61, 'high': 274.64, 'low': 267.46, 'close': 271.89, 'volume': 47014600}, {'date': '2026-02-25', 'open': 271.53, 'high': 274.69, 'low': 270.8, 'close': 273.98, 'volume': 33714300}, {'date': '2026-02-26', 'open': 274.7, 'high': 275.86, 'low': 270.55, 'close': 272.7, 'volume': 32345100}, {'date': '2026-02-27', 'open': 272.56, 'high': 272.56, 'low': 262.65, 'close': 263.94, 'volume': 72366500}, {'date': '2026-03-02', 'open': 262.17, 'high': 266.28, 'low': 259.96, 'close': 264.48, 'volume': 41827900}, {'date': '2026-03-03', 'open': 263.24, 'high': 265.32, 'low': 259.89, 'close': 263.51, 'volume': 38568900}, {'date': '2026-03-04', 'open': 264.41, 'high': 265.91, 'low': 261.18, 'close': 262.28, 'volume': 39803100}, {'date': '2026-03-05', 'open': 260.55, 'high': 261.32, 'low': 257.01, 'close': 260.05, 'volume': 49658600}, {'date': '2026-03-06', 'open': 258.39, 'high': 258.53, 'low': 254.14, 'close': 257.22, 'volume': 41120000}, {'date': '2026-03-09', 'open': 255.45, 'high': 260.91, 'low': 253.45, 'close': 259.64, 'volume': 38218500}, {'date': '2026-03-10', 'open': 257.41, 'high': 262.24, 'low': 256.71, 'close': 260.59, 'volume': 30590800}, {'date': '2026-03-11', 'open': 260.85, 'high': 261.89, 'low': 259.31, 'close': 260.57, 'volume': 26218900}, {'date': '2026-03-12', 'open': 258.42, 'high': 258.71, 'low': 253.95, 'close': 255.52, 'volume': 40794000}, {'date': '2026-03-13', 'open': 255.24, 'high': 256.09, 'low': 249.29, 'close': 249.89, 'volume': 36930000}, {'date': '2026-03-16', 'open': 251.88, 'high': 253.66, 'low': 249.65, 'close': 252.59, 'volume': 32074200}, {'date': '2026-03-17', 'open': 252.73, 'high': 254.9, 'low': 251.95, 'close': 254.0, 'volume': 32361600}, {'date': '2026-03-18', 'open': 252.4, 'high': 254.71, 'low': 248.77, 'close': 249.71, 'volume': 35757900}, {'date': '2026-03-19', 'open': 249.17, 'high': 251.6, 'low': 247.07, 'close': 248.73, 'volume': 34864100}, {'date': '2026-03-20', 'open': 247.75, 'high': 248.97, 'low': 245.77, 'close': 247.76, 'volume': 88331100}, {'date': '2026-03-23', 'open': 253.74, 'high': 254.37, 'low': 250.05, 'close': 251.26, 'volume': 40546100}, {'date': '2026-03-24', 'open': 250.12, 'high': 254.6, 'low': 249.32, 'close': 251.41, 'volume': 45152300}, {'date': '2026-03-25', 'open': 253.87, 'high': 254.77, 'low': 251.37, 'close': 252.39, 'volume': 28476700}, {'date': '2026-03-26', 'open': 251.89, 'high': 256.76, 'low': 250.54, 'close': 252.66, 'volume': 41796700}, {'date': '2026-03-27', 'open': 253.67, 'high': 255.25, 'low': 247.84, 'close': 248.57, 'volume': 47900000}, {'date': '2026-03-30', 'open': 249.84, 'high': 250.64, 'low': 245.28, 'close': 246.4, 'volume': 39446200}, {'date': '2026-03-31', 'open': 247.68, 'high': 255.24, 'low': 246.87, 'close': 253.56, 'volume': 49598100}, {'date': '2026-04-01', 'open': 253.85, 'high': 255.94, 'low': 253.1, 'close': 255.39, 'volume': 40059400}, {'date': '2026-04-02', 'open': 253.97, 'high': 255.89, 'low': 250.42, 'close': 255.68, 'volume': 31289400}, {'date': '2026-04-06', 'open': 256.27, 'high': 261.92, 'low': 256.22, 'close': 258.62, 'volume': 29329900}, {'date': '2026-04-07', 'open': 255.92, 'high': 255.96, 'low': 245.47, 'close': 253.27, 'volume': 62148000}, {'date': '2026-04-08', 'open': 258.21, 'high': 259.51, 'low': 256.29, 'close': 258.66, 'volume': 41032800}, {'date': '2026-04-09', 'open': 258.76, 'high': 260.88, 'low': 255.83, 'close': 260.25, 'volume': 28121600}, {'date': '2026-04-10', 'open': 259.74, 'high': 261.95, 'low': 258.78, 'close': 260.24, 'volume': 31291500}, {'date': '2026-04-13', 'open': 259.49, 'high': 259.94, 'low': 256.42, 'close': 258.96, 'volume': 36234700}, {'date': '2026-04-14', 'open': 259.01, 'high': 261.69, 'low': 256.95, 'close': 258.59, 'volume': 48370700}, {'date': '2026-04-15', 'open': 257.92, 'high': 266.31, 'low': 257.57, 'close': 266.18, 'volume': 49913500}, {'date': '2026-04-16', 'open': 266.55, 'high': 266.91, 'low': 261.03, 'close': 263.16, 'volume': 43323100}, {'date': '2026-04-17', 'open': 266.71, 'high': 272.05, 'low': 266.47, 'close': 269.98, 'volume': 61436200}, {'date': '2026-04-20', 'open': 270.08, 'high': 274.03, 'low': 270.04, 'close': 272.8, 'volume': 36590200}, {'date': '2026-04-21', 'open': 271.25, 'high': 272.55, 'low': 265.16, 'close': 265.93, 'volume': 50209800}, {'date': '2026-04-22', 'open': 267.57, 'high': 273.49, 'low': 266.62, 'close': 272.92, 'volume': 43249200}, {'date': '2026-04-23', 'open': 274.8, 'high': 275.52, 'low': 271.4, 'close': 273.18, 'volume': 33399600}, {'date': '2026-04-24', 'open': 272.51, 'high': 272.81, 'low': 269.4, 'close': 270.81, 'volume': 38157100}, {'date': '2026-04-27', 'open': 265.85, 'high': 268.11, 'low': 264.83, 'close': 267.36, 'volume': 41466800}, {'date': '2026-04-28', 'open': 272.09, 'high': 272.98, 'low': 268.41, 'close': 270.46, 'volume': 40018900}, {'date': '2026-04-29', 'open': 267.3, 'high': 270.79, 'low': 266.79, 'close': 269.92, 'volume': 30047900}, {'date': '2026-04-30', 'open': 270.25, 'high': 275.75, 'low': 267.89, 'close': 271.1, 'volume': 91848200}, {'date': '2026-05-01', 'open': 278.6, 'high': 286.96, 'low': 278.11, 'close': 279.88, 'volume': 79915400}, {'date': '2026-05-04', 'open': 279.4, 'high': 280.37, 'low': 274.61, 'close': 276.58, 'volume': 46668400}, {'date': '2026-05-05', 'open': 276.68, 'high': 284.31, 'low': 276.25, 'close': 283.92, 'volume': 49311700}, {'date': '2026-05-06', 'open': 281.66, 'high': 287.76, 'low': 280.81, 'close': 287.25, 'volume': 58336100}, {'date': '2026-05-07', 'open': 289.0, 'high': 291.86, 'low': 285.52, 'close': 287.18, 'volume': 45224300}, {'date': '2026-05-08', 'open': 289.74, 'high': 294.49, 'low': 289.73, 'close': 293.05, 'volume': 52692800}, {'date': '2026-05-11', 'open': 291.98, 'high': 293.88, 'low': 290.23, 'close': 292.68, 'volume': 42247300}, {'date': '2026-05-12', 'open': 292.56, 'high': 295.27, 'low': 292.56, 'close': 294.8, 'volume': 45748100}, {'date': '2026-05-13', 'open': 293.5, 'high': 300.92, 'low': 293.5, 'close': 298.87, 'volume': 52684300}, {'date': '2026-05-14', 'open': 299.82, 'high': 300.45, 'low': 295.38, 'close': 298.21, 'volume': 35324900}, {'date': '2026-05-15', 'open': 297.9, 'high': 303.2, 'low': 296.52, 'close': 300.23, 'volume': 54721100}]}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_rsi",
+              "response": {
+                "output": "{'symbol': 'AAPL', 'rsi': 88.4, 'period': 14, 'signal': 'overbought'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_macd",
+              "response": {
+                "output": "{'symbol': 'AAPL', 'macd': 9.5172, 'signal_line': 7.7411, 'histogram': 1.7762, 'crossover': 'bullish'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_moving_averages",
+              "response": {
+                "output": "{'symbol': 'AAPL', 'current_price': 300.23, 'sma_20': 281.36, 'sma_50': 265.97, 'sma_200': 258.65, 'trend': 'strong uptrend', 'ma_cross': 'none'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "detect_trend",
+              "response": {
+                "output": "{'symbol': 'AAPL', 'trend': 'uptrend', 'strength': 'moderate', 'sma20_slope': 1.4344, 'sma50_slope': 0.4749, 'higher_highs': False, 'lower_lows': False, '52w_range_position': '100.0%', '52w_high': 300.23, '52w_low': 194.5}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "detect_support_resistance",
+              "response": {
+                "output": "{'symbol': 'AAPL', 'current_price': 300.23, 'support_levels': [193.5, 200.7, 224.23], 'resistance_levels': [], 'nearest_support': 224.23, 'nearest_resistance': 'N/A'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "get_price_history",
+              "response": {
+                "output": "{'symbol': 'MSFT', 'period': 'Last 60 trading days', 'current_price': 421.92, 'prices': [{'date': '2026-02-20', 'open': 396.11, 'high': 400.12, 'low': 395.16, 'close': 397.23, 'volume': 34015200}, {'date': '2026-02-23', 'open': 395.0, 'high': 395.36, 'low': 383.1, 'close': 384.47, 'volume': 43238300}, {'date': '2026-02-24', 'open': 384.14, 'high': 389.36, 'low': 381.71, 'close': 389.0, 'volume': 33884700}, {'date': '2026-02-25', 'open': 390.53, 'high': 401.47, 'low': 390.16, 'close': 400.6, 'volume': 43625500}, {'date': '2026-02-26', 'open': 404.71, 'high': 407.49, 'low': 398.74, 'close': 401.72, 'volume': 34405900}, {'date': '2026-02-27', 'open': 390.88, 'high': 396.82, 'low': 389.88, 'close': 392.74, 'volume': 51367200}, {'date': '2026-03-02', 'open': 392.86, 'high': 401.19, 'low': 390.63, 'close': 398.55, 'volume': 35474900}, {'date': '2026-03-03', 'open': 393.14, 'high': 406.7, 'low': 392.67, 'close': 403.93, 'volume': 38199200}, {'date': '2026-03-04', 'open': 401.27, 'high': 411.03, 'low': 400.31, 'close': 405.2, 'volume': 35808000}, {'date': '2026-03-05', 'open': 404.42, 'high': 411.61, 'low': 404.4, 'close': 410.68, 'volume': 39001300}, {'date': '2026-03-06', 'open': 409.2, 'high': 413.05, 'low': 408.51, 'close': 408.96, 'volume': 31123900}, {'date': '2026-03-09', 'open': 404.92, 'high': 410.21, 'low': 403.5, 'close': 409.41, 'volume': 30131900}, {'date': '2026-03-10', 'open': 410.03, 'high': 410.2, 'low': 402.93, 'close': 405.76, 'volume': 31706400}, {'date': '2026-03-11', 'open': 405.57, 'high': 409.01, 'low': 401.59, 'close': 404.88, 'volume': 25512100}, {'date': '2026-03-12', 'open': 404.63, 'high': 406.12, 'low': 401.71, 'close': 401.86, 'volume': 27263900}, {'date': '2026-03-13', 'open': 401.0, 'high': 404.8, 'low': 394.25, 'close': 395.55, 'volume': 26848000}, {'date': '2026-03-16', 'open': 398.07, 'high': 400.63, 'low': 394.79, 'close': 399.95, 'volume': 27733700}, {'date': '2026-03-17', 'open': 400.27, 'high': 404.4, 'low': 397.75, 'close': 399.41, 'volume': 26228300}, {'date': '2026-03-18', 'open': 397.13, 'high': 398.0, 'low': 391.0, 'close': 391.79, 'volume': 25908500}, {'date': '2026-03-19', 'open': 390.1, 'high': 392.49, 'low': 387.06, 'close': 389.02, 'volume': 25138800}, {'date': '2026-03-20', 'open': 386.79, 'high': 387.0, 'low': 380.12, 'close': 381.87, 'volume': 50853200}, {'date': '2026-03-23', 'open': 383.9, 'high': 387.21, 'low': 381.68, 'close': 383.0, 'volume': 29680100}, {'date': '2026-03-24', 'open': 382.36, 'high': 382.47, 'low': 371.85, 'close': 372.74, 'volume': 42733600}, {'date': '2026-03-25', 'open': 376.92, 'high': 377.06, 'low': 369.63, 'close': 371.04, 'volume': 31181200}, {'date': '2026-03-26', 'open': 370.82, 'high': 374.72, 'low': 365.19, 'close': 365.97, 'volume': 36836600}, {'date': '2026-03-27', 'open': 361.9, 'high': 362.45, 'low': 356.51, 'close': 356.77, 'volume': 37883400}, {'date': '2026-03-30', 'open': 361.9, 'high': 365.36, 'low': 356.28, 'close': 358.96, 'volume': 44797000}, {'date': '2026-03-31', 'open': 364.55, 'high': 372.9, 'low': 363.07, 'close': 370.17, 'volume': 45244400}, {'date': '2026-04-01', 'open': 373.49, 'high': 373.99, 'low': 368.2, 'close': 369.37, 'volume': 29417200}, {'date': '2026-04-02', 'open': 367.21, 'high': 373.64, 'low': 364.15, 'close': 373.46, 'volume': 24099100}, {'date': '2026-04-06', 'open': 373.49, 'high': 373.73, 'low': 369.5, 'close': 372.88, 'volume': 16146600}, {'date': '2026-04-07', 'open': 370.34, 'high': 372.45, 'low': 366.56, 'close': 372.29, 'volume': 21443300}, {'date': '2026-04-08', 'open': 384.98, 'high': 385.0, 'low': 371.41, 'close': 374.33, 'volume': 33064800}, {'date': '2026-04-09', 'open': 372.5, 'high': 373.5, 'low': 367.05, 'close': 373.07, 'volume': 30435300}, {'date': '2026-04-10', 'open': 372.98, 'high': 375.64, 'low': 370.03, 'close': 370.87, 'volume': 28111100}, {'date': '2026-04-13', 'open': 373.61, 'high': 384.54, 'low': 371.02, 'close': 384.37, 'volume': 35745800}, {'date': '2026-04-14', 'open': 387.92, 'high': 394.69, 'low': 386.52, 'close': 393.11, 'volume': 37504500}, {'date': '2026-04-15', 'open': 398.0, 'high': 414.37, 'low': 396.73, 'close': 411.22, 'volume': 45063400}, {'date': '2026-04-16', 'open': 419.86, 'high': 420.82, 'low': 412.14, 'close': 420.26, 'volume': 41642400}, {'date': '2026-04-17', 'open': 424.82, 'high': 431.58, 'low': 420.69, 'close': 422.79, 'volume': 48568200}, {'date': '2026-04-20', 'open': 421.15, 'high': 423.33, 'low': 416.3, 'close': 418.07, 'volume': 27582200}, {'date': '2026-04-21', 'open': 420.24, 'high': 427.18, 'low': 417.2, 'close': 424.16, 'volume': 32048500}, {'date': '2026-04-22', 'open': 426.19, 'high': 433.7, 'low': 423.67, 'close': 432.92, 'volume': 29378200}, {'date': '2026-04-23', 'open': 419.89, 'high': 423.66, 'low': 411.41, 'close': 415.75, 'volume': 38308000}, {'date': '2026-04-24', 'open': 416.97, 'high': 424.95, 'low': 415.8, 'close': 424.62, 'volume': 27457400}, {'date': '2026-04-27', 'open': 422.38, 'high': 427.11, 'low': 417.07, 'close': 424.82, 'volume': 30867300}, {'date': '2026-04-28', 'open': 424.57, 'high': 429.92, 'low': 421.9, 'close': 429.25, 'volume': 30438100}, {'date': '2026-04-29', 'open': 424.58, 'high': 426.82, 'low': 420.29, 'close': 424.46, 'volume': 38288300}, {'date': '2026-04-30', 'open': 410.81, 'high': 414.42, 'low': 398.01, 'close': 407.78, 'volume': 70909400}, {'date': '2026-05-01', 'open': 412.8, 'high': 417.11, 'low': 410.44, 'close': 414.44, 'volume': 31372400}, {'date': '2026-05-04', 'open': 411.54, 'high': 420.78, 'low': 410.8, 'close': 413.62, 'volume': 28066500}, {'date': '2026-05-05', 'open': 415.32, 'high': 416.78, 'low': 408.8, 'close': 411.38, 'volume': 25700900}, {'date': '2026-05-06', 'open': 408.0, 'high': 418.42, 'low': 405.11, 'close': 413.96, 'volume': 30285900}, {'date': '2026-05-07', 'open': 420.11, 'high': 427.98, 'low': 418.76, 'close': 420.77, 'volume': 34942400}, {'date': '2026-05-08', 'open': 417.39, 'high': 418.63, 'low': 414.0, 'close': 415.12, 'volume': 33383800}, {'date': '2026-05-11', 'open': 407.87, 'high': 412.69, 'low': 405.5, 'close': 412.66, 'volume': 35657900}, {'date': '2026-05-12', 'open': 414.48, 'high': 415.5, 'low': 406.64, 'close': 407.77, 'volume': 38594200}, {'date': '2026-05-13', 'open': 403.2, 'high': 406.31, 'low': 401.03, 'close': 405.21, 'volume': 29667100}, {'date': '2026-05-14', 'open': 404.48, 'high': 411.84, 'low': 400.88, 'close': 409.43, 'volume': 27077500}, {'date': '2026-05-15', 'open': 414.27, 'high': 428.17, 'low': 412.91, 'close': 421.92, 'volume': 50310800}]}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_rsi",
+              "response": {
+                "output": "{'symbol': 'MSFT', 'rsi': 48.1, 'period': 14, 'signal': 'neutral'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_macd",
+              "response": {
+                "output": "{'symbol': 'MSFT', 'macd': 3.3845, 'signal_line': 4.7006, 'histogram': -1.3161, 'crossover': 'bearish'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_moving_averages",
+              "response": {
+                "output": "{'symbol': 'MSFT', 'current_price': 421.92, 'sma_20': 417.41, 'sma_50': 399.06, 'sma_200': 461.91, 'trend': 'sideways', 'ma_cross': 'none'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "detect_trend",
+              "response": {
+                "output": "{'symbol': 'MSFT', 'trend': 'uptrend', 'strength': 'strong', 'sma20_slope': 0.9795, 'sma50_slope': 0.2627, 'higher_highs': True, 'lower_lows': False, '52w_range_position': '35.6%', '52w_high': 539.83, '52w_low': 356.77}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "detect_support_resistance",
+              "response": {
+                "output": "{'symbol': 'MSFT', 'current_price': 421.92, 'support_levels': [356.28, 381.71, 394.72], 'resistance_levels': [514.26, 529.23, 551.84], 'nearest_support': 394.72, 'nearest_resistance': 514.26}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "get_price_history",
+              "response": {
+                "output": "{'symbol': 'GOOGL', 'period': 'Last 60 trading days', 'current_price': 396.78, 'prices': [{'date': '2026-02-20', 'open': 304.11, 'high': 316.28, 'low': 303.69, 'close': 314.76, 'volume': 53210800}, {'date': '2026-02-23', 'open': 318.83, 'high': 319.3, 'low': 309.65, 'close': 311.27, 'volume': 31423000}, {'date': '2026-02-24', 'open': 310.3, 'high': 312.05, 'low': 305.71, 'close': 310.68, 'volume': 25615600}, {'date': '2026-02-25', 'open': 311.84, 'high': 313.42, 'low': 309.22, 'close': 312.68, 'volume': 29963600}, {'date': '2026-02-26', 'open': 312.42, 'high': 312.92, 'low': 302.14, 'close': 307.16, 'volume': 36431200}, {'date': '2026-02-27', 'open': 303.93, 'high': 312.15, 'low': 303.59, 'close': 311.54, 'volume': 44640600}, {'date': '2026-03-02', 'open': 303.02, 'high': 308.27, 'low': 301.09, 'close': 306.3, 'volume': 34790200}, {'date': '2026-03-03', 'open': 298.38, 'high': 303.73, 'low': 296.5, 'close': 303.37, 'volume': 35497000}, {'date': '2026-03-04', 'open': 302.68, 'high': 305.26, 'low': 300.54, 'close': 302.92, 'volume': 29536200}, {'date': '2026-03-05', 'open': 302.83, 'high': 303.09, 'low': 297.78, 'close': 300.67, 'volume': 35752300}, {'date': '2026-03-06', 'open': 295.88, 'high': 300.32, 'low': 294.97, 'close': 298.31, 'volume': 25576900}, {'date': '2026-03-09', 'open': 294.36, 'high': 306.8, 'low': 294.08, 'close': 306.36, 'volume': 29312100}, {'date': '2026-03-10', 'open': 306.17, 'high': 309.51, 'low': 305.57, 'close': 307.04, 'volume': 23239700}, {'date': '2026-03-11', 'open': 306.75, 'high': 311.42, 'low': 305.92, 'close': 308.7, 'volume': 24125700}, {'date': '2026-03-12', 'open': 306.82, 'high': 308.94, 'low': 301.03, 'close': 303.55, 'volume': 24928300}, {'date': '2026-03-13', 'open': 307.01, 'high': 307.69, 'low': 300.44, 'close': 302.28, 'volume': 23693100}, {'date': '2026-03-16', 'open': 304.35, 'high': 306.49, 'low': 303.02, 'close': 305.56, 'volume': 23519700}, {'date': '2026-03-17', 'open': 305.86, 'high': 311.42, 'low': 305.5, 'close': 310.92, 'volume': 21955200}, {'date': '2026-03-18', 'open': 309.27, 'high': 312.47, 'low': 306.93, 'close': 307.69, 'volume': 20009800}, {'date': '2026-03-19', 'open': 304.01, 'high': 308.06, 'low': 302.35, 'close': 307.13, 'volume': 25075800}, {'date': '2026-03-20', 'open': 305.46, 'high': 306.0, 'low': 298.27, 'close': 301.0, 'volume': 44364100}, {'date': '2026-03-23', 'open': 302.11, 'high': 305.98, 'low': 300.93, 'close': 302.06, 'volume': 29326900}, {'date': '2026-03-24', 'open': 299.2, 'high': 299.92, 'low': 290.33, 'close': 290.44, 'volume': 36864300}, {'date': '2026-03-25', 'open': 293.44, 'high': 296.0, 'low': 289.24, 'close': 290.93, 'volume': 29460700}, {'date': '2026-03-26', 'open': 287.91, 'high': 287.95, 'low': 278.5, 'close': 280.92, 'volume': 39080600}, {'date': '2026-03-27', 'open': 277.28, 'high': 279.37, 'low': 273.95, 'close': 274.34, 'volume': 35890600}, {'date': '2026-03-30', 'open': 276.42, 'high': 277.09, 'low': 272.11, 'close': 273.5, 'volume': 35141200}, {'date': '2026-03-31', 'open': 278.04, 'high': 288.08, 'low': 277.09, 'close': 287.56, 'volume': 43875400}, {'date': '2026-04-01', 'open': 290.84, 'high': 300.52, 'low': 290.41, 'close': 297.39, 'volume': 37684500}, {'date': '2026-04-02', 'open': 290.69, 'high': 298.08, 'low': 289.45, 'close': 295.77, 'volume': 21666500}, {'date': '2026-04-06', 'open': 295.87, 'high': 300.62, 'low': 295.18, 'close': 299.99, 'volume': 16945500}, {'date': '2026-04-07', 'open': 302.73, 'high': 305.63, 'low': 297.72, 'close': 305.46, 'volume': 23205400}, {'date': '2026-04-08', 'open': 320.45, 'high': 322.08, 'low': 315.02, 'close': 317.32, 'volume': 33547100}, {'date': '2026-04-09', 'open': 315.91, 'high': 319.54, 'low': 311.06, 'close': 318.49, 'volume': 23739200}, {'date': '2026-04-10', 'open': 320.02, 'high': 321.83, 'low': 316.32, 'close': 317.24, 'volume': 19152600}, {'date': '2026-04-13', 'open': 317.14, 'high': 321.63, 'low': 315.47, 'close': 321.31, 'volume': 18866400}, {'date': '2026-04-14', 'open': 324.79, 'high': 333.29, 'low': 323.75, 'close': 332.91, 'volume': 27721400}, {'date': '2026-04-15', 'open': 332.89, 'high': 337.48, 'low': 330.9, 'close': 337.12, 'volume': 24918800}, {'date': '2026-04-16', 'open': 338.75, 'high': 339.88, 'low': 334.52, 'close': 336.02, 'volume': 20541500}, {'date': '2026-04-17', 'open': 337.65, 'high': 342.32, 'low': 336.24, 'close': 341.68, 'volume': 25581900}, {'date': '2026-04-20', 'open': 340.76, 'high': 341.4, 'low': 336.61, 'close': 337.42, 'volume': 18784200}, {'date': '2026-04-21', 'open': 337.69, 'high': 339.34, 'low': 331.35, 'close': 332.29, 'volume': 23123800}, {'date': '2026-04-22', 'open': 337.02, 'high': 339.82, 'low': 335.17, 'close': 339.32, 'volume': 20293000}, {'date': '2026-04-23', 'open': 341.18, 'high': 341.96, 'low': 336.18, 'close': 338.89, 'volume': 18650300}, {'date': '2026-04-24', 'open': 338.73, 'high': 345.27, 'low': 335.39, 'close': 344.4, 'volume': 26426100}, {'date': '2026-04-27', 'open': 345.98, 'high': 353.18, 'low': 342.73, 'close': 350.34, 'volume': 28576900}, {'date': '2026-04-28', 'open': 348.55, 'high': 352.42, 'low': 346.12, 'close': 349.78, 'volume': 27824100}, {'date': '2026-04-29', 'open': 347.57, 'high': 355.79, 'low': 344.21, 'close': 349.94, 'volume': 35376300}, {'date': '2026-04-30', 'open': 374.07, 'high': 385.84, 'low': 365.82, 'close': 384.8, 'volume': 72040000}, {'date': '2026-05-01', 'open': 381.63, 'high': 386.76, 'low': 379.05, 'close': 385.69, 'volume': 30105200}, {'date': '2026-05-04', 'open': 385.63, 'high': 387.38, 'low': 379.79, 'close': 383.25, 'volume': 26298600}, {'date': '2026-05-05', 'open': 386.23, 'high': 392.82, 'low': 384.02, 'close': 388.43, 'volume': 23878600}, {'date': '2026-05-06', 'open': 394.25, 'high': 399.85, 'low': 392.76, 'close': 398.04, 'volume': 31308500}, {'date': '2026-05-07', 'open': 399.92, 'high': 400.1, 'low': 392.68, 'close': 397.99, 'volume': 24433500}, {'date': '2026-05-08', 'open': 397.0, 'high': 402.0, 'low': 396.36, 'close': 400.8, 'volume': 21461800}, {'date': '2026-05-11', 'open': 393.65, 'high': 397.44, 'low': 388.47, 'close': 388.64, 'volume': 30753700}, {'date': '2026-05-12', 'open': 387.34, 'high': 388.52, 'low': 382.77, 'close': 387.35, 'volume': 26017500}, {'date': '2026-05-13', 'open': 385.6, 'high': 403.7, 'low': 385.0, 'close': 402.62, 'volume': 28144600}, {'date': '2026-05-14', 'open': 397.28, 'high': 402.93, 'low': 395.84, 'close': 401.07, 'volume': 21136700}, {'date': '2026-05-15', 'open': 396.32, 'high': 399.54, 'low': 393.18, 'close': 396.78, 'volume': 20205600}]}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_rsi",
+              "response": {
+                "output": "{'symbol': 'GOOGL', 'rsi': 75.5, 'period': 14, 'signal': 'overbought'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_macd",
+              "response": {
+                "output": "{'symbol': 'GOOGL', 'macd': 20.134, 'signal_line': 19.7444, 'histogram': 0.3897, 'crossover': 'bullish'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "calculate_moving_averages",
+              "response": {
+                "output": "{'symbol': 'GOOGL', 'current_price': 396.78, 'sma_20': 372.89, 'sma_50': 332.74, 'sma_200': 291.06, 'trend': 'strong uptrend', 'ma_cross': 'none'}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "detect_trend",
+              "response": {
+                "output": "{'symbol': 'GOOGL', 'trend': 'uptrend', 'strength': 'strong', 'sma20_slope': 3.1709, 'sma50_slope': 1.5903, 'higher_highs': True, 'lower_lows': False, '52w_range_position': '97.6%', '52w_high': 402.62, '52w_low': 163.41}"
+              }
+            }
+          },
+          {
+            "function_response": {
+              "name": "detect_support_resistance",
+              "response": {
+                "output": "{'symbol': 'GOOGL', 'current_price': 396.78, 'support_levels': [163.18, 172.38, 187.4], 'resistance_levels': [], 'nearest_support': 187.4, 'nearest_resistance': 'N/A'}"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "config": {
+      "http_options": {
+        "retry_options": {
+          "attempts": 6
+        }
+      },
+      "system_instruction": {
+        "parts": [
+          {
+            "text": "Current date and time: Sunday, May 17, 2026 04:12 \n\n\nYou are the Technical Analyst for a $10M US equity fund.\n\nYou analyze price action and momentum only.\n\nDo NOT:\n- Discuss fundamentals\n- Discuss valuation\n- Discuss macro\n\n--------------------------------------------------\nOUTPUT FORMAT\n--------------------------------------------------\n\n1. Trend Structure\n2. Momentum Indicators (RSI, MACD)\n3. Support & Resistance\n4. Volume Analysis\n5. Entry Timing Quality\n6. Technical Risk Level\n7. Technical Conviction Score (1-10)\n\n--------------------------------------------------\n\nBe structured.\nBe concise.\nBe numerical where possible.\n"
+          }
+        ]
+      },
+      "temperature": 0.0,
+      "candidate_count": 1,
+      "safety_settings": [],
+      "tools": [
+        {
+          "function_declarations": [
+            {
+              "description": "Get recent OHLCV price data for a stock. Returns last N trading days.\n\nArgs:\n    symbol (str): Stock ticker symbol (e.g. AAPL, NVDA).\n    days (int): Number of recent trading days to return (default 20).",
+              "name": "get_price_history",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "type": "STRING"
+                  },
+                  "days": {
+                    "type": "INTEGER"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate the Relative Strength Index (RSI) for a stock. Returns value and overbought/oversold signal.\n\nArgs:\n    symbol (str): Stock ticker symbol.\n    period (int): RSI lookback period (default 14).",
+              "name": "calculate_rsi",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "type": "STRING"
+                  },
+                  "period": {
+                    "type": "INTEGER"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate MACD (12/26/9) for a stock. Returns MACD line, signal line, histogram, and crossover direction.\n\nArgs:\n    symbol (str): Stock ticker symbol.",
+              "name": "calculate_macd",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate 20/50/200-day SMAs and classify trend based on price position relative to MAs.\n\nArgs:\n    symbol (str): Stock ticker symbol.",
+              "name": "calculate_moving_averages",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Detect the current price trend using SMA slopes, higher-highs/lows analysis. Returns direction and strength.\n\nArgs:\n    symbol (str): Stock ticker symbol.",
+              "name": "detect_trend",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Detect key support and resistance levels from recent price action using pivot highs/lows.\n\nArgs:\n    symbol (str): Stock ticker symbol.",
+              "name": "detect_support_resistance",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            }
+          ]
+        }
+      ],
+      "thinking_config": {
+        "include_thoughts": false,
+        "thinking_budget": 0
+      }
+    }
+  }
+}

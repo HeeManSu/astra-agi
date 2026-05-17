@@ -1,0 +1,16 @@
+{
+  "framework": "astra",
+  "query_id": "Q9",
+  "trial": 2,
+  "ok": true,
+  "error": null,
+  "attempts_used": 1,
+  "num_llm_calls": 3,
+  "prompt_tokens": 17853,
+  "completion_tokens": 3482,
+  "thoughts_tokens": 0,
+  "total_tokens": 21335,
+  "wall_ms": 27707.92,
+  "llm_latency_ms": 16293.31,
+  "response_chars": 4090
+}

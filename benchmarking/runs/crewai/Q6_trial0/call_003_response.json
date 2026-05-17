@@ -1,0 +1,49 @@
+{
+  "call_index": 3,
+  "latency_ms": 2822.68,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:11:21 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2688",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy, rising inflation and growth, easing liquidity, and a positively sloped yield curve. These factors generally point towards a \"Risk-On\" equity environment.\n\n2. Monetary Policy Assessment:\nThe Fed Funds Rate is stable at 3.64%, and the policy stance is neutral. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. This indicates that the Federal Reserve is neither aggressively tightening nor loosening monetary policy.\n\n3. Inflation & Growth Assessment:\nInflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ. The unemployment rate is moderate at 4.3%, with a stable labor trend. This suggests a growing economy with some inflationary pressures.\n\n4. Liquidity & Credit Conditions:\nFinancial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. Corporate credit spreads are tight at 0.76, suggesting healthy credit markets. The liquidity regime is classified as \"easing,\" and the overall risk regime is \"risk-on.\"\n\n5. Yield Curve Interpretation:\nThe yield curve is positively sloped, with the 10-year Treasury yield (4.47%) higher than the 2-year Treasury yield (4.0%), resulting in a spread of 0.47%. This typically signals expectations of future economic growth and is generally favorable for equities.\n\n6. Equity Risk Regime: Risk-On\n\n7. Confidence Score: 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "VsEIaprrF92p4-EP4O-U6Q8",
+    "usage_metadata": {
+      "candidates_token_count": 366,
+      "prompt_token_count": 1332,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1332
+        }
+      ],
+      "total_token_count": 1698
+    }
+  }
+}

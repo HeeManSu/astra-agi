@@ -1,0 +1,16 @@
+{
+  "framework": "agno",
+  "query_id": "Q9",
+  "trial": 0,
+  "ok": true,
+  "error": null,
+  "attempts_used": 1,
+  "num_llm_calls": 13,
+  "prompt_tokens": 22670,
+  "completion_tokens": 4827,
+  "thoughts_tokens": 0,
+  "total_tokens": 27497,
+  "wall_ms": 48456.03,
+  "llm_latency_ms": 36122.01,
+  "response_chars": 5117
+}

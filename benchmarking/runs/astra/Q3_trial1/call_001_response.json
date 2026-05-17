@@ -1,0 +1,57 @@
+{
+  "call_index": 1,
+  "latency_ms": 5327.36,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:32:55 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=5115",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\"status\": \"success\", \"summary\": \"The Research Team will produce a full research packet for NVDA by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst sequentially. Each analyst will use their specialized tools to gather data and generate their respective sections of the report, with outputs passed down the pipeline.\", \"steps\": [{\"id\": 1, \"agent\": \"macro-strategist\", \"tool_name\": \"get_monetary_policy_data\", \"tool_slug\": \"get-monetary-policy-data\", \"purpose\": \"Get current monetary policy snapshot to establish the macro regime.\", \"depends_on\": []}, {\"id\": 2, \"agent\": \"macro-strategist\", \"tool_name\": \"get_inflation_and_growth_data\", \"tool_slug\": \"get-inflation-and-growth-data\", \"purpose\": \"Get current inflation and growth snapshot to establish the macro regime.\", \"depends_on\": [1]}, {\"id\": 3, \"agent\": \"macro-strategist\", \"tool_name\": \"get_liquidity_and_credit_conditions\", \"tool_slug\": \"get-liquidity-and-credit-conditions\", \"purpose\": \"Get current liquidity and credit conditions to establish the macro regime.\", \"depends_on\": [2]}, {\"id\": 4, \"agent\": \"financial-analyst\", \"tool_name\": \"get_financial_statements\", \"tool_slug\": \"get-financial-statements\", \"purpose\": \"Get income statement and cash flow highlights for NVDA.\", \"depends_on\": [3]}, {\"id\": 5, \"agent\": \"financial-analyst\", \"tool_name\": \"get_key_financial_metrics\", \"tool_slug\": \"get-key-financial-metrics\", \"purpose\": \"Get profitability and efficiency metrics for NVDA.\", \"depends_on\": [4]}, {\"id\": 6, \"agent\": \"financial-analyst\", \"tool_name\": \"get_growth_metrics\", \"tool_slug\": \"get-growth-metrics\", \"purpose\": \"Get growth rates for NVDA.\", \"depends_on\": [5]}, {\"id\": 7, \"agent\": \"financial-analyst\", \"tool_name\": \"get_balance_sheet_strength\", \"tool_slug\": \"get-balance-sheet-strength\", \"purpose\": \"Get balance sheet health for NVDA.\", \"depends_on\": [6]}, {\"id\": 8, \"agent\": \"valuation-analyst\", \"tool_name\": \"get_current_market_data\", \"tool_slug\": \"get-current-market-data\", \"purpose\": \"Get current market data for NVDA for valuation analysis.\", \"depends_on\": [7]}, {\"id\": 9, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_dcf\", \"tool_slug\": \"calculate-dcf\", \"purpose\": \"Run a DCF valuation for NVDA.\", \"depends_on\": [8]}, {\"id\": 10, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_multiple_valuation\", \"tool_slug\": \"calculate-multiple-valuation\", \"purpose\": \"Get relative valuation using price multiples for NVDA.\", \"depends_on\": [9]}, {\"id\": 11, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_margin_of_safety\", \"tool_slug\": \"calculate-margin-of-safety\", \"purpose\": \"Calculate margin of safety for NVDA.\", \"depends_on\": [10]}, {\"id\": 12, \"agent\": \"technical-analyst\", \"tool_name\": \"get_price_history\", \"tool_slug\": \"get-price-history\", \"purpose\": \"Get recent OHLCV price data for NVDA.\", \"depends_on\": [11]}, {\"id\": 13, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_rsi\", \"tool_slug\": \"calculate-rsi\", \"purpose\": \"Calculate the Relative Strength Index (RSI) for NVDA.\", \"depends_on\": [12]}, {\"id\": 14, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_macd\", \"tool_slug\": \"calculate-macd\", \"purpose\": \"Calculate MACD for NVDA.\", \"depends_on\": [13]}, {\"id\": 15, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_moving_averages\", \"tool_slug\": \"calculate-moving-averages\", \"purpose\": \"Calculate moving averages and classify trend for NVDA.\", \"depends_on\": [14]}, {\"id\": 16, \"agent\": \"technical-analyst\", \"tool_name\": \"detect_trend\", \"tool_slug\": \"detect-trend\", \"purpose\": \"Detect the current price trend for NVDA.\", \"depends_on\": [15]}, {\"id\": 17, \"agent\": \"technical-analyst\", \"tool_name\": \"detect_support_resistance\", \"tool_slug\": \"detect-support-resistance\", \"purpose\": \"Detect key support and resistance levels for NVDA.\", \"depends_on\": [16]}]}"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "YsYIavqYDpPsg8UPicbCwAU",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3065
+        }
+      ],
+      "cached_content_token_count": 3065,
+      "candidates_token_count": 1147,
+      "prompt_token_count": 3982,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3982
+        }
+      ],
+      "total_token_count": 5129
+    },
+    "automatic_function_calling_history": []
+  }
+}

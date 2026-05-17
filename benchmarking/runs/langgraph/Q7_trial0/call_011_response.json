@@ -1,0 +1,49 @@
+{
+  "call_index": 11,
+  "latency_ms": 5743.47,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:41:33 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=5699",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Technical Research Report: AAPL, MSFT, GOOGL\n\n### Ranking:\n\n1.  **Alphabet (GOOGL)**\n2.  **Apple (AAPL)**\n3.  **Microsoft (MSFT)**\n\n### Reasoning:\n\n#### **Alphabet (GOOGL)**\n\n1.  **Trend Structure:** Strong uptrend. Price is significantly above its 20, 50, and 200-day SMAs (396.78 vs. 372.89, 332.74, 291.06 respectively). Both the 20-day and 50-day SMA slopes are strongly positive (3.1709 and 1.5903). The stock is making higher highs and is near its 52-week high (97.6% of the range).\n2.  **Momentum Indicators (RSI, MACD):** RSI is 75.5, indicating overbought conditions. MACD (20.134) is above its signal line (19.7444) with a positive histogram (0.3897), indicating bullish momentum and a recent bullish crossover.\n3.  **Support & Resistance:** Nearest support is at 187.4. There are no detected resistance levels, suggesting price discovery in an uptrend.\n4.  **Volume Analysis:** Recent price action shows strong volume on upward moves, particularly on 2026-04-30 (72.04M shares) when the price gapped up significantly.\n5.  **Entry Timing Quality:** Poor. The stock is overbought and has run significantly. While the trend is strong, entering at current levels carries increased risk of a pullback.\n6.  **Technical Risk Level:** High. Overbought RSI and extended price action suggest a higher probability of a near-term correction.\n7.  **Technical Conviction Score (1-10):** 8/10 (Strong trend, but overbought)\n\n#### **Apple (AAPL)**\n\n1.  **Trend Structure:** Strong uptrend. Price is well above its 20, 50, and 200-day SMAs (300.23 vs. 281.36, 265.97, 258.65 respectively). Both the 20-day and 50-day SMA slopes are positive (1.4344 and 0.4749). The stock is at its 52-week high (100.0% of the range).\n2.  **Momentum Indicators (RSI, MACD):** RSI is 88.4, indicating extremely overbought conditions. MACD (9.5172) is above its signal line (7.7411) with a positive histogram (1.7762), indicating strong bullish momentum and a recent bullish crossover.\n3.  **Support & Resistance:** Nearest support is at 224.23. There are no detected resistance levels, suggesting price discovery.\n4.  **Volume Analysis:** Recent volume has been strong on upward moves, with notable spikes on 2026-04-30 (91.85M shares) and 2026-05-01 (79.92M shares).\n5.  **Entry Timing Quality:** Very Poor. The stock is extremely overbought and at its 52-week high. A significant pullback is highly probable.\n6.  **Technical Risk Level:** Very High. The extreme overbought conditions and lack of overhead resistance suggest a high risk of a sharp correction.\n7.  **Technical Conviction Score (1-10):** 7/10 (Very strong trend, but extremely overbought)\n\n#### **Microsoft (MSFT)**\n\n1.  **Trend Structure:** Sideways trend. While the overall 52-week trend is an uptrend, the price is currently trading around its 20-day SMA (421.92 vs. 417.41) and below its 200-day SMA (461.91). The 20-day SMA slope is positive (0.9795), but the 50-day SMA slope is less steep (0.2627). The stock is in the lower half of its 52-week range (35.6%).\n2.  **Momentum Indicators (RSI, MACD):** RSI is 48.1, indicating neutral momentum. MACD (3.3845) is below its signal line (4.7006) with a negative histogram (-1.3161), indicating bearish momentum and a recent bearish crossover.\n3.  **Support & Resistance:** Nearest support is at 394.72, and nearest resistance is at 514.26.\n4.  **Volume Analysis:** Volume has been mixed, with some higher volume on down days (e.g., 2026-04-30 with 70.91M shares).\n5.  **Entry Timing Quality:** Neutral. The stock is not overbought or oversold, but the bearish MACD crossover and sideways trend suggest a lack of immediate upward momentum.\n6.  **Technical Risk Level:** Moderate. The sideways trend and bearish MACD crossover indicate a lack of clear direction and potential for further downside.\n7.  **Technical Conviction Score (1-10):** 5/10 (Neutral momentum, sideways trend)"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "mPIIatDfDLqrjuMP_9qnuAM",
+    "usage_metadata": {
+      "candidates_token_count": 1228,
+      "prompt_token_count": 9876,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 9876
+        }
+      ],
+      "total_token_count": 11104
+    }
+  }
+}

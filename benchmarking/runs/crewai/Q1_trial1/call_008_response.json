@@ -1,0 +1,49 @@
+{
+  "call_index": 8,
+  "latency_ms": 2808.43,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:05:00 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2729",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Revenue & Growth Analysis\n   - Revenue: $451.44B\n   - Revenue Growth: 16.6%\n   - Earnings Growth: 21.8%\n   - Quarterly Earnings Growth: 19.4%\n\n2. Profitability (Margins, ROIC)\n   - Gross Margin: 47.9%\n   - Operating Margin: 32.3%\n   - Net Margin: 27.2%\n   - EBITDA Margin: 35.4%\n   - Return on Equity (ROE): 141.5%\n   - Return on Assets (ROA): 26.2%\n\n3. Cash Flow Strength\n   - Operating Cash Flow: $140.22B\n   - Free Cash Flow: $101.09B\n\n4. Balance Sheet Quality\n   - Total Cash: $68.51B\n   - Total Debt: $84.71B\n   - Net Cash: $-16.20B (Net Debt position)\n   - Debt-to-Equity: 79.548%\n   - Current Ratio: 1.07\n   - Book Value Per Share: $7.26\n\n5. Earnings Stability\n   - Trailing EPS: $8.26\n   - Forward EPS: $9.5861\n   - PEG Ratio: 2.61 (Suggests earnings growth is priced in)\n\n6. Financial Risk Factors\n   - Net Debt position of $-16.20B.\n   - Debt-to-Equity ratio of 79.548% indicates a moderate reliance on debt financing.\n   - Current ratio of 1.07 suggests adequate short-term liquidity.\n\n7. Conviction Score (1-10)\n   - 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "2r8IaqfbEaKDjuMP7_fP6QM",
+    "usage_metadata": {
+      "candidates_token_count": 406,
+      "prompt_token_count": 2556,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2556
+        }
+      ],
+      "total_token_count": 2962
+    }
+  }
+}

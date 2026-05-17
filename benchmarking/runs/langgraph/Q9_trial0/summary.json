@@ -1,0 +1,237 @@
+{
+  "num_calls": 8,
+  "prompt_tokens": 15654,
+  "completion_tokens": 2540,
+  "thoughts_tokens": 0,
+  "total_tokens": 18194,
+  "llm_latency_ms": 19830.26,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 860,
+      "completion_tokens": 48,
+      "thoughts_tokens": 0,
+      "total_tokens": 908,
+      "latency_ms": 1375.87,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        },
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        },
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1187,
+      "completion_tokens": 232,
+      "thoughts_tokens": 0,
+      "total_tokens": 1419,
+      "latency_ms": 2152.66,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary: The current macro environment is characterized by a neutral monetary policy, rising inflation and GDP growth, and easing liquidity conditions. The yield curve remains positive.\n\n2. M"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1087,
+      "completion_tokens": 76,
+      "thoughts_tokens": 0,
+      "total_tokens": 1163,
+      "latency_ms": 1204.84,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "TSLA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1629,
+      "completion_tokens": 579,
+      "thoughts_tokens": 0,
+      "total_tokens": 2208,
+      "latency_ms": 3537.73,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [],
+      "text_preview": "### 1. Revenue & Growth Analysis\n\nTesla (TSLA) demonstrates solid revenue growth at 15.8%. Earnings growth is also positive at 8.3%, with a stronger quarterly earnings growth of 16.6%, indicating rece"
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1896,
+      "completion_tokens": 91,
+      "thoughts_tokens": 0,
+      "total_tokens": 1987,
+      "latency_ms": 1730.61,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "growth_rate": 0.15,
+            "symbol": "TSLA",
+            "projection_years": 5,
+            "terminal_growth": 0.03,
+            "discount_rate": 0.1
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "TSLA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2433,
+      "completion_tokens": 621,
+      "thoughts_tokens": 0,
+      "total_tokens": 3054,
+      "latency_ms": 3780.28,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "1.  **DCF Valuation**\n    *   Using a discount rate of 10% and a growth rate of 15% for 5 years, with a terminal growth rate of 3%, the DCF valuation for TSLA is:\n        *   Bear Case: $24.87\n       "
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2167,
+      "completion_tokens": 109,
+      "thoughts_tokens": 0,
+      "total_tokens": 2276,
+      "latency_ms": 1632.81,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "TSLA"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "TSLA",
+            "days": 20
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "TSLA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4395,
+      "completion_tokens": 784,
+      "thoughts_tokens": 0,
+      "total_tokens": 5179,
+      "latency_ms": 4415.46,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "1.  **Trend Structure:** TSLA is in a moderate uptrend, with the current price of $422.24 above its 20-day SMA ($401.32), 50-day SMA ($386.78), and 200-day SMA ($407.40). The 20-day SMA slope is posit"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "call_index": 20,
+  "latency_ms": 1105.99,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 18:28:55 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1090",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_macd"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "ZrcIap_ZM6vDjuMPyq7X0Q0",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2771
+        }
+      ],
+      "cached_content_token_count": 2771,
+      "candidates_token_count": 30,
+      "prompt_token_count": 3833,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3833
+        }
+      ],
+      "total_token_count": 3863
+    }
+  }
+}

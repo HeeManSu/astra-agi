@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 14693,
+  "completion_tokens": 3289,
+  "thoughts_tokens": 0,
+  "total_tokens": 17982,
+  "llm_latency_ms": 16444.67,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3982,
+      "completion_tokens": 1155,
+      "thoughts_tokens": 0,
+      "total_tokens": 5137,
+      "latency_ms": 5707.48,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\"status\": \"success\", \"summary\": \"The Research Team will produce a full research packet for MSFT by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst sequential"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5488,
+      "completion_tokens": 723,
+      "thoughts_tokens": 0,
+      "total_tokens": 6211,
+      "latency_ms": 3840.97,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_policy_data = macro_strategist.get_monetary_policy_data()\nmacro_inflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nmacro_liquidity_data = macro_strategist.get_liquidity_and"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5223,
+      "completion_tokens": 1411,
+      "thoughts_tokens": 0,
+      "total_tokens": 6634,
+      "latency_ms": 6896.22,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "## MSFT Research Report\n\n### 1. MACRO ANALYSIS\n\n**Macro Summary**\nThe macro environment indicates a neutral monetary policy stance with rising inflation and GDP growth. Liquidity conditions are easing"
+    }
+  ]
+}

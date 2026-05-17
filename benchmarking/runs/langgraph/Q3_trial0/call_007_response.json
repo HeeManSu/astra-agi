@@ -1,0 +1,61 @@
+{
+  "call_index": 7,
+  "latency_ms": 924.64,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:37:25 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=743",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "NVDA"
+                },
+                "name": "calculate_multiple_valuation"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "pPEIatCHK83-juMP4qWeuAM",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1737
+        }
+      ],
+      "cached_content_token_count": 1737,
+      "candidates_token_count": 18,
+      "prompt_token_count": 2406,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2406
+        }
+      ],
+      "total_token_count": 2424
+    }
+  }
+}

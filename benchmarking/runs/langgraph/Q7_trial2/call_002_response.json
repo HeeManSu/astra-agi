@@ -1,0 +1,49 @@
+{
+  "call_index": 2,
+  "latency_ms": 2169.3,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:42:21 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2061",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Macro Summary: The current macro environment is characterized by a neutral monetary policy, rising inflation and growth, easing liquidity, and a positively sloped yield curve.\n\n2. Monetary Policy Assessment: The Federal Reserve's policy stance is neutral, with the fed funds rate at 3.64% and a stable rate trend.\n\n3. Inflation & Growth Assessment: Inflation is rising, with CPI YoY at 3.95% and core CPI at 2.99%. GDP growth is also rising at 0.49% QoQ, while the unemployment rate is moderate at 4.3%.\n\n4. Liquidity & Credit Conditions: Liquidity conditions are easing, as indicated by a negative Chicago Fed National Financial Conditions Index (-0.524). Corporate credit spreads are tight at 0.76, suggesting a healthy credit environment.\n\n5. Yield Curve Interpretation: The 10-year/2-year Treasury yield spread is positive at 0.47% (10-year at 4.47%, 2-year at 4.0%), indicating an expansionary signal.\n\n6. Equity Risk Regime: Risk-On\n\n7. Confidence Score: 8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "y_IIauGYINK_juMPocTP2Ac",
+    "usage_metadata": {
+      "candidates_token_count": 253,
+      "prompt_token_count": 1196,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1196
+        }
+      ],
+      "total_token_count": 1449
+    }
+  }
+}

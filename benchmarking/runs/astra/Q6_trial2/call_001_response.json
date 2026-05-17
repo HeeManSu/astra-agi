@@ -1,0 +1,57 @@
+{
+  "call_index": 1,
+  "latency_ms": 7640.52,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sat, 16 May 2026 19:35:04 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=7532",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\"status\": \"success\", \"summary\": \"The Research Team will produce a comprehensive research packet comparing AAPL and MSFT. The Macro Strategist will first establish the macro regime. Then, for each stock, the Financial Analyst will evaluate fundamentals, the Valuation Analyst will perform valuation, and the Technical Analyst will assess price action. Finally, all outputs will be compiled into a single structured research packet.\", \"steps\": [{\"id\": 1, \"agent\": \"macro-strategist\", \"tool_name\": \"get_monetary_policy_data\", \"tool_slug\": \"get-monetary-policy-data\", \"purpose\": \"Get current monetary policy snapshot to establish the macro regime.\", \"depends_on\": []}, {\"id\": 2, \"agent\": \"macro-strategist\", \"tool_name\": \"get_inflation_and_growth_data\", \"tool_slug\": \"get-inflation-and-growth-data\", \"purpose\": \"Get current inflation and growth snapshot to establish the macro regime.\", \"depends_on\": [1]}, {\"id\": 3, \"agent\": \"macro-strategist\", \"tool_name\": \"get_liquidity_and_credit_conditions\", \"tool_slug\": \"get-liquidity-and-credit-conditions\", \"purpose\": \"Get current liquidity and credit conditions to establish the macro regime.\", \"depends_on\": [2]}, {\"id\": 4, \"agent\": \"financial-analyst\", \"tool_name\": \"get_financial_statements\", \"tool_slug\": \"get-financial-statements\", \"purpose\": \"Get income statement and cash flow highlights for AAPL.\", \"depends_on\": [3]}, {\"id\": 5, \"agent\": \"financial-analyst\", \"tool_name\": \"get_key_financial_metrics\", \"tool_slug\": \"get-key-financial-metrics\", \"purpose\": \"Get profitability and efficiency metrics for AAPL.\", \"depends_on\": [4]}, {\"id\": 6, \"agent\": \"financial-analyst\", \"tool_name\": \"get_growth_metrics\", \"tool_slug\": \"get-growth-metrics\", \"purpose\": \"Get growth rates for AAPL.\", \"depends_on\": [5]}, {\"id\": 7, \"agent\": \"financial-analyst\", \"tool_name\": \"get_balance_sheet_strength\", \"tool_slug\": \"get-balance-sheet-strength\", \"purpose\": \"Get balance sheet health for AAPL.\", \"depends_on\": [6]}, {\"id\": 8, \"agent\": \"valuation-analyst\", \"tool_name\": \"get_current_market_data\", \"tool_slug\": \"get-current-market-data\", \"purpose\": \"Get current market data for AAPL for valuation.\", \"depends_on\": [7]}, {\"id\": 9, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_dcf\", \"tool_slug\": \"calculate-dcf\", \"purpose\": \"Run a DCF valuation for AAPL.\", \"depends_on\": [8]}, {\"id\": 10, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_multiple_valuation\", \"tool_slug\": \"calculate-multiple-valuation\", \"purpose\": \"Get relative valuation using price multiples for AAPL.\", \"depends_on\": [9]}, {\"id\": 11, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_margin_of_safety\", \"tool_slug\": \"calculate-margin-of-safety\", \"purpose\": \"Calculate margin of safety for AAPL.\", \"depends_on\": [10]}, {\"id\": 12, \"agent\": \"technical-analyst\", \"tool_name\": \"get_price_history\", \"tool_slug\": \"get-price-history\", \"purpose\": \"Get recent OHLCV price data for AAPL.\", \"depends_on\": [11]}, {\"id\": 13, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_rsi\", \"tool_slug\": \"calculate-rsi\", \"purpose\": \"Calculate the Relative Strength Index (RSI) for AAPL.\", \"depends_on\": [12]}, {\"id\": 14, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_macd\", \"tool_slug\": \"calculate-macd\", \"purpose\": \"Calculate MACD for AAPL.\", \"depends_on\": [13]}, {\"id\": 15, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_moving_averages\", \"tool_slug\": \"calculate-moving-averages\", \"purpose\": \"Calculate moving averages and classify trend for AAPL.\", \"depends_on\": [14]}, {\"id\": 16, \"agent\": \"technical-analyst\", \"tool_name\": \"detect_trend\", \"tool_slug\": \"detect-trend\", \"purpose\": \"Detect the current price trend for AAPL.\", \"depends_on\": [15]}, {\"id\": 17, \"agent\": \"technical-analyst\", \"tool_name\": \"detect_support_resistance\", \"tool_slug\": \"detect-support-resistance\", \"purpose\": \"Detect key support and resistance levels for AAPL.\", \"depends_on\": [16]}, {\"id\": 18, \"agent\": \"financial-analyst\", \"tool_name\": \"get_financial_statements\", \"tool_slug\": \"get-financial-statements\", \"purpose\": \"Get income statement and cash flow highlights for MSFT.\", \"depends_on\": [17]}, {\"id\": 19, \"agent\": \"financial-analyst\", \"tool_name\": \"get_key_financial_metrics\", \"tool_slug\": \"get-key-financial-metrics\", \"purpose\": \"Get profitability and efficiency metrics for MSFT.\", \"depends_on\": [18]}, {\"id\": 20, \"agent\": \"financial-analyst\", \"tool_name\": \"get_growth_metrics\", \"tool_slug\": \"get-growth-metrics\", \"purpose\": \"Get growth rates for MSFT.\", \"depends_on\": [19]}, {\"id\": 21, \"agent\": \"financial-analyst\", \"tool_name\": \"get_balance_sheet_strength\", \"tool_slug\": \"get-balance-sheet-strength\", \"purpose\": \"Get balance sheet health for MSFT.\", \"depends_on\": [20]}, {\"id\": 22, \"agent\": \"valuation-analyst\", \"tool_name\": \"get_current_market_data\", \"tool_slug\": \"get-current-market-data\", \"purpose\": \"Get current market data for MSFT for valuation.\", \"depends_on\": [21]}, {\"id\": 23, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_dcf\", \"tool_slug\": \"calculate-dcf\", \"purpose\": \"Run a DCF valuation for MSFT.\", \"depends_on\": [22]}, {\"id\": 24, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_multiple_valuation\", \"tool_slug\": \"calculate-multiple-valuation\", \"purpose\": \"Get relative valuation using price multiples for MSFT.\", \"depends_on\": [23]}, {\"id\": 25, \"agent\": \"valuation-analyst\", \"tool_name\": \"calculate_margin_of_safety\", \"tool_slug\": \"calculate-margin-of-safety\", \"purpose\": \"Calculate margin of safety for MSFT.\", \"depends_on\": [24]}, {\"id\": 26, \"agent\": \"technical-analyst\", \"tool_name\": \"get_price_history\", \"tool_slug\": \"get-price-history\", \"purpose\": \"Get recent OHLCV price data for MSFT.\", \"depends_on\": [25]}, {\"id\": 27, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_rsi\", \"tool_slug\": \"calculate-rsi\", \"purpose\": \"Calculate the Relative Strength Index (RSI) for MSFT.\", \"depends_on\": [26]}, {\"id\": 28, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_macd\", \"tool_slug\": \"calculate-macd\", \"purpose\": \"Calculate MACD for MSFT.\", \"depends_on\": [27]}, {\"id\": 29, \"agent\": \"technical-analyst\", \"tool_name\": \"calculate_moving_averages\", \"tool_slug\": \"calculate-moving-averages\", \"purpose\": \"Calculate moving averages and classify trend for MSFT.\", \"depends_on\": [28]}, {\"id\": 30, \"agent\": \"technical-analyst\", \"tool_name\": \"detect_trend\", \"tool_slug\": \"detect-trend\", \"purpose\": \"Detect the current price trend for MSFT.\", \"depends_on\": [29]}, {\"id\": 31, \"agent\": \"technical-analyst\", \"tool_name\": \"detect_support_resistance\", \"tool_slug\": \"detect-support-resistance\", \"purpose\": \"Detect key support and resistance levels for MSFT.\", \"depends_on\": [30]}]}"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "4cYIaoWcIIybjuMPz-bLYQ",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3065
+        }
+      ],
+      "cached_content_token_count": 3065,
+      "candidates_token_count": 2038,
+      "prompt_token_count": 3997,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3997
+        }
+      ],
+      "total_token_count": 6035
+    },
+    "automatic_function_calling_history": []
+  }
+}

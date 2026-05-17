@@ -1,0 +1,54 @@
+{
+  "call_index": 7,
+  "latency_ms": 750.12,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:38:32 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=733",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "NVDA"
+                },
+                "name": "get_current_market_data"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "5_EIap6YOvntg8UPmvq7iQk",
+    "usage_metadata": {
+      "candidates_token_count": 20,
+      "prompt_token_count": 2429,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2429
+        }
+      ],
+      "total_token_count": 2449
+    }
+  }
+}

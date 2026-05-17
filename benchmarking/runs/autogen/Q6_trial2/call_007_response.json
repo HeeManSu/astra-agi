@@ -1,0 +1,110 @@
+{
+  "call_index": 7,
+  "latency_ms": 1453.91,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:52:37 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1370",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_financial_statements"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_key_financial_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_growth_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_balance_sheet_strength"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "get_financial_statements"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "get_key_financial_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "get_growth_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "get_balance_sheet_strength"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "5K4IarzFM8yUg8UPnOjC0QI",
+    "usage_metadata": {
+      "candidates_token_count": 148,
+      "prompt_token_count": 1261,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1261
+        }
+      ],
+      "total_token_count": 1409
+    }
+  }
+}

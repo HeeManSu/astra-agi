@@ -1,0 +1,64 @@
+{
+  "call_index": 2,
+  "latency_ms": 1783.14,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:18:38 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1698",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_monetary_policy_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_inflation_and_growth_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_liquidity_and_credit_conditions"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "DcMIarL2Ap3ag8UP8diqmAU",
+    "usage_metadata": {
+      "candidates_token_count": 48,
+      "prompt_token_count": 988,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 988
+        }
+      ],
+      "total_token_count": 1036
+    }
+  }
+}

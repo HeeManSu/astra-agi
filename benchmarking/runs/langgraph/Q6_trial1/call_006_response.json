@@ -1,0 +1,65 @@
+{
+  "call_index": 6,
+  "latency_ms": 2806.24,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:39:52 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2786",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### 1. DCF Valuation\n\n**Apple (AAPL):**\n*   **Current Price:** $300.23\n*   **Free Cash Flow Used:** $101.09B\n*   **Growth Rate:** 16.6%\n*   **Discount Rate:** 9.0%\n*   **Bear Case Intrinsic Value:** $148.17\n*   **Base Case Intrinsic Value:** $207.82\n*   **Bull Case Intrinsic Value:** $286.16\n*   **Base Case Upside:** -30.8%\n\n**Microsoft (MSFT):**\n*   **Current Price:** $421.92\n*   **Free Cash Flow Used:** $37.01B\n*   **Growth Rate:** 18.3%\n*   **Discount Rate:** 9.0%\n*   **Bear Case Intrinsic Value:** $111.14\n*   **Base Case Intrinsic Value:** $160.86\n*   **Bull Case Intrinsic Value:** $227.74\n*   **Base Case Upside:** -61.9%\n\n### 2. Comparable Multiples\n\n**Apple (AAPL):**\n*   **Trailing P/E:** 36.35\n*   **Forward P/E:** 31.32\n*   **PEG Ratio:** 2.61\n*   **EV/EBITDA:** 27.66\n*   **Price/Book:** 41.35\n*   **Assessment:** Premium valuation\n\n**Microsoft (MSFT):**\n*   **Trailing P/E:** 25.13\n*   **Forward P/E:** 21.78\n*   **PEG Ratio:** 1.26\n*   **EV/EBITDA:** 17.25\n*   **Price/Book:** 7.56\n*   **Assessment:** Fairly valued\n\n### 3. Fair Value (Bear / Base / Bull)\n\n**Apple (AAPL):**\n*   **Bear Case:** $148.17 (DCF)\n*   **Base Case:** $207.82 (DCF)\n*   **Bull Case:** $286.16 (DCF)\n\n**Microsoft (MSFT):**\n*   **Bear Case:** $111.14 (DCF)\n*   **Base Case:** $160.86 (DCF)\n*   **Bull Case:** $227.74 (DCF)\n\n### 4. Margin of Safety\n\n**Apple (AAPL):**\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "current_price": 300.23,
+                  "fair_value": 207.82
+                },
+                "name": "calculate_margin_of_safety"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "NfIIaurnNI7XjuMP47SDgQg",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1829
+        }
+      ],
+      "cached_content_token_count": 1829,
+      "candidates_token_count": 639,
+      "prompt_token_count": 3578,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3578
+        }
+      ],
+      "total_token_count": 4217
+    }
+  }
+}

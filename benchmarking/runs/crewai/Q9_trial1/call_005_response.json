@@ -1,0 +1,63 @@
+{
+  "call_index": 5,
+  "latency_ms": 1268.51,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:18:48 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1240",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "task": "Analyze the company fundamentals for TSLA. Evaluate revenue, margins, profitability, cash flow, balance sheet, and growth. Focus on company fundamentals only.",
+                  "coworker": "Financial Analyst",
+                  "context": "The final answer should be a structured fundamentals report with sections: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10). The macro regime is risk-on, so emphasize upside targets and momentum."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "F8MIat3KHZ36g8UPj6jQgAs",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 858
+        }
+      ],
+      "cached_content_token_count": 858,
+      "candidates_token_count": 115,
+      "prompt_token_count": 2240,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2240
+        }
+      ],
+      "total_token_count": 2355
+    }
+  }
+}

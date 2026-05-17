@@ -1,0 +1,401 @@
+{
+  "num_calls": 16,
+  "prompt_tokens": 42422,
+  "completion_tokens": 4761,
+  "thoughts_tokens": 0,
+  "total_tokens": 47183,
+  "llm_latency_ms": 36186.7,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 563,
+      "completion_tokens": 140,
+      "thoughts_tokens": 0,
+      "total_tokens": 703,
+      "latency_ms": 1573.43,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "context": "The final output should be a structured macro assessment with sections: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10).",
+            "coworker": "Macro Strategist",
+            "task": "Assess the macro regime and equity risk environment relevant to analyzing AAPL and producing a full research report. Use the macro data tools to gather current readings on monetary policy, inflation, growth, liquidity, and the yield curve. Produce the structured output specified in your backstory. Focus on the macro signal, do not discuss individual company details."
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 957,
+      "completion_tokens": 48,
+      "thoughts_tokens": 0,
+      "total_tokens": 1005,
+      "latency_ms": 1612.37,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        },
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        },
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1317,
+      "completion_tokens": 394,
+      "thoughts_tokens": 0,
+      "total_tokens": 1711,
+      "latency_ms": 2580.82,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy stance with stable rates and a positive yield spread. Inflation shows a rising trend, with CPI YoY at 3.95"
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1159,
+      "completion_tokens": 394,
+      "thoughts_tokens": 0,
+      "total_tokens": 1553,
+      "latency_ms": 2454.71,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy stance with stable rates and a positive yield spread. Inflation shows a rising trend, with CPI YoY at 3.95"
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2198,
+      "completion_tokens": 115,
+      "thoughts_tokens": 0,
+      "total_tokens": 2313,
+      "latency_ms": 1592.33,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "context": "The final output should be a structured fundamentals report with sections: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10).",
+            "coworker": "Financial Analyst",
+            "task": "Analyze the company fundamentals for AAPL. Using the financial tools, evaluate revenue, margins, profitability, cash flow, balance sheet, and growth. Produce the structured output specified in your backstory. Focus on company fundamentals only."
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 968,
+      "completion_tokens": 72,
+      "thoughts_tokens": 0,
+      "total_tokens": 1040,
+      "latency_ms": 1197.38,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1546,
+      "completion_tokens": 389,
+      "thoughts_tokens": 0,
+      "total_tokens": 1935,
+      "latency_ms": 2668.78,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Revenue & Growth Analysis\n   - Revenue: $451.44B\n   - Revenue Growth: 16.6%\n   - Earnings Growth: 21.8%\n   - Quarterly Earnings Growth: 19.4%\n\n2. Profitability (Margins, ROIC)\n   - Gross Margin: 47"
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2784,
+      "completion_tokens": 389,
+      "thoughts_tokens": 0,
+      "total_tokens": 3173,
+      "latency_ms": 2340.47,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Revenue & Growth Analysis\n   - Revenue: $451.44B\n   - Revenue Growth: 16.6%\n   - Earnings Growth: 21.8%\n   - Quarterly Earnings Growth: 19.4%\n\n2. Profitability (Margins, ROIC)\n   - Gross Margin: 47"
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4198,
+      "completion_tokens": 103,
+      "thoughts_tokens": 0,
+      "total_tokens": 4301,
+      "latency_ms": 1131.51,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "coworker": "Valuation Analyst",
+            "task": "Determine intrinsic value and margin of safety for AAPL. Use the valuation tools to run DCF and comparable multiples. Produce the structured output specified in your backstory.",
+            "context": "The final output should be a structured valuation packet with sections: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict."
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1171,
+      "completion_tokens": 88,
+      "thoughts_tokens": 0,
+      "total_tokens": 1259,
+      "latency_ms": 1601.58,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "growth_rate": 0.08,
+            "symbol": "AAPL",
+            "projection_years": 5,
+            "terminal_growth": 0.03,
+            "discount_rate": 0.1
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1736,
+      "completion_tokens": 542,
+      "thoughts_tokens": 0,
+      "total_tokens": 2278,
+      "latency_ms": 3566.86,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [],
+      "text_preview": "1. DCF Valuation\n   - Bear Case Intrinsic Value: $105.68\n   - Base Case Intrinsic Value: $124.98\n   - Bull Case Intrinsic Value: $147.16\n   - FCF Used: $101.09B\n   - Growth Rate: 8.0%\n   - Discount Ra"
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4930,
+      "completion_tokens": 542,
+      "thoughts_tokens": 0,
+      "total_tokens": 5472,
+      "latency_ms": 3068.52,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [],
+      "text_preview": "1. DCF Valuation\n   - Bear Case Intrinsic Value: $105.68\n   - Base Case Intrinsic Value: $124.98\n   - Bull Case Intrinsic Value: $147.16\n   - FCF Used: $101.09B\n   - Growth Rate: 8.0%\n   - Discount Ra"
+    },
+    {
+      "call_index": 13,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 7071,
+      "completion_tokens": 132,
+      "thoughts_tokens": 0,
+      "total_tokens": 7203,
+      "latency_ms": 1425.08,
+      "request_dump": "call_013_request.json",
+      "response_dump": "call_013_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "task": "Assess price action, momentum, and technical structure for AAPL. Use the technical tools to compute indicators (RSI, MACD, moving averages) and identify trend, support, and resistance. Produce the structured output specified in your backstory. Do not discuss fundamentals, valuation, or macro.",
+            "context": "The final output should be a structured technical report with sections: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10).",
+            "coworker": "Technical Analyst"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 14,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 835,
+      "completion_tokens": 103,
+      "thoughts_tokens": 0,
+      "total_tokens": 938,
+      "latency_ms": 1605.44,
+      "request_dump": "call_014_request.json",
+      "response_dump": "call_014_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "AAPL",
+            "days": 20
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 15,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3064,
+      "completion_tokens": 655,
+      "thoughts_tokens": 0,
+      "total_tokens": 3719,
+      "latency_ms": 3889.84,
+      "request_dump": "call_015_request.json",
+      "response_dump": "call_015_response.json",
+      "tool_calls": [],
+      "text_preview": "1.  **Trend Structure:** AAPL is in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope is 1.4344 an"
+    },
+    {
+      "call_index": 16,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 7925,
+      "completion_tokens": 655,
+      "thoughts_tokens": 0,
+      "total_tokens": 8580,
+      "latency_ms": 3877.58,
+      "request_dump": "call_016_request.json",
+      "response_dump": "call_016_response.json",
+      "tool_calls": [],
+      "text_preview": "1.  **Trend Structure:** AAPL is in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope is 1.4344 an"
+    }
+  ]
+}

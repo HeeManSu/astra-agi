@@ -1,0 +1,142 @@
+## 1. MACRO ANALYSIS
+
+**Macro Summary:** The macro environment is characterized by a neutral monetary policy, rising inflation and GDP growth, easing liquidity, and a positive yield curve signal. This combination points to a "Risk-On" equity risk regime.
+
+**Monetary Policy Assessment:**
+*   **Fed Funds Rate:** Stable at 3.64%.
+*   **10Y Treasury:** 4.47%.
+*   **2Y Treasury:** 4.0%.
+*   **Yield Spread (10Y-2Y):** 0.47%, indicating a positive slope.
+*   **Policy Stance:** Neutral.
+
+**Inflation & Growth Assessment:**
+*   **CPI (YoY):** 3.95%, rising trend.
+*   **Core CPI (YoY):** 2.99%.
+*   **GDP Growth (QoQ):** 0.49%, rising trend.
+*   **Unemployment Rate:** 4.3%, with a moderate labor trend.
+
+**Liquidity & Credit Conditions:**
+*   **Financial Conditions Index:** -0.524.
+*   **Credit Spread:** 0.76.
+*   **Liquidity Regime:** Easing.
+
+**Yield Curve Interpretation:** The positive yield spread of 0.47% (10Y-2Y) suggests a healthy economic outlook.
+
+**Equity Risk Regime:** Risk-On.
+
+**Confidence Score:** 8/10
+
+## 2. FINANCIAL ANALYSIS
+
+**Revenue & Growth Analysis:**
+*   **Revenue:** $318.27B
+*   **Revenue Growth:** 18.3%
+*   **Earnings Growth:** 23.4%
+*   **Earnings Quarterly Growth:** 23.1%
+*   **Trailing EPS:** 16.79
+*   **Forward EPS:** 19.37
+*   **PEG Ratio:** 1.26
+
+**Profitability (Margins, ROIC):**
+*   **Gross Margin:** 68.3%
+*   **Operating Margin:** 46.3%
+*   **Net Margin:** 39.3%
+*   **EBITDA Margin:** 58.0%
+*   **ROE:** 34.0%
+*   **ROA:** 14.8%
+
+**Cash Flow Strength:**
+*   **Operating Cash Flow:** $170.14B
+*   **Free Cash Flow:** $37.01B
+
+**Balance Sheet Quality:**
+*   **Total Cash:** $78.23B
+*   **Total Debt:** $125.43B
+*   **Net Cash:** $-47.20B
+*   **Debt to Equity:** 30.271
+*   **Current Ratio:** 1.283
+*   **Book Value Per Share:** 55.777
+
+**Earnings Stability:** Strong and consistent earnings growth.
+
+**Financial Risk Factors:** The negative net cash position and debt-to-equity ratio of 30.271 indicate some leverage, though the strong cash flow generation mitigates this.
+
+**Conviction Score:** 9/10
+
+## 3. VALUATION ANALYSIS
+
+**DCF Valuation:**
+*   **Free Cash Flow Used:** $37.01B
+*   **Growth Rate:** 10.0%
+*   **Discount Rate:** 10.0%
+*   **Bear Case Fair Value:** $79.81
+*   **Base Case Fair Value:** $98.22
+*   **Bull Case Fair Value:** $120.08
+*   **Base Case Upside:** -76.7%
+
+**Comparable Multiples:**
+*   **Trailing P/E:** 25.13
+*   **Forward P/E:** 21.78
+*   **PEG Ratio:** 1.26
+*   **EV/EBITDA:** 17.25
+*   **EV/Revenue:** 10.0
+*   **Price/Book:** 7.56
+*   **Price/Sales:** 9.85
+*   **Assessment:** Fairly valued based on multiples.
+
+**Fair Value (Bear / Base / Bull):**
+*   **Bear Case:** $79.81
+*   **Base Case:** $98.22
+*   **Bull Case:** $120.08
+
+**Margin of Safety:**
+*   **Current Price:** $421.92
+*   **Fair Value (Base Case):** $98.22
+*   **Margin of Safety:** -329.6%
+*   **Upside Potential:** -76.7%
+
+**Valuation Risks:** The significant negative margin of safety from the DCF analysis indicates substantial overvaluation relative to intrinsic value.
+
+**Final Valuation Verdict:** Overvalued - negative margin of safety.
+
+## 4. TECHNICAL ANALYSIS
+
+**Trend Structure:**
+*   **Trend:** Uptrend
+*   **Strength:** Strong
+*   **SMA20 Slope:** 0.9795
+*   **SMA50 Slope:** 0.2627
+*   **Higher Highs:** True
+*   **Lower Lows:** False
+*   **52-Week Range Position:** 35.6% (Current price is 35.6% from its 52-week low)
+*   **52-Week High:** $539.83
+*   **52-Week Low:** $356.77
+
+**Momentum Indicators (RSI, MACD):**
+*   **RSI (14-period):** 48.1 (Neutral signal)
+*   **MACD:** 3.3845
+*   **Signal Line:** 4.7006
+*   **Histogram:** -1.3161
+*   **Crossover:** Bearish
+
+**Support & Resistance:**
+*   **Current Price:** $421.92
+*   **Nearest Support:** $394.72
+*   **Support Levels:** $356.28, $381.71, $394.72
+*   **Nearest Resistance:** $514.26
+*   **Resistance Levels:** $514.26, $529.23, $551.84
+
+**Volume Analysis:**
+*   Recent trading days show varying volume, with a notable spike on 2026-04-30 (70.9M) and 2026-05-15 (50.3M).
+
+**Entry Timing Quality:**
+*   **SMA 20:** $417.41
+*   **SMA 50:** $399.06
+*   **SMA 200:** $461.91
+*   **Trend (based on SMAs):** Sideways
+*   **MA Cross:** None
+*   The bearish MACD crossover and sideways trend based on SMAs suggest caution for entry timing despite the overall strong uptrend.
+
+**Technical Risk Level:** Moderate.
+
+**Technical Conviction Score:** 6/10

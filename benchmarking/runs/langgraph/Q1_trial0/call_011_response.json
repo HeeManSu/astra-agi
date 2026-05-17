@@ -1,0 +1,49 @@
+{
+  "call_index": 11,
+  "latency_ms": 4821.34,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:34:15 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=4800",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## AAPL Technical Research Report\n\n### 1. Trend Structure\nAAPL is currently in a moderate uptrend. The 20-day SMA slope is 1.4344 and the 50-day SMA slope is 0.4749, both indicating upward momentum. The stock is at its 52-week high of $300.23, representing 100% of its 52-week range. However, there have been no recent higher highs or lower lows, suggesting a potential consolidation or a pause in the strong upward movement.\n\n### 2. Momentum Indicators\n*   **RSI (14-period):** 88.4. This indicates that AAPL is significantly overbought, suggesting a potential for a pullback or consolidation in the near term.\n*   **MACD (12/26/9):** MACD line is 9.5172, Signal line is 7.7411, and the Histogram is 1.7762. The MACD shows a bullish crossover, with the MACD line above the signal line, indicating positive momentum.\n\n### 3. Support & Resistance\n*   **Current Price:** $300.23\n*   **Resistance Levels:** There are no detected resistance levels as the stock is at its 52-week high.\n*   **Support Levels:** Key support levels are identified at $224.23, $200.70, and $193.50. The nearest support level is $224.23.\n\n### 4. Volume Analysis\nOver the last 20 trading days, AAPL has seen varying volume.\n*   **Highest Volume:** 91,848,200 on April 30, 2026, coinciding with a price increase from $270.25 to $271.10.\n*   **Lowest Volume:** 30,047,900 on April 29, 2026, during a relatively flat price movement.\n*   **Recent Volume:** The volume on May 15, 2026, was 54,721,100, which is above the average for the period, accompanying a price increase. The overall trend in volume appears to be increasing on up days, which is generally a bullish sign, but the recent surge to new highs on moderate volume could be a concern if not sustained.\n\n### 5. Entry Timing Quality\nThe current entry timing quality is **Poor**. While the MACD shows bullish momentum, the RSI is extremely overbought (88.4), indicating a high probability of a near-term correction or consolidation. Entering at a 52-week high with an overbought RSI carries elevated risk.\n\n### 6. Technical Risk Level\nThe technical risk level is **High**. The stock is at its 52-week high with no overhead resistance, but the extremely overbought RSI suggests that a pullback is likely. The lack of recent higher highs or lower lows also indicates a potential for a pause in the strong uptrend.\n\n### 7. Technical Conviction Score (1-10)\n**3/10** - While the trend is positive and MACD is bullish, the extremely overbought RSI and the stock being at its 52-week high present significant short-term technical risks. A more favorable entry would involve a pullback to a support level or a cooling off of the RSI."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "4_AIatPaD6ytjuMP5-jBoAM",
+    "usage_metadata": {
+      "candidates_token_count": 759,
+      "prompt_token_count": 4287,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 4287
+        }
+      ],
+      "total_token_count": 5046
+    }
+  }
+}

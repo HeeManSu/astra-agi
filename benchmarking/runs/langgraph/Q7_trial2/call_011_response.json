@@ -1,0 +1,196 @@
+{
+  "call_index": 11,
+  "latency_ms": 2742.32,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:42:51 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2663",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I will analyze the technicals for AAPL, MSFT, and GOOGL and then provide a ranking based on technical factors only. I will not discuss macro, fundamentals, or valuation as per your instructions.\n\nHere's the plan:\n1. For each stock (AAPL, MSFT, GOOGL):\n    - Get price history for the last 60 days.\n    - Calculate RSI.\n    - Calculate MACD.\n    - Calculate moving averages.\n    - Detect trend.\n    - Detect support and resistance.\n2. Compile the technical analysis for each stock.\n3. Rank the stocks from best to worst based on their technicals.\n4. Provide a final report with specific reasoning for the ranking.\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL",
+                  "days": 60
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT",
+                  "days": 60
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL",
+                  "days": 60
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "GOOGL"
+                },
+                "name": "detect_support_resistance"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "6fIIavG2AfOvjuMP77rAuAM",
+    "usage_metadata": {
+      "candidates_token_count": 483,
+      "prompt_token_count": 3785,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 3785
+        }
+      ],
+      "total_token_count": 4268
+    }
+  }
+}

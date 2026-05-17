@@ -1,0 +1,63 @@
+{
+  "call_index": 9,
+  "latency_ms": 1629.39,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:17:03 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1585",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "coworker": "Valuation Analyst",
+                  "task": "Determine intrinsic value and margin of safety for AAPL, MSFT, and GOOGL. Use DCF and comparable multiples. Produce a structured output with sections: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict.",
+                  "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a valuation analysis that will feed into this larger report. The valuation analysis should be structured as follows: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict. The companies to analyze are AAPL, MSFT, and GOOGL. You have been provided with macro and fundamental analysis for each company."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "rsIIapL3F4SxjuMP5fn2-QM",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 960
+        }
+      ],
+      "cached_content_token_count": 960,
+      "candidates_token_count": 196,
+      "prompt_token_count": 6955,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 6955
+        }
+      ],
+      "total_token_count": 7151
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "call_index": 5,
+  "latency_ms": 1596.88,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:14:24 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1575",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "coworker": "Financial Analyst",
+                  "task": "Analyze the company fundamentals for AAPL, MSFT, and GOOGL. Evaluate revenue, margins, profitability, cash flow, balance sheet, and growth for each company.",
+                  "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your task is to provide a fundamental analysis that will feed into this larger report. The fundamental analysis should be structured with the following sections: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10). Focus on company fundamentals only."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "D8IIao7qA--G4-EPxIGvoQk",
+    "usage_metadata": {
+      "candidates_token_count": 145,
+      "prompt_token_count": 2205,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2205
+        }
+      ],
+      "total_token_count": 2350
+    }
+  }
+}

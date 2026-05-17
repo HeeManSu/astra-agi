@@ -1,0 +1,49 @@
+{
+  "call_index": 8,
+  "latency_ms": 2322.48,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:45:48 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2303",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### 1. Revenue & Growth Analysis\nAAPL reported revenue of $451.44B, representing a 16.6% year-over-year growth. Quarterly earnings growth stands at 19.4%, with a trailing EPS of $8.26 and a forward EPS of $9.5861.\n\n### 2. Profitability (Margins, ROIC)\nAAPL demonstrates strong profitability with a gross margin of 47.9%, an operating margin of 32.3%, and a net margin of 27.2%. The EBITDA margin is 35.4%. Return on Equity (ROE) is exceptionally high at 141.5%, and Return on Assets (ROA) is 26.2%.\n\n### 3. Cash Flow Strength\nAAPL exhibits robust cash flow generation with $140.22B in operating cash flow and $101.09B in free cash flow.\n\n### 4. Balance Sheet Quality\nAAPL's balance sheet shows total cash of $68.51B and total debt of $84.71B, resulting in a net cash position of -$16.20B. The debt-to-equity ratio is 79.548, and the current ratio is 1.07. Book value per share is $7.26.\n\n### 5. Earnings Stability\nEarnings growth is positive at 21.8% year-over-year, with consistent quarterly growth of 19.4%, indicating stable and growing earnings.\n\n### 6. Financial Risk Factors\nThe debt-to-equity ratio of 79.548 suggests a moderate level of leverage. While the current ratio of 1.07 is slightly above 1, it indicates adequate short-term liquidity. The negative net cash position suggests that total debt exceeds total cash.\n\n### 7. Conviction Score (1-10)\n8"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "Sq0IaovPE-PdqfkPp6qWgAk",
+    "usage_metadata": {
+      "candidates_token_count": 421,
+      "prompt_token_count": 1847,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1847
+        }
+      ],
+      "total_token_count": 2268
+    }
+  }
+}

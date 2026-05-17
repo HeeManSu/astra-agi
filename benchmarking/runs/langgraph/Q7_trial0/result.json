@@ -1,0 +1,16 @@
+{
+  "framework": "langgraph",
+  "query_id": "Q7",
+  "trial": 0,
+  "ok": true,
+  "error": null,
+  "attempts_used": 1,
+  "num_llm_calls": 11,
+  "prompt_tokens": 32986,
+  "completion_tokens": 4641,
+  "thoughts_tokens": 0,
+  "total_tokens": 37627,
+  "wall_ms": 40159.04,
+  "llm_latency_ms": 29771.52,
+  "response_chars": 13733
+}

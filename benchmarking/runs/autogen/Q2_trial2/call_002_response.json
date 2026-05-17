@@ -1,0 +1,55 @@
+{
+  "call_index": 2,
+  "latency_ms": 1319.4,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:48:06 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1236",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Macro Summary:\nThe current macro environment indicates a neutral to slightly risk-off equity regime. Monetary policy is restrictive, with inflation showing signs of moderation but remaining elevated. Growth momentum is slowing, and liquidity conditions are tightening. The inverted yield curve continues to signal potential economic headwinds.\n\n2. Monetary Policy Assessment:\n"
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_monetary_policy_data"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "1a0IauOPJdfRjuMPuPG_uQE",
+    "usage_metadata": {
+      "candidates_token_count": 81,
+      "prompt_token_count": 893,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 893
+        }
+      ],
+      "total_token_count": 974
+    }
+  }
+}

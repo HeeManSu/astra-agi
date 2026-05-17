@@ -1,0 +1,56 @@
+{
+  "call_index": 6,
+  "latency_ms": 5191.83,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 11:54:24 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=5160",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "## Apple (AAPL)\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue: $451.44B\n    *   Revenue Growth: 16.6%\n    *   Earnings Growth: 21.8%\n    *   Quarterly Earnings Growth: 19.4%\n\n2.  **Profitability (Margins, ROIC)**\n    *   Gross Margin: 47.9%\n    *   Operating Margin: 32.3%\n    *   Net Margin: 27.2%\n    *   EBITDA Margin: 35.4%\n    *   ROE: 141.5%\n    *   ROA: 26.2%\n\n3.  **Cash Flow Strength**\n    *   Operating Cash Flow: $140.22B\n    *   Free Cash Flow: $101.09B\n\n4.  **Balance Sheet Quality**\n    *   Total Cash: $68.51B\n    *   Total Debt: $84.71B\n    *   Net Cash: $-16.20B (Net Debt position)\n    *   Debt-to-Equity: 79.548\n    *   Current Ratio: 1.07\n\n5.  **Earnings Stability**\n    *   Trailing EPS: $8.26\n    *   Forward EPS: $9.5861\n\n6.  **Financial Risk Factors**\n    *   High debt-to-equity ratio and a net debt position indicate a reliance on debt financing.\n    *   Current ratio is slightly above 1, suggesting adequate but not strong short-term liquidity.\n\n7.  **Conviction Score (1-10)**: 7\n\n## Microsoft (MSFT)\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue: $318.27B\n    *   Revenue Growth: 18.3%\n    *   Earnings Growth: 23.4%\n    *   Quarterly Earnings Growth: 23.1%\n\n2.  **Profitability (Margins, ROIC)**\n    *   Gross Margin: 68.3%\n    *   Operating Margin: 46.3%\n    *   Net Margin: 39.3%\n    *   EBITDA Margin: 58.0%\n    *   ROE: 34.0%\n    *   ROA: 14.8%\n\n3.  **Cash Flow Strength**\n    *   Operating Cash Flow: $170.14B\n    *   Free Cash Flow: $37.01B\n\n4.  **Balance Sheet Quality**\n    *   Total Cash: $78.23B\n    *   Total Debt: $125.43B\n    *   Net Cash: $-47.20B (Net Debt position)\n    *   Debt-to-Equity: 30.271\n    *   Current Ratio: 1.283\n\n5.  **Earnings Stability**\n    *   Trailing EPS: $16.79\n    *   Forward EPS: $19.37103\n\n6.  **Financial Risk Factors**\n    *   While having a net debt position, the debt-to-equity ratio is lower than Apple's, indicating a more conservative use of debt.\n    *   Current ratio is healthy, suggesting good short-term liquidity.\n\n7.  **Conviction Score (1-10)**: 8\n\n## Alphabet (GOOGL)\n\n1.  **Revenue & Growth Analysis**\n    *   Revenue: $422.50B\n    *   Revenue Growth: 21.8%\n    *   Earnings Growth: 82.0%\n    *   Quarterly Earnings Growth: 81.2%\n\n2.  **Profitability (Margins, ROIC)**\n    *   Gross Margin: 60.4%\n    *   Operating Margin: 36.1%\n    *   Net Margin: 37.9%\n    *   EBITDA Margin: 38.2%\n    *   ROE: 38.9%\n    *   ROA: 14.6%\n\n3.  **Cash Flow Strength**\n    *   Operating Cash Flow: $174.35B\n    *   Free Cash Flow: $27.92B\n\n4.  **Balance Sheet Quality**\n    *   Total Cash: $126.84B\n    *   Total Debt: $95.88B\n    *   Net Cash: $30.96B (Net Cash position)\n    *   Debt-to-Equity: 20.026\n    *   Current Ratio: 1.922\n\n5.  **Earnings Stability**\n    *   Trailing EPS: $13.09\n    *   Forward EPS: $14.45135\n\n6.  **Financial Risk Factors**\n    *   Strong net cash position and low debt-to-equity ratio indicate a very healthy balance sheet with minimal financial risk.\n    *   High current ratio suggests excellent short-term liquidity.\n\n7.  **Conviction Score (1-10)**: 9"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "a6wJapLkHo29qfkPp6_FiQQ",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1760
+        }
+      ],
+      "cached_content_token_count": 1760,
+      "candidates_token_count": 1193,
+      "prompt_token_count": 2821,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2821
+        }
+      ],
+      "total_token_count": 4014
+    }
+  }
+}

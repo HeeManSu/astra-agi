@@ -1,0 +1,162 @@
+{
+  "call_index": 13,
+  "method": "generate_content",
+  "is_async": true,
+  "is_stream": false,
+  "kwargs": {
+    "model": "gemini-2.5-flash",
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Analyze TSLA. If the macro regime is risk-off, focus your final verdict on downside scenarios and stop-loss levels. If risk-on, emphasize upside targets and momentum."
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "member_id": "macro-strategist",
+                "task": "Analyze the current macro regime, including interest rates, inflation, GDP growth, and liquidity. Determine if the regime is risk-on or risk-off. Provide a comprehensive overview of the macro environment relevant to analyzing TSLA."
+              },
+              "name": "delegate_task_to_member"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "delegate_task_to_member",
+              "response": {
+                "result": "I cannot provide commentary on specific companies like TSLA. However, I can analyze the current macro regime based on the available tools. I will provide a comprehensive overview of the macro environment, including monetary policy, inflation, growth, liquidity, and the yield curve, and then determine the overall equity risk regime.\n\n1. Macro Summary:\nThe current macro environment is characterized by a neutral monetary policy with stable rates, rising inflation (both headline and core CPI), and rising GDP growth. The labor market shows moderate trends. Liquidity conditions are easing, and credit spreads are tight, indicating a risk-on environment. The yield curve remains positive.\n\n2. Monetary Policy Assessment:\nThe Fed Funds Rate is 3.64% and stable, indicating a neutral policy stance. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%.\n\n3. Inflation & Growth Assessment:\nInflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ. The unemployment rate is moderate at 4.3%. This suggests a growing economy with inflationary pressures.\n\n4. Liquidity & Credit Conditions:\nFinancial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. Corporate credit spreads are tight at 0.76, suggesting healthy credit markets. The liquidity regime is classified as \"easing,\" and the overall risk regime is \"risk-on.\"\n\n5. Yield Curve Interpretation:\nThe 10-year/2-year yield spread is positive at 0.47%, which typically signals expectations of continued economic growth and a healthy economic outlook.\n\n6. Equity Risk Regime: Risk-On\n\n7. Confidence Score: 8"
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "member_id": "financial-analyst",
+                "task": "Analyze TSLA's financial performance, including revenue growth, profit margins, balance sheet health, and key growth drivers. Provide a detailed financial overview. Context from Macro Strategist: The current macro environment is characterized by a neutral monetary policy with stable rates, rising inflation (both headline and core CPI), and rising GDP growth. The labor market shows moderate trends. Liquidity conditions are easing, and credit spreads are tight, indicating a risk-on environment. The yield curve remains positive. Monetary Policy Assessment: The Fed Funds Rate is 3.64% and stable, indicating a neutral policy stance. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. Inflation & Growth Assessment: Inflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ. The unemployment rate is moderate at 4.3%. This suggests a growing economy with inflationary pressures. Liquidity & Credit Conditions: Financial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. Corporate credit spreads are tight at 0.76, suggesting healthy credit markets. The liquidity regime is classified as \"easing,\" and the overall risk regime is \"risk-on.\" Yield Curve Interpretation: The 10-year/2-year yield spread is positive at 0.47%, which typically signals expectations of continued economic growth and a healthy economic outlook. Equity Risk Regime: Risk-On. Confidence Score: 8"
+              },
+              "name": "delegate_task_to_member"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "delegate_task_to_member",
+              "response": {
+                "result": "### 1. Revenue & Growth Analysis\n\n*   **Revenue:** $97.88 billion\n*   **Revenue Growth (YoY):** 15.8%\n*   **Earnings Growth (YoY):** 8.3%\n*   **Earnings Growth (Quarterly):** 16.6%\n\nTesla demonstrates solid revenue growth and accelerating quarterly earnings growth, indicating strong operational momentum.\n\n### 2. Profitability (Margins, ROIC)\n\n*   **Gross Margin:** 19.1%\n*   **Operating Margin:** 4.2%\n*   **Net Margin:** 3.9%\n*   **EBITDA Margin:** 11.3%\n*   **Return on Equity (ROE):** 4.9%\n*   **Return on Assets (ROA):** 2.2%\n\nTesla's profitability margins are relatively modest, with a net margin of 3.9%. The ROE and ROA are also on the lower side, suggesting that the company is not generating substantial returns on its equity and assets.\n\n### 3. Cash Flow Strength\n\n*   **Operating Cash Flow:** $16.53 billion\n*   **Free Cash Flow:** $5.25 billion\n\nTesla exhibits strong operating cash flow, indicating its ability to generate significant cash from its core operations. The positive free cash flow suggests that the company has sufficient cash remaining after capital expenditures to reinvest in the business, pay down debt, or return to shareholders.\n\n### 4. Balance Sheet Quality\n\n*   **Total Cash:** $44.74 billion\n*   **Total Debt:** $15.89 billion\n*   **Net Cash:** $28.85 billion\n*   **Debt-to-Equity Ratio:** 18.738%\n*   **Current Ratio:** 2.043\n*   **Book Value Per Share:** $21.897\n\nTesla's balance sheet is robust, characterized by a substantial cash position that significantly exceeds its total debt, resulting in a strong net cash position. The low debt-to-equity ratio and a healthy current ratio of over 2.0 indicate strong liquidity and a low reliance on debt financing.\n\n### 5. Earnings Stability\n\n*   **Trailing EPS:** $1.10\n*   **Forward EPS:** $2.51\n\nThe significant increase from trailing to forward EPS suggests an expectation of strong future earnings growth, indicating potential for improved earnings stability.\n\n### 6. Financial Risk Factors\n\n*   **PEG Ratio:** 6.1\n\nA high PEG ratio of 6.1 suggests that the stock might be overvalued relative to its earnings growth, which could be a risk factor. While the balance sheet is strong, the relatively low profitability margins and ROE could pose a risk if growth slows.\n\n### 7. Conviction Score (1-10)\n\n**7/10**\n\nTesla demonstrates strong revenue and earnings growth, a robust balance sheet with significant cash reserves, and healthy cash flow generation. However, the company's profitability margins and returns on equity and assets are relatively low, and the high PEG ratio suggests potential overvaluation. The strong growth trajectory and financial health are positive, but the efficiency of capital deployment and valuation warrant careful consideration."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "member_id": "valuation-analyst",
+                "task": "Perform a valuation analysis on TSLA using DCF and multiples analysis. Incorporate the macro context of a 'risk-on' environment and the financial analysis provided. Focus on upside targets given the risk-on regime. Context from Macro Strategist: The current macro environment is characterized by a neutral monetary policy with stable rates, rising inflation (both headline and core CPI), and rising GDP growth. The labor market shows moderate trends. Liquidity conditions are easing, and credit spreads are tight, indicating a risk-on environment. The yield curve remains positive. Monetary Policy Assessment: The Fed Funds Rate is 3.64% and stable, indicating a neutral policy stance. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. Inflation & Growth Assessment: Inflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ. The unemployment rate is moderate at 4.3%. This suggests a growing economy with inflationary pressures. Liquidity & Credit Conditions: Financial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. Corporate credit spreads are tight at 0.76, suggesting healthy credit markets. The liquidity regime is classified as \"easing,\" and the overall risk regime is \"risk-on.\" Yield Curve Interpretation: The 10-year/2-year yield spread is positive at 0.47%, which typically signals expectations of continued economic growth and a healthy economic outlook. Equity Risk Regime: Risk-On. Confidence Score: 8. Context from Financial Analyst: ### 1. Revenue & Growth Analysis * Revenue: $97.88 billion * Revenue Growth (YoY): 15.8% * Earnings Growth (YoY): 8.3% * Earnings Growth (Quarterly): 16.6% Tesla demonstrates solid revenue growth and accelerating quarterly earnings growth, indicating strong operational momentum. ### 2. Profitability (Margins, ROIC) * Gross Margin: 19.1% * Operating Margin: 4.2% * Net Margin: 3.9% * EBITDA Margin: 11.3% * Return on Equity (ROE): 4.9% * Return on Assets (ROA): 2.2% Tesla's profitability margins are relatively modest, with a net margin of 3.9%. The ROE and ROA are also on the lower side, suggesting that the company is not generating substantial returns on its equity and assets. ### 3. Cash Flow Strength * Operating Cash Flow: $16.53 billion * Free Cash Flow: $5.25 billion Tesla exhibits strong operating cash flow, indicating its ability to generate significant cash from its core operations. The positive free cash flow suggests that the company has sufficient cash remaining after capital expenditures to reinvest in the business, pay down debt, or return to shareholders. ### 4. Balance Sheet Quality * Total Cash: $44.74 billion * Total Debt: $15.89 billion * Net Cash: $28.85 billion * Debt-to-Equity Ratio: 18.738% * Current Ratio: 2.043 * Book Value Per Share: $21.897 Tesla's balance sheet is robust, characterized by a substantial cash position that significantly exceeds its total debt, resulting in a strong net cash position. The low debt-to-equity ratio and a healthy current ratio of over 2.0 indicate strong liquidity and a low reliance on debt financing. ### 5. Earnings Stability * Trailing EPS: $1.10 * Forward EPS: $2.51 The significant increase from trailing to forward EPS suggests an expectation of strong future earnings growth, indicating potential for improved earnings stability. ### 6. Financial Risk Factors * PEG Ratio: 6.1 A high PEG ratio of 6.1 suggests that the stock might be overvalued relative to its earnings growth, which could be a risk factor. While the balance sheet is strong, the relatively low profitability margins and ROE could pose a risk if growth slows. ### 7. Conviction Score (1-10) **7/10** Tesla demonstrates strong revenue and earnings growth, a robust balance sheet with significant cash reserves, and healthy cash flow generation. However, the company's profitability margins and returns on equity and assets are relatively low, and the high PEG ratio suggests potential overvaluation. The strong growth trajectory and financial health are positive, but the efficiency of capital deployment and valuation warrant careful consideration."
+              },
+              "name": "delegate_task_to_member"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "delegate_task_to_member",
+              "response": {
+                "result": "1.  **DCF Valuation**\n\n    *   **Inputs:**\n        *   Free Cash Flow (FCF): $5.25 billion\n        *   Growth Rate: 15.0% (reflecting strong revenue and accelerating quarterly earnings growth in a risk-on environment)\n        *   Discount Rate (WACC): 9.0% (considering a neutral monetary policy with stable rates and a positive yield curve, but acknowledging inflationary pressures)\n        *   Terminal Growth Rate: 4.0% (slightly above the 10-year Treasury yield of 4.47% and CPI of 3.95%, reflecting long-term growth potential in a growing economy)\n    *   **Intrinsic Value per Share:**\n        *   Bear Case: $33.85\n        *   Base Case: $46.26\n        *   Bull Case: $62.21\n\n2.  **Comparable Multiples**\n\n    *   **Current Multiples:**\n        *   Trailing P/E: 383.85\n        *   Forward P/E: 167.95\n        *   PEG Ratio: 6.1\n        *   EV/EBITDA: 140.41\n        *   Price/Book: 19.28\n    *   **Assessment:** Tesla's current multiples are significantly higher than industry averages, indicating a richly valued stock. The high PEG ratio of 6.1 further supports this, suggesting that the market is pricing in substantial future growth.\n\n3.  **Fair Value (Bear / Base / Bull)**\n\n    Given the DCF analysis and the richly valued comparable multiples, the fair value range is primarily driven by the DCF given the current market price.\n\n    *   **Bear Case Fair Value:** $33.85\n    *   **Base Case Fair Value:** $46.26\n    *   **Bull Case Fair Value:** $62.21\n\n4.  **Margin of Safety**\n\n    *   **Current Price:** $422.24\n    *   **Base Case Fair Value:** $46.26\n    *   **Margin of Safety (Base Case):** -89.0%\n\n    Given the current market price of $422.24 and the highest DCF bull case fair value of $62.21, there is a significant negative margin of safety.\n\n5.  **Valuation Risks**\n\n    *   **High Valuation Multiples:** The current market price reflects extremely high expectations for future growth, as evidenced by the elevated P/E, forward P/E, and PEG ratios. Any slowdown in growth or failure to meet these high expectations could lead to a significant correction.\n    *   **Profitability Concerns:** While revenue and earnings growth are strong, the relatively modest profitability margins (Net Margin: 3.9%) and lower returns on equity (ROE: 4.9%) and assets (ROA: 2.2%) suggest that the company's operational efficiency in generating profits from its assets is not as robust as its growth.\n    *   **DCF Sensitivity:** The DCF valuation is highly sensitive to the growth rate and discount rate assumptions. Even with optimistic growth rates, the intrinsic value derived from the DCF is significantly lower than the current market price, highlighting the market's aggressive pricing of future growth.\n    *   **Competition:** Increased competition in the EV market could put pressure on Tesla's pricing power and market share, impacting future revenue and profitability.\n\n6.  **Final Valuation Verdict**\n\n    **PASS.**\n\n    Despite strong revenue and earnings growth, a robust balance sheet, and healthy cash flow, Tesla's current market valuation is extremely stretched. Both the DCF analysis and comparable multiples indicate that the stock is significantly overvalued relative to its intrinsic value and current financial performance. The negative margin of safety across all DCF scenarios, even in a \"risk-on\" environment, suggests that the current price has already priced in substantial future growth, leaving little room for upside and considerable downside risk. The low profitability margins and high PEG ratio further reinforce this cautious outlook."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      },
+      {
+        "parts": [
+          {
+            "function_call": {
+              "args": {
+                "member_id": "technical-analyst",
+                "task": "Analyze TSLA's price action, momentum, and key support/resistance levels. Given the 'risk-on' macro regime, emphasize upside targets and momentum. Context from Macro Strategist: The current macro environment is characterized by a neutral monetary policy with stable rates, rising inflation (both headline and core CPI), and rising GDP growth. The labor market shows moderate trends. Liquidity conditions are easing, and credit spreads are tight, indicating a risk-on environment. The yield curve remains positive. Monetary Policy Assessment: The Fed Funds Rate is 3.64% and stable, indicating a neutral policy stance. The 10-year Treasury yield is 4.47%, and the 2-year Treasury yield is 4.0%, resulting in a positive yield spread of 0.47%. Inflation & Growth Assessment: Inflation is rising, with CPI YoY at 3.95% and core CPI YoY at 2.99%. GDP growth is also rising at 0.49% QoQ. The unemployment rate is moderate at 4.3%. This suggests a growing economy with inflationary pressures. Liquidity & Credit Conditions: Financial conditions are easing, as indicated by a Chicago Fed NFCI of -0.524. Corporate credit spreads are tight at 0.76, suggesting healthy credit markets. The liquidity regime is classified as \"easing,\" and the overall risk regime is \"risk-on.\" Yield Curve Interpretation: The 10-year/2-year yield spread is positive at 0.47%, which typically signals expectations of continued economic growth and a healthy economic outlook. Equity Risk Regime: Risk-On. Confidence Score: 8. Context from Financial Analyst: ### 1. Revenue & Growth Analysis * Revenue: $97.88 billion * Revenue Growth (YoY): 15.8% * Earnings Growth (YoY): 8.3% * Earnings Growth (Quarterly): 16.6% Tesla demonstrates solid revenue growth and accelerating quarterly earnings growth, indicating strong operational momentum. ### 2. Profitability (Margins, ROIC) * Gross Margin: 19.1% * Operating Margin: 4.2% * Net Margin: 3.9% * EBITDA Margin: 11.3% * Return on Equity (ROE): 4.9% * Return on Assets (ROA): 2.2% Tesla's profitability margins are relatively modest, with a net margin of 3.9%. The ROE and ROA are also on the lower side, suggesting that the company is not generating substantial returns on its equity and assets. ### 3. Cash Flow Strength * Operating Cash Flow: $16.53 billion * Free Cash Flow: $5.25 billion Tesla exhibits strong operating cash flow, indicating its ability to generate significant cash from its core operations. The positive free cash flow suggests that the company has sufficient cash remaining after capital expenditures to reinvest in the business, pay down debt, or return to shareholders. ### 4. Balance Sheet Quality * Total Cash: $44.74 billion * Total Debt: $15.89 billion * Net Cash: $28.85 billion * Debt-to-Equity Ratio: 18.738% * Current Ratio: 2.043 * Book Value Per Share: $21.897 Tesla's balance sheet is robust, characterized by a substantial cash position that significantly exceeds its total debt, resulting in a strong net cash position. The low debt-to-equity ratio and a healthy current ratio of over 2.0 indicate strong liquidity and a low reliance on debt financing. ### 5. Earnings Stability * Trailing EPS: $1.10 * Forward EPS: $2.51 The significant increase from trailing to forward EPS suggests an expectation of strong future earnings growth, indicating potential for improved earnings stability. ### 6. Financial Risk Factors * PEG Ratio: 6.1 A high PEG ratio of 6.1 suggests that the stock might be overvalued relative to its earnings growth, which could be a risk factor. While the balance sheet is strong, the relatively low profitability margins and ROE could pose a risk if growth slows. ### 7. Conviction Score (1-10) **7/10** Tesla demonstrates strong revenue and earnings growth, a robust balance sheet with significant cash reserves, and healthy cash flow generation. However, the company's profitability margins and returns on equity and assets are relatively low, and the high PEG ratio suggests potential overvaluation. The strong growth trajectory and financial health are positive, but the efficiency of capital deployment and valuation warrant careful consideration. Context from Valuation Analyst: 1. **DCF Valuation** * **Inputs:** * Free Cash Flow (FCF): $5.25 billion * Growth Rate: 15.0% (reflecting strong revenue and accelerating quarterly earnings growth in a risk-on environment) * Discount Rate (WACC): 9.0% (considering a neutral monetary policy with stable rates and a positive yield curve, but acknowledging inflationary pressures) * Terminal Growth Rate: 4.0% (slightly above the 10-year Treasury yield of 4.47% and CPI of 3.95%, reflecting long-term growth potential in a growing economy) * **Intrinsic Value per Share:** * Bear Case: $33.85 * Base Case: $46.26 * Bull Case: $62.21 2. **Comparable Multiples** * **Current Multiples:** * Trailing P/E: 383.85 * Forward P/E: 167.95 * PEG Ratio: 6.1 * EV/EBITDA: 140.41 * Price/Book: 19.28 * **Assessment:** Tesla's current multiples are significantly higher than industry averages, indicating a richly valued stock. The high PEG ratio of 6.1 further supports this, suggesting that the market is pricing in substantial future growth. 3. **Fair Value (Bear / Base / Bull)** Given the DCF analysis and the richly valued comparable multiples, the fair value range is primarily driven by the DCF given the current market price. * **Bear Case Fair Value:** $33.85 * **Base Case Fair Value:** $46.26 * **Bull Case Fair Value:** $62.21 4. **Margin of Safety** * **Current Price:** $422.24 * **Base Case Fair Value:** $46.26 * **Margin of Safety (Base Case):** -89.0% Given the current market price of $422.24 and the highest DCF bull case fair value of $62.21, there is a significant negative margin of safety. 5. **Valuation Risks** * **High Valuation Multiples:** The current market price reflects extremely high expectations for future growth, as evidenced by the elevated P/E, forward P/E, and PEG ratios. Any slowdown in growth or failure to meet these high expectations could lead to a significant correction. * **Profitability Concerns:** While revenue and earnings growth are strong, the relatively modest profitability margins (Net Margin: 3.9%) and lower returns on equity (ROE: 4.9%) and assets (ROA: 2.2%) suggest that the company's operational efficiency in generating profits from its assets is not as robust as its growth. * **DCF Sensitivity:** The DCF valuation is highly sensitive to the growth rate and discount rate assumptions. Even with optimistic growth rates, the intrinsic value derived from the DCF is significantly lower than the current market price, highlighting the market's aggressive pricing of future growth. * **Competition:** Increased competition in the EV market could put pressure on Tesla's pricing power and market share, impacting future revenue and profitability. 6. **Final Valuation Verdict** **PASS.** Despite strong revenue and earnings growth, a robust balance sheet, and healthy cash flow, Tesla's current market valuation is extremely stretched. Both the DCF analysis and comparable multiples indicate that the stock is significantly overvalued relative to its intrinsic value and current financial performance. The negative margin of safety across all DCF scenarios, even in a \"risk-on\" environment, suggests that the current price has already priced in substantial future growth, leaving little room for upside and considerable downside risk. The low profitability margins and high PEG ratio further reinforce this cautious outlook."
+              },
+              "name": "delegate_task_to_member"
+            }
+          }
+        ],
+        "role": "model"
+      },
+      {
+        "parts": [
+          {
+            "function_response": {
+              "name": "delegate_task_to_member",
+              "response": {
+                "result": "1.  **Trend Structure:** TSLA is in a moderate uptrend, with a positive 20-day SMA slope (2.6747) and 50-day SMA slope (0.3451). The stock is trading at 67.0% of its 52-week range, indicating it's closer to its 52-week high of $489.88 than its low of $284.7. While not consistently making higher highs or lower lows, the overall price action suggests upward momentum.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI (14):** 66.7, which is in the neutral zone but approaching overbought territory (typically above 70). This suggests strong buying interest without being excessively stretched.\n    *   **MACD (12/26/9):** MACD line (15.3169) is above the signal line (10.7304), and the histogram (4.5865) is positive, indicating a bullish crossover. This confirms strong upward momentum.\n\n3.  **Support & Resistance:**\n    *   **Current Price:** $422.24\n    *   **Nearest Support:** $299.12\n    *   **Nearest Resistance:** $452.43\n    *   **Upside Targets:** Given the risk-on environment and bullish momentum, key upside targets are the resistance levels at $452.43, $472.41, and the 52-week high of $489.88. The next significant resistance after that is $498.83.\n\n4.  **Volume Analysis:** Over the last 20 trading days, volume has fluctuated. Notably, there was a significant increase in volume on 2026-04-23 (93,969,500) during a down day, and on 2026-05-11 (78,376,100) during an up day. The most recent trading day (2026-05-15) saw volume of 52,271,800, which is around the average for the period. Sustained higher volume on up days would further confirm the strength of the uptrend.\n\n5.  **Entry Timing Quality:** The bullish MACD crossover and RSI in the neutral-to-strong zone suggest favorable entry timing for upside potential, especially considering the risk-on macro regime. However, the stock is approaching resistance at $452.43, and a pullback to retest support or consolidate before breaking higher would offer a more optimal entry.\n\n6.  **Technical Risk Level:** Moderate. While the trend and momentum are bullish, the stock is trading closer to its 52-week high and approaching resistance. A failure to break above $452.43 could lead to a retest of lower support levels. The nearest support is a considerable distance from the current price, indicating a larger potential downside if the trend reverses.\n\n7.  **Technical Conviction Score (1-10):** 7/10. The strong uptrend, bullish MACD crossover, and healthy RSI in a risk-on environment provide a solid technical foundation for continued upside. The proximity to resistance and the distance to nearest support introduce a moderate level of risk, but the overall momentum is positive."
+              }
+            }
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "config": {
+      "system_instruction": "You coordinate a team of specialized AI agents to fulfill the user's request. Delegate to members when their expertise or tools are needed. For straightforward requests you can handle directly — including using your own tools — respond without delegating.\n\n<team_members>\n<member id=\"macro-strategist\" name=\"Macro Strategist\">\n</member>\n<member id=\"financial-analyst\" name=\"Financial Analyst\">\n</member>\n<member id=\"valuation-analyst\" name=\"Valuation Analyst\">\n</member>\n<member id=\"technical-analyst\" name=\"Technical Analyst\">\n</member>\n</team_members>\n\n<how_to_respond>\nYou operate in coordinate mode. For requests that need member expertise, select the best member(s), delegate with clear task descriptions, and synthesize their outputs into a unified response. For requests you can handle directly — simple questions, using your own tools, or general conversation — respond without delegating.\n\nDelegation:\n- Match each sub-task to the member whose role and tools are the best fit. Delegate to multiple members when the request spans different areas of expertise.\n- Write task descriptions that are self-contained: state the goal, provide relevant context from the conversation, and describe what a good result looks like.\n- Use only the member's ID when delegating — do not prefix it with the team ID.\n\nAfter receiving member responses:\n- If a response is incomplete or off-target, re-delegate with clearer instructions or try a different member.\n- Synthesize all results into a single coherent response. Resolve contradictions, fill gaps with your own reasoning, and add structure — do not simply concatenate member outputs.\n</how_to_respond>\n\n<description>\nProduces a full research packet by running 4 analysts sequentially: Macro → Financial → Valuation → Technical.\n</description>\n\nYou are the Research Director coordinating a sequential research pipeline.\n\nEXECUTION ORDER (strict — do not reorder):\n1. Macro Strategist — establishes the macro regime (rates, inflation, GDP, liquidity)\n2. Financial Analyst — evaluates fundamentals (revenue, margins, balance sheet, growth)\n3. Valuation Analyst — runs DCF and multiples analysis using macro context\n4. Technical Analyst — assesses price action, momentum, support/resistance\n\nRULES:\n- Run each analyst ONE AT A TIME in the order above.\n- Pass the FULL output of prior analysts as context to the next one.\n- Macro runs first because regime dictates the tone for all downstream analysis.\n- Do NOT skip any analyst. Every analyst must produce output.\n- Do NOT add your own analysis. Your job is coordination, not opinion.\n\nFINAL OUTPUT:\nAfter all 4 analysts complete, compile their outputs into a single structured\nresearch packet. Label each section clearly:\n\n1. MACRO ANALYSIS\n2. FINANCIAL ANALYSIS\n3. VALUATION ANALYSIS\n4. TECHNICAL ANALYSIS\n\nThis packet will be consumed by downstream teams (Challenge, Allocation, Committee).",
+      "temperature": 0.0,
+      "tools": [
+        {
+          "function_declarations": [
+            {
+              "description": "Use this function to delegate a task to the selected team member.\nYou must provide a clear and concise description of the task the member should achieve AND the expected output.",
+              "name": "delegate_task_to_member",
+              "parameters": {
+                "properties": {
+                  "member_id": {
+                    "description": "(str) The ID of the member to delegate the task to. Use only the ID of the member, not the ID of the team followed by the ID of the member.",
+                    "type": "STRING"
+                  },
+                  "task": {
+                    "description": "(str) A clear and concise description of the task the member should achieve.",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "member_id",
+                  "task"
+                ],
+                "type": "OBJECT"
+              }
+            }
+          ]
+        }
+      ],
+      "thinking_config": {
+        "include_thoughts": false,
+        "thinking_budget": 0
+      }
+    }
+  }
+}

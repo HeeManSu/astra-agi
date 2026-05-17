@@ -1,0 +1,444 @@
+{
+  "num_calls": 20,
+  "prompt_tokens": 36669,
+  "completion_tokens": 2359,
+  "thoughts_tokens": 0,
+  "total_tokens": 39028,
+  "llm_latency_ms": 30348.65,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 229,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 232,
+      "latency_ms": 1080.85,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "MacroStrategist"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 893,
+      "completion_tokens": 75,
+      "thoughts_tokens": 0,
+      "total_tokens": 968,
+      "latency_ms": 1524.13,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        }
+      ],
+      "text_preview": "1. Macro Summary:\nThe current macroeconomic environment presents a mixed picture. While monetary policy is restrictive, inflation shows signs of moderating, and growth momentum is stable. Liquidity co"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1008,
+      "completion_tokens": 16,
+      "thoughts_tokens": 0,
+      "total_tokens": 1024,
+      "latency_ms": 848.66,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1134,
+      "completion_tokens": 17,
+      "thoughts_tokens": 0,
+      "total_tokens": 1151,
+      "latency_ms": 1167.64,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1224,
+      "completion_tokens": 386,
+      "thoughts_tokens": 0,
+      "total_tokens": 1610,
+      "latency_ms": 3206.12,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary\nThe current macro environment indicates a neutral monetary policy with stable rates. Inflation is rising, but core inflation remains contained. Economic growth is showing an upward tr"
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 616,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 619,
+      "latency_ms": 1299.26,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [],
+      "text_preview": "FinancialAnalyst"
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1314,
+      "completion_tokens": 76,
+      "thoughts_tokens": 0,
+      "total_tokens": 1390,
+      "latency_ms": 1266.57,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1869,
+      "completion_tokens": 429,
+      "thoughts_tokens": 0,
+      "total_tokens": 2298,
+      "latency_ms": 2599.07,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Revenue & Growth Analysis\nNVDA has demonstrated exceptional growth, with revenue growth at 73.2% and earnings growth at 95.6%. Quarterly earnings growth is also strong at 94.5%. The company's trail"
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1051,
+      "completion_tokens": 4,
+      "thoughts_tokens": 0,
+      "total_tokens": 1055,
+      "latency_ms": 673.04,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [],
+      "text_preview": "ValuationAnalyst"
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1970,
+      "completion_tokens": 20,
+      "thoughts_tokens": 0,
+      "total_tokens": 1990,
+      "latency_ms": 1576.57,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2170,
+      "completion_tokens": 52,
+      "thoughts_tokens": 0,
+      "total_tokens": 2222,
+      "latency_ms": 1305.89,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "discount_rate": 0.1,
+            "projection_years": 5,
+            "terminal_growth": 0.03,
+            "symbol": "NVDA",
+            "growth_rate": 0.2
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2359,
+      "completion_tokens": 18,
+      "thoughts_tokens": 0,
+      "total_tokens": 2377,
+      "latency_ms": 1299.66,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 13,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2512,
+      "completion_tokens": 37,
+      "thoughts_tokens": 0,
+      "total_tokens": 2549,
+      "latency_ms": 1142.91,
+      "request_dump": "call_013_request.json",
+      "response_dump": "call_013_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_margin_of_safety",
+          "args": {
+            "current_price": 225.32,
+            "fair_value": 70.26
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 14,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2641,
+      "completion_tokens": 528,
+      "thoughts_tokens": 0,
+      "total_tokens": 3169,
+      "latency_ms": 3334.14,
+      "request_dump": "call_014_request.json",
+      "response_dump": "call_014_response.json",
+      "tool_calls": [],
+      "text_preview": "1. DCF Valuation\n   - Using a discount rate of 10%, a 5-year growth rate of 20%, and a terminal growth rate of 3%, the DCF model yields the following intrinsic values per share:\n     - Bear Case: $47."
+    },
+    {
+      "call_index": 15,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1585,
+      "completion_tokens": 3,
+      "thoughts_tokens": 0,
+      "total_tokens": 1588,
+      "latency_ms": 1007.23,
+      "request_dump": "call_015_request.json",
+      "response_dump": "call_015_response.json",
+      "tool_calls": [],
+      "text_preview": "TechnicalAnalyst"
+    },
+    {
+      "call_index": 16,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2123,
+      "completion_tokens": 51,
+      "thoughts_tokens": 0,
+      "total_tokens": 2174,
+      "latency_ms": 988.13,
+      "request_dump": "call_016_request.json",
+      "response_dump": "call_016_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": "### NVDA Technical Analysis:\n\n1.  **Trend Structure:**\n    "
+    },
+    {
+      "call_index": 17,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2400,
+      "completion_tokens": 32,
+      "thoughts_tokens": 0,
+      "total_tokens": 2432,
+      "latency_ms": 819.66,
+      "request_dump": "call_017_request.json",
+      "response_dump": "call_017_response.json",
+      "tool_calls": [
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 18,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2550,
+      "completion_tokens": 18,
+      "thoughts_tokens": 0,
+      "total_tokens": 2568,
+      "latency_ms": 1097.86,
+      "request_dump": "call_018_request.json",
+      "response_dump": "call_018_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "NVDA"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 19,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2670,
+      "completion_tokens": 24,
+      "thoughts_tokens": 0,
+      "total_tokens": 2694,
+      "latency_ms": 831.1,
+      "request_dump": "call_019_request.json",
+      "response_dump": "call_019_response.json",
+      "tool_calls": [
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "NVDA",
+            "days": 20
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 20,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4351,
+      "completion_tokens": 567,
+      "thoughts_tokens": 0,
+      "total_tokens": 4918,
+      "latency_ms": 3280.16,
+      "request_dump": "call_020_request.json",
+      "response_dump": "call_020_response.json",
+      "tool_calls": [],
+      "text_preview": "## NVDA Technical Analysis\n\n1.  **Trend Structure**\n    NVDA is in a strong uptrend, with the current price of $225.32 significantly above its 20-day SMA ($210.3), 50-day SMA ($193.07), and 200-day SM"
+    }
+  ]
+}

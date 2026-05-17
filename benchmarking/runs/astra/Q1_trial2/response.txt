@@ -1,0 +1,93 @@
+## MACRO ANALYSIS
+
+**Macro Summary**
+The macro environment indicates a neutral monetary policy, rising inflation and GDP growth, easing liquidity, and a risk-on equity regime.
+
+**Monetary Policy Assessment**
+The Fed Funds Rate is stable at 3.64%, with the 10-year Treasury at 4.47% and the 2-year Treasury at 4.0%. The yield spread (10y-2y) is 0.47%, indicating a neutral policy stance.
+
+**Inflation & Growth Assessment**
+CPI (YoY) is rising at 3.95%, with core CPI (YoY) at 2.99%. GDP growth (QoQ) is also rising at 0.49%. The unemployment rate is moderate at 4.3%.
+
+**Liquidity & Credit Conditions**
+The financial conditions index is -0.524, and the credit spread is 0.76, indicating an easing liquidity regime.
+
+**Yield Curve Interpretation**
+The positive yield spread of 0.47% (10y-2y) suggests a normal yield curve, typically associated with economic expansion.
+
+**Equity Risk Regime**
+Risk-On
+
+**Confidence Score**
+7/10
+
+## FINANCIAL ANALYSIS
+
+**Revenue & Growth Analysis**
+AAPL reported revenue of $451.44B, with a revenue growth of 16.6%. Earnings growth was 21.8%, and quarterly earnings growth was 19.4%. Trailing EPS is 8.26, and forward EPS is 9.5861. The PEG ratio is 2.61.
+
+**Profitability (Margins, ROIC)**
+Gross margin is 47.9%, operating margin is 32.3%, net margin is 27.2%, and EBITDA margin is 35.4%. Return on Equity (ROE) is 141.5%, and Return on Assets (ROA) is 26.2%.
+
+**Cash Flow Strength**
+Operating cash flow is $140.22B, and free cash flow is $101.09B.
+
+**Balance Sheet Quality**
+Total cash is $68.51B, and total debt is $84.71B, resulting in a net cash position of $-16.20B. The debt-to-equity ratio is 79.548, and the current ratio is 1.07. Book value per share is 7.26.
+
+**Earnings Stability**
+Trailing EPS is 8.26, with a forward EPS of 9.5861, indicating expected earnings growth.
+
+**Financial Risk Factors**
+The company has a negative net cash position and a debt-to-equity ratio of 79.548.
+
+**Conviction Score**
+7/10
+
+## VALUATION ANALYSIS
+
+**DCF Valuation**
+Using a free cash flow of $101.09B, a growth rate of 10.0%, and a discount rate of 10.0%, the DCF valuation provides a bear case of $110.25, a base case of $135.69, and a bull case of $165.88. The base case upside is -54.8%.
+
+**Comparable Multiples**
+AAPL trades at a trailing P/E of 36.35, a forward P/E of 31.32, a PEG ratio of 2.61, an EV/EBITDA of 27.66, an EV/Revenue of 9.8, a Price/Book of 41.35, and a Price/Sales of 9.77. This indicates a premium valuation compared to historical averages and peers.
+
+**Fair Value (Bear / Base / Bull)**
+Bear Case: $110.25
+Base Case: $135.69
+Bull Case: $165.88
+
+**Margin of Safety**
+With a current price of $300.23 and a fair value of $135.69, the margin of safety is -121.3%, and the upside potential is -54.8%.
+
+**Valuation Risks**
+The primary valuation risk is the significant overvaluation indicated by both DCF and comparable multiples.
+
+**Final Valuation Verdict**
+Overvalued - negative margin of safety.
+
+## TECHNICAL ANALYSIS
+
+**Trend Structure**
+AAPL is in a strong uptrend, with the current price of $300.23 significantly above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The stock is at its 52-week high.
+
+**Momentum Indicators (RSI, MACD)**
+The 14-period RSI is 88.4, indicating the stock is overbought. The MACD is 9.5172, with a signal line of 7.7411 and a histogram of 1.7762, showing a bullish crossover.
+
+**Support & Resistance**
+Current price: $300.23.
+Support levels: $224.23, $200.7, $193.5.
+Nearest support: $224.23.
+Resistance levels: N/A (at 52-week high).
+
+**Volume Analysis**
+Volume has been fluctuating, with a notable spike on April 30th (91.85M) and May 1st (79.92M). Recent volume on May 15th was 54.72M.
+
+**Entry Timing Quality**
+Given the overbought RSI and the stock being at its 52-week high, the entry timing quality is poor.
+
+**Technical Risk Level**
+High, due to overbought conditions and being at a 52-week high without clear resistance levels.
+
+**Technical Conviction Score**
+3/10

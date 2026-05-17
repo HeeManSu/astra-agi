@@ -1,0 +1,73 @@
+{
+  "call_index": 11,
+  "latency_ms": 4199.99,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:17:09 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=4177",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "get_current_market_data"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "terminal_growth": 0.03,
+                  "symbol": "MSFT",
+                  "discount_rate": 0.1,
+                  "growth_rate": 0.12
+                },
+                "name": "calculate_dcf"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_multiple_valuation"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "scIIavXCMdGnjuMPrYa5uQk",
+    "usage_metadata": {
+      "candidates_token_count": 84,
+      "prompt_token_count": 1822,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1822
+        }
+      ],
+      "total_token_count": 1906
+    }
+  }
+}

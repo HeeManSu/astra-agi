@@ -1,0 +1,595 @@
+{
+  "num_calls": 18,
+  "prompt_tokens": 74905,
+  "completion_tokens": 10547,
+  "thoughts_tokens": 0,
+  "total_tokens": 85452,
+  "llm_latency_ms": 62642.2,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 599,
+      "completion_tokens": 217,
+      "thoughts_tokens": 0,
+      "total_tokens": 816,
+      "latency_ms": 1873.82,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "coworker": "Macro Strategist",
+            "task": "Assess the macro regime and equity risk environment relevant to comparing AAPL, MSFT, and GOOGL head-to-head and producing a research report ranking them from best to worst investment today. Gather current readings on monetary policy, inflation, growth, liquidity, and the yield curve. Produce a structured output with sections: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10). Focus on the macro signal, do not discuss individual company details.",
+            "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a macro assessment that will feed into this larger report. The macro assessment should be structured as follows: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10)."
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1034,
+      "completion_tokens": 48,
+      "thoughts_tokens": 0,
+      "total_tokens": 1082,
+      "latency_ms": 1341.36,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [
+        {
+          "name": "get_monetary_policy_data",
+          "args": {}
+        },
+        {
+          "name": "get_inflation_and_growth_data",
+          "args": {}
+        },
+        {
+          "name": "get_liquidity_and_credit_conditions",
+          "args": {}
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1394,
+      "completion_tokens": 372,
+      "thoughts_tokens": 0,
+      "total_tokens": 1766,
+      "latency_ms": 3512.25,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "1. Macro Summary:\nThe current macro environment indicates a neutral monetary policy stance with stable rates, while inflation shows a rising trend, though core inflation remains contained. Economic gr"
+    },
+    {
+      "call_index": 4,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1252,
+      "completion_tokens": 359,
+      "thoughts_tokens": 0,
+      "total_tokens": 1611,
+      "latency_ms": 2208.41,
+      "request_dump": "call_004_request.json",
+      "response_dump": "call_004_response.json",
+      "tool_calls": [],
+      "text_preview": "Macro Summary:\nThe current macro environment indicates a neutral monetary policy stance with stable rates, while inflation shows a rising trend, though core inflation remains contained. Economic growt"
+    },
+    {
+      "call_index": 5,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2257,
+      "completion_tokens": 195,
+      "thoughts_tokens": 0,
+      "total_tokens": 2452,
+      "latency_ms": 1522.76,
+      "request_dump": "call_005_request.json",
+      "response_dump": "call_005_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a fundamental analysis that will feed into this larger report. The fundamental analysis should be structured as follows: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10). Focus on company fundamentals only. The companies to analyze are AAPL, MSFT, and GOOGL.",
+            "task": "Analyze the company fundamentals for AAPL, MSFT, and GOOGL. Evaluate revenue, margins, profitability, cash flow, balance sheet, and growth. Produce a structured output with sections: Revenue & Growth, Profitability, Cash Flow, Balance Sheet, Earnings Stability, Financial Risk, and a Conviction Score (1-10).",
+            "coworker": "Financial Analyst"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 6,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1048,
+      "completion_tokens": 228,
+      "thoughts_tokens": 0,
+      "total_tokens": 1276,
+      "latency_ms": 1725.49,
+      "request_dump": "call_006_request.json",
+      "response_dump": "call_006_response.json",
+      "tool_calls": [
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_growth_metrics",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_key_financial_metrics",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_financial_statements",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_balance_sheet_strength",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 7,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2748,
+      "completion_tokens": 1235,
+      "thoughts_tokens": 0,
+      "total_tokens": 3983,
+      "latency_ms": 5995.32,
+      "request_dump": "call_007_request.json",
+      "response_dump": "call_007_response.json",
+      "tool_calls": [],
+      "text_preview": "## AAPL Fundamental Analysis\n\n**1. Revenue & Growth Analysis**\n*   **Revenue:** $451.44B\n*   **Revenue Growth:** 16.6%\n*   **Earnings Growth:** 21.8%\n*   **Quarterly Earnings Growth:** 19.4%\n*   **Tra"
+    },
+    {
+      "call_index": 8,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3848,
+      "completion_tokens": 1235,
+      "thoughts_tokens": 0,
+      "total_tokens": 5083,
+      "latency_ms": 5413.08,
+      "request_dump": "call_008_request.json",
+      "response_dump": "call_008_response.json",
+      "tool_calls": [],
+      "text_preview": "## AAPL Fundamental Analysis\n\n**1. Revenue & Growth Analysis**\n*   **Revenue:** $451.44B\n*   **Revenue Growth:** 16.6%\n*   **Earnings Growth:** 21.8%\n*   **Quarterly Earnings Growth:** 19.4%\n*   **Tra"
+    },
+    {
+      "call_index": 9,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 6955,
+      "completion_tokens": 196,
+      "thoughts_tokens": 0,
+      "total_tokens": 7151,
+      "latency_ms": 1629.39,
+      "request_dump": "call_009_request.json",
+      "response_dump": "call_009_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "coworker": "Valuation Analyst",
+            "task": "Determine intrinsic value and margin of safety for AAPL, MSFT, and GOOGL. Use DCF and comparable multiples. Produce a structured output with sections: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict.",
+            "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a valuation analysis that will feed into this larger report. The valuation analysis should be structured as follows: DCF Valuation, Comparable Multiples, Fair Value (Bear/Base/Bull), Margin of Safety, Valuation Risks, and a Final Valuation Verdict. The companies to analyze are AAPL, MSFT, and GOOGL. You have been provided with macro and fundamental analysis for each company."
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 10,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1264,
+      "completion_tokens": 81,
+      "thoughts_tokens": 0,
+      "total_tokens": 1345,
+      "latency_ms": 1615.29,
+      "request_dump": "call_010_request.json",
+      "response_dump": "call_010_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "growth_rate": 0.08,
+            "symbol": "AAPL",
+            "terminal_growth": 0.03,
+            "discount_rate": 0.1
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "AAPL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 11,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 1822,
+      "completion_tokens": 84,
+      "thoughts_tokens": 0,
+      "total_tokens": 1906,
+      "latency_ms": 4199.99,
+      "request_dump": "call_011_request.json",
+      "response_dump": "call_011_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "terminal_growth": 0.03,
+            "symbol": "MSFT",
+            "discount_rate": 0.1,
+            "growth_rate": 0.12
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "MSFT"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 12,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2384,
+      "completion_tokens": 87,
+      "thoughts_tokens": 0,
+      "total_tokens": 2471,
+      "latency_ms": 1219.62,
+      "request_dump": "call_012_request.json",
+      "response_dump": "call_012_response.json",
+      "tool_calls": [
+        {
+          "name": "get_current_market_data",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_dcf",
+          "args": {
+            "terminal_growth": 0.03,
+            "growth_rate": 0.15,
+            "discount_rate": 0.1,
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_multiple_valuation",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 13,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 2954,
+      "completion_tokens": 1330,
+      "thoughts_tokens": 0,
+      "total_tokens": 4284,
+      "latency_ms": 6624.47,
+      "request_dump": "call_013_request.json",
+      "response_dump": "call_013_response.json",
+      "tool_calls": [],
+      "text_preview": "## AAPL Valuation Analysis\n\n**1. DCF Valuation**\n*   **Current FCF:** $101.09B\n*   **Growth Rate:** 8.0%\n*   **Discount Rate:** 10.0%\n*   **Terminal Growth:** 3.0%\n*   **Bear Case Intrinsic Value:** $"
+    },
+    {
+      "call_index": 14,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 8637,
+      "completion_tokens": 1330,
+      "thoughts_tokens": 0,
+      "total_tokens": 9967,
+      "latency_ms": 5698.16,
+      "request_dump": "call_014_request.json",
+      "response_dump": "call_014_response.json",
+      "tool_calls": [],
+      "text_preview": "## AAPL Valuation Analysis\n\n**1. DCF Valuation**\n*   **Current FCF:** $101.09B\n*   **Growth Rate:** 8.0%\n*   **Discount Rate:** 10.0%\n*   **Terminal Growth:** 3.0%\n*   **Bear Case Intrinsic Value:** $"
+    },
+    {
+      "call_index": 15,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 13201,
+      "completion_tokens": 215,
+      "thoughts_tokens": 0,
+      "total_tokens": 13416,
+      "latency_ms": 2068.31,
+      "request_dump": "call_015_request.json",
+      "response_dump": "call_015_response.json",
+      "tool_calls": [
+        {
+          "name": "delegate_work_to_coworker",
+          "args": {
+            "context": "The overall goal is to compare AAPL, MSFT, and GOOGL as investments. Your specific task is to provide a technical analysis that will feed into this larger report. The technical analysis should be structured as follows: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10). Do not discuss fundamentals, valuation, or macro. The companies to analyze are AAPL, MSFT, and GOOGL.",
+            "coworker": "Technical Analyst",
+            "task": "Assess price action, momentum, and technical structure for AAPL, MSFT, and GOOGL. Compute indicators (RSI, MACD, moving averages) and identify trend, support, and resistance. Produce a structured output with sections: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10)."
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 16,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 918,
+      "completion_tokens": 309,
+      "thoughts_tokens": 0,
+      "total_tokens": 1227,
+      "latency_ms": 2508.35,
+      "request_dump": "call_016_request.json",
+      "response_dump": "call_016_response.json",
+      "tool_calls": [
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "AAPL"
+          }
+        },
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "MSFT"
+          }
+        },
+        {
+          "name": "detect_trend",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_moving_averages",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_rsi",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "calculate_macd",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "detect_support_resistance",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        },
+        {
+          "name": "get_price_history",
+          "args": {
+            "symbol": "GOOGL"
+          }
+        }
+      ],
+      "text_preview": null
+    },
+    {
+      "call_index": 17,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 7584,
+      "completion_tokens": 1513,
+      "thoughts_tokens": 0,
+      "total_tokens": 9097,
+      "latency_ms": 7358.86,
+      "request_dump": "call_017_request.json",
+      "response_dump": "call_017_response.json",
+      "tool_calls": [],
+      "text_preview": "## Technical Analysis: AAPL, MSFT, and GOOGL\n\n### AAPL\n\n1.  **Trend Structure:** AAPL is in a strong uptrend. The current price (300.23) is above the 20-day SMA (281.36), 50-day SMA (265.97), and 200-"
+    },
+    {
+      "call_index": 18,
+      "method": "generate_content",
+      "is_async": false,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 15006,
+      "completion_tokens": 1513,
+      "thoughts_tokens": 0,
+      "total_tokens": 16519,
+      "latency_ms": 6127.27,
+      "request_dump": "call_018_request.json",
+      "response_dump": "call_018_response.json",
+      "tool_calls": [],
+      "text_preview": "## Technical Analysis: AAPL, MSFT, and GOOGL\n\n### AAPL\n\n1.  **Trend Structure:** AAPL is in a strong uptrend. The current price (300.23) is above the 20-day SMA (281.36), 50-day SMA (265.97), and 200-"
+    }
+  ]
+}

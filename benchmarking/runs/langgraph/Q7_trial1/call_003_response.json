@@ -1,0 +1,81 @@
+{
+  "call_index": 3,
+  "latency_ms": 1222.85,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sun, 17 May 2026 11:54:15 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1146",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I will analyze the fundamentals for AAPL, MSFT, and GOOGL. I will not perform valuation, analyze price charts, or make portfolio allocation decisions.\n\n### AAPL Fundamental Analysis\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_financial_statements"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_key_financial_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_growth_metrics"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "get_balance_sheet_strength"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "ZqwJavHvDtLL4-EPt5KJ2AE",
+    "usage_metadata": {
+      "candidates_token_count": 112,
+      "prompt_token_count": 1151,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 1151
+        }
+      ],
+      "total_token_count": 1263
+    }
+  }
+}

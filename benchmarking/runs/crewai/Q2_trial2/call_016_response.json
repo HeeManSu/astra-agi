@@ -1,0 +1,56 @@
+{
+  "call_index": 16,
+  "latency_ms": 3901.57,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:08:32 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3798",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Trend Structure\n    *   **Overall Trend:** MSFT is in an uptrend with strong strength, indicated by a positive SMA20 slope (0.9795) and SMA50 slope (0.2627), and a pattern of higher highs.\n    *   **Moving Averages:** Current price ($421.92) is above the 20-day SMA ($417.41) and 50-day SMA ($399.06), but below the 200-day SMA ($461.91). This suggests a short-to-medium term bullish bias within a longer-term sideways trend.\n    *   **52-Week Range:** The current price is at 35.6% of its 52-week range, with a 52-week high of $539.83 and a low of $356.77.\n\nMomentum Indicators (RSI, MACD)\n    *   **RSI (14):** 48.1, indicating a neutral momentum. It is neither overbought nor oversold.\n    *   **MACD (12/26/9):** MACD line (3.3845) is below the signal line (4.7006), and the histogram is negative (-1.3161). This indicates a bearish crossover, suggesting weakening momentum.\n\nSupport & Resistance\n    *   **Nearest Support:** $394.72\n    *   **Key Support Levels:** $356.28, $381.71, $394.72\n    *   **Nearest Resistance:** $514.26\n    *   **Key Resistance Levels:** $514.26, $529.23, $551.84\n\nVolume Analysis\n    *   Over the last 20 trading days, average daily volume is approximately 33.8 million shares.\n    *   Recent trading days show varied volume, with a notable spike to 70.9 million on 2026-04-30 (a down day) and 50.3 million on 2026-05-15 (an up day). The recent increase in volume on the up day (2026-05-15) could indicate renewed buying interest.\n\nEntry Timing Quality\n    *   The current price is above the 20-day and 50-day SMAs, which is generally a positive sign for entry. However, the bearish MACD crossover and neutral RSI suggest caution. The stock is currently in a short-term uptrend but facing resistance from the 200-day SMA. Entry quality is moderate, as momentum is not strongly bullish.\n\nTechnical Risk Level\n    *   **Moderate to High.** While the overall trend is upward, the bearish MACD crossover and the price being below the 200-day SMA introduce risk. The stock is also trading closer to its 52-week low than its high, indicating potential for further downside if support levels are broken.\n\nTechnical Conviction Score (1-10)\n    *   **5/10**"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "rcAIasnLD9iFg8UPiejD4Ac",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 6721
+        }
+      ],
+      "cached_content_token_count": 6721,
+      "candidates_token_count": 705,
+      "prompt_token_count": 7668,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 7668
+        }
+      ],
+      "total_token_count": 8373
+    }
+  }
+}

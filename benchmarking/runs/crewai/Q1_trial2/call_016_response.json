@@ -1,0 +1,49 @@
+{
+  "call_index": 16,
+  "latency_ms": 3877.58,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:06:11 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=3806",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1.  **Trend Structure:** AAPL is in a strong uptrend. The current price of $300.23 is above the 20-day SMA ($281.36), 50-day SMA ($265.97), and 200-day SMA ($258.65). The 20-day SMA slope is 1.4344 and the 50-day SMA slope is 0.4749, both indicating upward momentum. The stock is at its 52-week high.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI:** The 14-period RSI is 88.4, indicating that AAPL is significantly overbought.\n    *   **MACD:** The MACD line (9.5172) is above the signal line (7.7411), with a positive histogram (1.7762), indicating a bullish crossover and strong positive momentum.\n\n3.  **Support & Resistance:**\n    *   **Support Levels:** Key support levels are identified at $224.23, $200.70, and $193.50. The nearest support is $224.23.\n    *   **Resistance Levels:** There are no identified resistance levels as the stock is at its 52-week high.\n\n4.  **Volume Analysis:** Over the last 20 trading days, volume has fluctuated. Notably, there was a significant increase in volume on 2026-04-30 (91,848,200) and 2026-05-01 (79,915,400) as the price began its recent ascent. The most recent trading day (2026-05-15) saw volume of 54,721,100, which is higher than the average volume over the last 20 days. This suggests increased buying interest accompanying the price rise.\n\n5.  **Entry Timing Quality:** The current entry timing quality is poor due to the extremely overbought RSI (88.4) and the stock trading at its 52-week high with no clear resistance levels above. While MACD shows bullish momentum, the extended RSI suggests a high probability of a near-term pullback or consolidation.\n\n6.  **Technical Risk Level:** The technical risk level is high. The stock is significantly extended, as indicated by the overbought RSI. A lack of overhead resistance means price discovery is occurring, which can lead to volatile movements. A pullback to retest prior support levels is a significant risk.\n\n7.  **Technical Conviction Score (1-10):** 3/10. While the trend is strong and MACD is bullish, the extremely overbought RSI and the stock being at its 52-week high significantly increase the technical risk, making it a low-conviction entry point."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "H8AIarySLpvmqfkP4MyN2Ac",
+    "usage_metadata": {
+      "candidates_token_count": 655,
+      "prompt_token_count": 7925,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 7925
+        }
+      ],
+      "total_token_count": 8580
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "call_index": 11,
+  "latency_ms": 4110.65,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:36:01 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=4074",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### Microsoft (MSFT) Technical Research Report\n\n**1. Trend Structure**\nMSFT is currently in an uptrend with strong strength, as indicated by a positive SMA20 slope of 0.9795 and a positive SMA50 slope of 0.2627. The price action shows higher highs and no lower lows. However, the current price of $421.92 is below the 200-day SMA of $461.91, suggesting a sideways trend when considering longer-term averages. The stock is positioned at 35.6% of its 52-week range, with a 52-week high of $539.83 and a 52-week low of $356.77.\n\n**2. Momentum Indicators**\n*   **RSI (14-period):** 48.1, indicating a neutral signal. The stock is neither overbought nor oversold.\n*   **MACD (12/26/9):** MACD line is 3.3845, Signal line is 4.7006, and the Histogram is -1.3161. This indicates a bearish crossover, suggesting recent downward momentum.\n\n**3. Support & Resistance**\n*   **Current Price:** $421.92\n*   **Nearest Support:** $394.72\n*   **Key Support Levels:** $356.28, $381.71, $394.72\n*   **Nearest Resistance:** $514.26\n*   **Key Resistance Levels:** $514.26, $529.23, $551.84\n\n**4. Volume Analysis**\nOver the last 20 trading days, the average daily volume is approximately 33.9 million shares. The volume on the most recent trading day (2026-05-15) was 50.31 million, which is significantly higher than the average, coinciding with a price increase. This suggests strong buying interest on the recent upward move. A notable spike in volume occurred on 2026-04-30 (70.91 million shares) during a price decline, indicating selling pressure at that time.\n\n**5. Entry Timing Quality**\nThe current technical setup presents mixed signals for entry timing. While the overall trend is strong and showing higher highs, the MACD has a bearish crossover, and the price is below the 200-day SMA. The RSI is neutral. The recent high volume on an up day is positive, but the stock is trading closer to its 52-week low than its high.\n\n**6. Technical Risk Level**\nThe technical risk level is **Moderate to High**. The bearish MACD crossover and the price trading below the 200-day SMA introduce caution. While there is strong support at $394.72, a break below this level could lead to further downside. The significant distance to the nearest resistance also implies a potentially long path for upward movement.\n\n**7. Technical Conviction Score (1-10)**\n**5/10**"
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "TfEIasz1ObWo4-EPmIHSyQk",
+    "usage_metadata": {
+      "candidates_token_count": 698,
+      "prompt_token_count": 4637,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 4637
+        }
+      ],
+      "total_token_count": 5335
+    }
+  }
+}

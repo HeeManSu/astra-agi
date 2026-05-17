@@ -1,0 +1,107 @@
+{
+  "call_index": 1,
+  "method": "generate_content",
+  "is_async": false,
+  "is_stream": false,
+  "kwargs": {
+    "model": "gemini-2.5-flash",
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "\nCurrent Task: Assess the macro regime and equity risk environment relevant to: Compare AAPL and MSFT head-to-head and produce a research report recommending which one is the better investment today.\n\nUse the macro data tools to gather current readings on monetary policy, inflation, growth, liquidity, and the yield curve. Produce the structured output specified in the assigned analyst's backstory. Focus on the macro signal, do not discuss individual company details.\n\nThis is the expected criteria for your final answer: A structured macro assessment with sections: Macro Summary, Monetary Policy, Inflation & Growth, Liquidity & Credit, Yield Curve, Equity Risk Regime, and a Confidence Score (1-10).\nyou MUST return the actual complete content as the final answer, not a summary."
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "config": {
+      "system_instruction": {
+        "parts": [
+          {
+            "text": "You are Crew Manager. You are a seasoned manager with a knack for getting the best out of your team.\nYou are also known for your ability to delegate work to the right people, and to ask the right questions to get the best out of your team.\nEven though you don't perform tasks by yourself, you have a lot of experience in the field, which allows you to properly evaluate the work of your team members.\nYour personal goal is: Manage the team to complete the task in the best way possible."
+          }
+        ],
+        "role": "user"
+      },
+      "temperature": 0.0,
+      "stop_sequences": [
+        "\nObservation:"
+      ],
+      "tools": [
+        {
+          "function_declarations": [
+            {
+              "description": "Delegate a specific task to one of the following coworkers: Macro Strategist, Financial Analyst, Valuation Analyst, Technical Analyst\nThe input to this tool should be the coworker, the task you want them to do, and ALL necessary context to execute the task, they know nothing about the task, so share absolutely everything you know, don't reference things but instead explain them.",
+              "name": "delegate_work_to_coworker",
+              "parameters_json_schema": {
+                "properties": {
+                  "task": {
+                    "description": "The task to delegate",
+                    "title": "Task",
+                    "type": "string"
+                  },
+                  "context": {
+                    "description": "The context for the task",
+                    "title": "Context",
+                    "type": "string"
+                  },
+                  "coworker": {
+                    "description": "The role/name of the coworker to delegate to",
+                    "title": "Coworker",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "task",
+                  "context",
+                  "coworker"
+                ],
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          ]
+        },
+        {
+          "function_declarations": [
+            {
+              "description": "Ask a specific question to one of the following coworkers: Macro Strategist, Financial Analyst, Valuation Analyst, Technical Analyst\nThe input to this tool should be the coworker, the question you have for them, and ALL necessary context to ask the question properly, they know nothing about the question, so share absolutely everything you know, don't reference things but instead explain them.",
+              "name": "ask_question_to_coworker",
+              "parameters_json_schema": {
+                "properties": {
+                  "question": {
+                    "description": "The question to ask",
+                    "title": "Question",
+                    "type": "string"
+                  },
+                  "context": {
+                    "description": "The context for the question",
+                    "title": "Context",
+                    "type": "string"
+                  },
+                  "coworker": {
+                    "description": "The role/name of the coworker to ask",
+                    "title": "Coworker",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "question",
+                  "context",
+                  "coworker"
+                ],
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          ]
+        }
+      ],
+      "thinking_config": {
+        "include_thoughts": false,
+        "thinking_budget": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 14679,
+  "completion_tokens": 3430,
+  "thoughts_tokens": 0,
+  "total_tokens": 18109,
+  "llm_latency_ms": 16660.74,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 3982,
+      "completion_tokens": 1147,
+      "thoughts_tokens": 0,
+      "total_tokens": 5129,
+      "latency_ms": 5327.36,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\"status\": \"success\", \"summary\": \"The Research Team will produce a full research packet for NVDA by running the Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst sequential"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5481,
+      "completion_tokens": 680,
+      "thoughts_tokens": 0,
+      "total_tokens": 6161,
+      "latency_ms": 4603.3,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_policy_data = macro_strategist.get_monetary_policy_data()\nmacro_inflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nmacro_liquidity_data = macro_strategist.get_liquidity_and"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5216,
+      "completion_tokens": 1603,
+      "thoughts_tokens": 0,
+      "total_tokens": 6819,
+      "latency_ms": 6730.08,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "## NVDA Research Packet\n\n### 1. MACRO ANALYSIS\n\n**Macro Summary:** The current macro environment indicates a neutral monetary policy stance with rising inflation and growth. Liquidity conditions are e"
+    }
+  ]
+}

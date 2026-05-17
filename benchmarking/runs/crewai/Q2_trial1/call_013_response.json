@@ -1,0 +1,63 @@
+{
+  "call_index": 13,
+  "latency_ms": 1993.34,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 19:07:36 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1919",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "function_call": {
+                "args": {
+                  "task": "Assess price action, momentum, and technical structure for MSFT. Use the technical tools to compute indicators (RSI, MACD, moving averages) and identify trend, support, and resistance. Produce the structured output specified in your backstory. Do not discuss fundamentals, valuation, or macro.",
+                  "coworker": "Technical Analyst",
+                  "context": "The final output should be a structured technical report with sections: Trend Structure, Momentum Indicators, Support & Resistance, Volume Analysis, Entry Timing Quality, Technical Risk Level, and a Technical Conviction Score (1-10)."
+                },
+                "name": "delegate_work_to_coworker"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "dsAIavjTINCDqfkP3OvLiAs",
+    "usage_metadata": {
+      "cache_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 955
+        }
+      ],
+      "cached_content_token_count": 955,
+      "candidates_token_count": 132,
+      "prompt_token_count": 6856,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 6856
+        }
+      ],
+      "total_token_count": 6988
+    }
+  }
+}

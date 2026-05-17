@@ -1,0 +1,14 @@
+# Per-framework venvs and Python caches
+**/.venv/
+**/__pycache__/
+**/*.egg-info/
+
+# Astra runtime artifacts (debug dumps from each run)
+**/.debug/
+
+# Secrets — never commit
+**/.env
+**/.env.local
+
+# Stray log files
+*.log

@@ -1,0 +1,55 @@
+{
+  "call_index": 2,
+  "latency_ms": 1483.96,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:51:42 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=1395",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1. Macro Summary:\nThe current macroeconomic environment indicates a neutral monetary policy stance with inflation showing signs of moderation. Growth momentum is stable, and liquidity conditions are neutral. The yield curve remains inverted, signaling potential future economic challenges.\n\n2. Monetary Policy Assessment:\n"
+            },
+            {
+              "function_call": {
+                "args": {},
+                "name": "get_monetary_policy_data"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "rK4Iaqb9O4LXjuMPqdWgkQk",
+    "usage_metadata": {
+      "candidates_token_count": 69,
+      "prompt_token_count": 908,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 908
+        }
+      ],
+      "total_token_count": 977
+    }
+  }
+}

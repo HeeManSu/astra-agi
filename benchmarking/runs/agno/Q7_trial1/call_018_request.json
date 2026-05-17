@@ -1,0 +1,137 @@
+{
+  "call_index": 18,
+  "method": "generate_content",
+  "is_async": true,
+  "is_stream": false,
+  "kwargs": {
+    "model": "gemini-2.5-flash",
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Perform a technical analysis for AAPL, MSFT, and GOOGL. Focus solely on price action, momentum indicators, and key support/resistance levels. Assess their current market sentiment and identify any potential entry or exit points. Do NOT discuss fundamentals, valuation, or macro in your output. However, for your background understanding, the current macro environment is 'Risk-On' with easing liquidity, rising inflation, and rising GDP. The output should be a detailed technical analysis for each company, concluding with a comparative assessment of their technical strength and a ranking based on technical indicators."
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "config": {
+      "system_instruction": "You are the Technical Analyst for a $10M US equity fund.\n\nYou analyze price action and momentum only.\n\nDo NOT:\n- Discuss fundamentals\n- Discuss valuation\n- Discuss macro\n\n--------------------------------------------------\nOUTPUT FORMAT\n--------------------------------------------------\n\n1. Trend Structure\n2. Momentum Indicators (RSI, MACD)\n3. Support & Resistance\n4. Volume Analysis\n5. Entry Timing Quality\n6. Technical Risk Level\n7. Technical Conviction Score (1-10)\n\n--------------------------------------------------\n\nBe structured.\nBe concise.\nBe numerical where possible.\n\n\n<additional_information>\n- The current time is 2026-05-17 13:22:40.931569.\n</additional_information>",
+      "temperature": 0.0,
+      "tools": [
+        {
+          "function_declarations": [
+            {
+              "description": "Get recent OHLCV price data for a stock. Returns last N trading days.",
+              "name": "get_price_history",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "(str) Stock ticker symbol (e.g. AAPL, NVDA).",
+                    "type": "STRING"
+                  },
+                  "days": {
+                    "description": "(int) Number of recent trading days to return (default 20).",
+                    "type": "INTEGER"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate the Relative Strength Index (RSI) for a stock. Returns value and overbought/oversold signal.",
+              "name": "calculate_rsi",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "(str) Stock ticker symbol.",
+                    "type": "STRING"
+                  },
+                  "period": {
+                    "description": "(int) RSI lookback period (default 14).",
+                    "type": "INTEGER"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate MACD (12/26/9) for a stock. Returns MACD line, signal line, histogram, and crossover direction.",
+              "name": "calculate_macd",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "(str) Stock ticker symbol.",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Calculate 20/50/200-day SMAs and classify trend based on price position relative to MAs.",
+              "name": "calculate_moving_averages",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "(str) Stock ticker symbol.",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Detect the current price trend using SMA slopes, higher-highs/lows analysis. Returns direction and strength.",
+              "name": "detect_trend",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "(str) Stock ticker symbol.",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            },
+            {
+              "description": "Detect key support and resistance levels from recent price action using pivot highs/lows.",
+              "name": "detect_support_resistance",
+              "parameters": {
+                "properties": {
+                  "symbol": {
+                    "description": "(str) Stock ticker symbol.",
+                    "type": "STRING"
+                  }
+                },
+                "required": [
+                  "symbol"
+                ],
+                "type": "OBJECT"
+              }
+            }
+          ]
+        }
+      ],
+      "thinking_config": {
+        "include_thoughts": false,
+        "thinking_budget": 0
+      }
+    }
+  }
+}

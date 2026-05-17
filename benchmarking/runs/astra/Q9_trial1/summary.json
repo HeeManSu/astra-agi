@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 15071,
+  "completion_tokens": 3199,
+  "thoughts_tokens": 0,
+  "total_tokens": 18270,
+  "llm_latency_ms": 15802.28,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4009,
+      "completion_tokens": 1177,
+      "thoughts_tokens": 0,
+      "total_tokens": 5186,
+      "latency_ms": 5827.79,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\"status\": \"success\", \"summary\": \"The Research Team will analyze TSLA by running a sequential research pipeline: Macro Strategist, Financial Analyst, Valuation Analyst, and Technical Analyst. The Macr"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5553,
+      "completion_tokens": 773,
+      "thoughts_tokens": 0,
+      "total_tokens": 6326,
+      "latency_ms": 4103.63,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_data = macro_strategist.get_monetary_policy_data()\ninflation_growth_data = macro_strategist.get_inflation_and_growth_data()\nliquidity_credit_data = macro_strategist.get_liquidity_and_credit_cond"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5509,
+      "completion_tokens": 1249,
+      "thoughts_tokens": 0,
+      "total_tokens": 6758,
+      "latency_ms": 5870.86,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "## MACRO ANALYSIS\n\n**Macro Summary:** The macro environment is characterized by a stable monetary policy, rising inflation and GDP growth, easing liquidity, and a neutral yield curve. This combination"
+    }
+  ]
+}

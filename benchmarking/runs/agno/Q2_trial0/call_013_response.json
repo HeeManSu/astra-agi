@@ -1,0 +1,49 @@
+{
+  "call_index": 13,
+  "latency_ms": 4135.33,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:40:27 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=4119",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "1.  **Trend Structure:** MSFT is in a strong uptrend, characterized by higher highs and a positive SMA20 slope of 0.9795 and SMA50 slope of 0.2627. The stock is currently positioned at 35.6% of its 52-week range, with a 52-week high of $539.83 and a low of $356.77.\n\n2.  **Momentum Indicators (RSI, MACD):**\n    *   **RSI (14):** 48.1, indicating a neutral signal.\n    *   **MACD (12/26/9):** MACD line is 3.3845, signal line is 4.7006, and the histogram is -1.3161. This indicates a bearish crossover, suggesting recent downward momentum.\n\n3.  **Support & Resistance:**\n    *   **Current Price:** $421.92\n    *   **Nearest Support:** $394.72\n    *   **Key Support Levels:** $356.28, $381.71, $394.72\n    *   **Nearest Resistance:** $514.26\n    *   **Key Resistance Levels:** $514.26, $529.23, $551.84\n\n4.  **Volume Analysis:** Over the last 20 trading days, average daily volume has been approximately 34.5 million shares. The highest volume day was 2026-04-30 with 70.9 million shares, coinciding with a significant price drop. The most recent trading day (2026-05-15) saw 50.3 million shares traded, accompanying a price increase.\n\n5.  **Entry Timing Quality:** The recent bearish MACD crossover suggests that the immediate entry timing quality is poor, despite the overarching strong uptrend. The neutral RSI also does not provide a strong directional signal for entry.\n\n6.  **Technical Risk Level:** Moderate. While the long-term trend is strong, the recent bearish MACD crossover and the stock's position below its nearest resistance level introduce some short-term technical risk. A break below the nearest support at $394.72 would increase the risk level.\n\n7.  **Technical Conviction Score (1-10):** 6/10. The strong uptrend is a positive, but the bearish MACD crossover and neutral RSI temper conviction for immediate entry."
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "VvIIarmxPIS0juMPmKG4mQQ",
+    "usage_metadata": {
+      "candidates_token_count": 569,
+      "prompt_token_count": 4049,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 4049
+        }
+      ],
+      "total_token_count": 4618
+    }
+  }
+}

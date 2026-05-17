@@ -1,0 +1,147 @@
+{
+  "call_index": 18,
+  "latency_ms": 2944.12,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 22:48:07 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=2440",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "I cannot use macro context, fundamental analysis, or valuation in my technical analysis. I will proceed with a technical analysis for AAPL and MSFT based on price action and momentum only.\n\n"
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "AAPL"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "days": 20,
+                  "symbol": "AAPL"
+                },
+                "name": "get_price_history"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_moving_averages"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_rsi"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "calculate_macd"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "MSFT"
+                },
+                "name": "detect_support_resistance"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "days": 20,
+                  "symbol": "MSFT"
+                },
+                "name": "get_price_history"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "JfQIatGYB6TMjuMPpZqMwQY",
+    "usage_metadata": {
+      "candidates_token_count": 250,
+      "prompt_token_count": 717,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 717
+        }
+      ],
+      "total_token_count": 967
+    }
+  }
+}

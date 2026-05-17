@@ -1,0 +1,58 @@
+{
+  "num_calls": 3,
+  "prompt_tokens": 20548,
+  "completion_tokens": 8532,
+  "thoughts_tokens": 0,
+  "total_tokens": 29080,
+  "llm_latency_ms": 34043.04,
+  "calls": [
+    {
+      "call_index": 1,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 4018,
+      "completion_tokens": 2939,
+      "thoughts_tokens": 0,
+      "total_tokens": 6957,
+      "latency_ms": 11865.67,
+      "request_dump": "call_001_request.json",
+      "response_dump": "call_001_response.json",
+      "tool_calls": [],
+      "text_preview": "{\"status\": \"success\", \"summary\": \"The Research Team will produce a comprehensive research packet for AAPL, MSFT, and GOOGL. The Macro Strategist will first establish the macro regime. Then, for each s"
+    },
+    {
+      "call_index": 2,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 5576,
+      "completion_tokens": 2046,
+      "thoughts_tokens": 0,
+      "total_tokens": 7622,
+      "latency_ms": 8381.03,
+      "request_dump": "call_002_request.json",
+      "response_dump": "call_002_response.json",
+      "tool_calls": [],
+      "text_preview": "macro_regime = macro_strategist.get_monetary_policy_data()\ninflation_growth = macro_strategist.get_inflation_and_growth_data()\nliquidity_credit = macro_strategist.get_liquidity_and_credit_conditions()"
+    },
+    {
+      "call_index": 3,
+      "method": "generate_content",
+      "is_async": true,
+      "is_stream": false,
+      "model_id": "gemini-2.5-flash",
+      "prompt_tokens": 10954,
+      "completion_tokens": 3547,
+      "thoughts_tokens": 0,
+      "total_tokens": 14501,
+      "latency_ms": 13796.34,
+      "request_dump": "call_003_request.json",
+      "response_dump": "call_003_response.json",
+      "tool_calls": [],
+      "text_preview": "Here is the research packet comparing AAPL, MSFT, and GOOGL:\n\n## 1. MACRO ANALYSIS\n\n**Macro Summary:** The current macro regime indicates a stable monetary policy with a neutral stance. Inflation is r"
+    }
+  ]
+}

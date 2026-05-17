@@ -1,0 +1,65 @@
+{
+  "call_index": 16,
+  "latency_ms": 988.13,
+  "response": {
+    "sdk_http_response": {
+      "headers": {
+        "x-gemini-service-tier": "standard",
+        "content-type": "application/json; charset=UTF-8",
+        "vary": "Origin, X-Origin, Referer",
+        "content-encoding": "gzip",
+        "date": "Sat, 16 May 2026 17:50:33 GMT",
+        "server": "scaffolding on HTTPServer2",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "server-timing": "gfet4t7; dur=906",
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "transfer-encoding": "chunked"
+      }
+    },
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "### NVDA Technical Analysis:\n\n1.  **Trend Structure:**\n    "
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "NVDA"
+                },
+                "name": "detect_trend"
+              }
+            },
+            {
+              "function_call": {
+                "args": {
+                  "symbol": "NVDA"
+                },
+                "name": "calculate_moving_averages"
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finish_reason": "STOP",
+        "index": 0
+      }
+    ],
+    "model_version": "gemini-2.5-flash",
+    "response_id": "aK4IavitOuiL4-EPx4_UyAc",
+    "usage_metadata": {
+      "candidates_token_count": 51,
+      "prompt_token_count": 2123,
+      "prompt_tokens_details": [
+        {
+          "modality": "TEXT",
+          "token_count": 2123
+        }
+      ],
+      "total_token_count": 2174
+    }
+  }
+}

@@ -25,7 +25,7 @@ On a 4-analyst investment-research workload (90 trials, 5 frameworks):
 
 Against the pooled ReAct baseline: **5.37× fewer LLM calls, 2.34× fewer tokens, 1.93× faster wall p50**. Tail gap on tokens is 2.97× (p95).
 
-Full numbers, ratios, per-query breakdown, and reproduction instructions: [`benchmarking/`](benchmarking/) and [`docs/research.md`](docs/research.md). Paper PDF: [`paper/main.pdf`](paper/main.pdf).
+Full numbers, ratios, per-query breakdown, and reproduction instructions: [`benchmarking/`](benchmarking/) and [`research/research.md`](research/research.md). Paper PDF: [`paper/main.pdf`](paper/main.pdf).
 
 ---
 
@@ -34,9 +34,9 @@ Full numbers, ratios, per-query breakdown, and reproduction instructions: [`benc
 ```
 Astra/
 ├── astra/                  the framework, runtime, and observability packages
-│   ├── framework/             astra-framework — compiler + execution engine
-│   ├── runtime/               astra-runtime — embeddable FastAPI server
-│   ├── observability/         astra-observability — telemetry capture
+│   ├── framework/             astra-framework: compiler + execution engine
+│   ├── runtime/               astra-runtime: embeddable FastAPI server
+│   ├── observability/         astra-observability: telemetry capture
 │   └── README.md              package docs + local-run guide
 │
 ├── benchmarking/           five-framework comparison harness
@@ -50,7 +50,7 @@ Astra/
 │   ├── runs/                  per-trial outputs (logs, request/response JSON, summary)
 │   └── README.md              benchmark workflow + token-counting details
 │
-├── docs/
+├── research/
 │   └── research.md            full research write-up (markdown source of the paper)
 │
 ├── paper/
@@ -85,7 +85,7 @@ uv run uvicorn examples.investment_team.main:app --host 127.0.0.1 --port 8000
 cd ../../astra-playground-ui && yarn install && yarn dev
 ```
 
-Full instructions, env-var reference, and a one-click VS Code debug config (compound launch — backend + frontend together) are in [`astra/README.md`](astra/README.md).
+Full instructions, env-var reference, and a one-click VS Code debug config (compound launch starts backend + frontend together) are in [`astra/README.md`](astra/README.md).
 
 ---
 
@@ -93,21 +93,21 @@ Full instructions, env-var reference, and a one-click VS Code debug config (comp
 
 |                              | ReAct / tool-calling          | Astra                                       |
 | ---------------------------- | ----------------------------- | ------------------------------------------- |
-| LLM calls per query          | Unbounded (one per tool step) | **Fixed — 3 calls**                         |
+| LLM calls per query          | Unbounded (one per tool step) | **Fixed: 3 calls**                         |
 | Execution path               | Decided at runtime            | **Compiled upfront**                        |
 | Tool-call order              | Non-deterministic             | **Guaranteed by the typed graph**           |
 | Inspectability               | Emergent after the fact       | **Full plan visible before any tool runs**  |
 | Safety                       | Runtime, ad-hoc               | **Compile-time AST validation**             |
 | Token cost on heavy queries  | Grows with workload           | **Bounded by plan size**                    |
 
-The trade-off: Astra doesn't replan mid-execution. For workflows where the next step legitimately depends on what an earlier tool returned, a ReAct loop adapts and Astra doesn't (yet). For sequential, structured pipelines — which most multi-agent workflows are — the compile-time approach wins on every cost axis we measure.
+The trade-off: Astra doesn't replan mid-execution. For workflows where the next step legitimately depends on what an earlier tool returned, a ReAct loop adapts and Astra doesn't (yet). For sequential, structured pipelines (which most multi-agent workflows are) the compile-time approach wins on every cost axis we measure.
 
 ---
 
 ## What's in the box
 
 - **Compiled execution graph.** The LLM produces a Python plan once. A typed graph is compiled from the AST and executed by a deterministic cursor-based runner with zero model calls during execution.
-- **Bounded LLM calls.** Three calls per query, every query — planner, code-gen, response synthesis. Cost is a fixed compile-time bill, not a per-step bill.
+- **Bounded LLM calls.** Three calls per query, every query: planner, code-gen, response synthesis. Cost is a fixed compile-time bill, not a per-step bill.
 - **Compile-time safety.** AST-level validator rejects `import`, `exec`, `eval`, `open`, attribute introspection, and arbitrary control flow. Generated code cannot reach the shell, the file system, or any tool that wasn't registered.
 - **Typed execution graph.** Five node types (action, transform, respond, branch, loop) connected by semantic edges.
 - **Replayable journal.** Every node visit recorded with inputs, outputs, duration, and errors. Re-run any trace offline for debugging or audit.
@@ -130,7 +130,7 @@ Full feature breakdown and architecture details: [`astra/README.md`](astra/READM
 | Server runtime | [`astra/runtime/README.md`](astra/runtime/README.md) |
 | Observability | [`astra/observability/README.md`](astra/observability/README.md) |
 | Benchmark workflow | [`benchmarking/README.md`](benchmarking/README.md) |
-| Research write-up | [`docs/research.md`](docs/research.md) |
+| Research write-up | [`research/research.md`](research/research.md) |
 | Paper PDF | [`paper/main.pdf`](paper/main.pdf) |
 
 ---
@@ -141,4 +141,4 @@ This project is under active development. If something doesn't work, open an iss
 
 ## License
 
-Apache 2.0 — see [`astra/framework/LICENSE`](astra/framework/LICENSE).
+Apache 2.0. See [`astra/framework/LICENSE`](astra/framework/LICENSE).

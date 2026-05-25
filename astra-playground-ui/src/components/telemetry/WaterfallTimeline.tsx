@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, parseTimestamp } from "@/lib/utils";
 import type { Span, SpanKind, SpanStatus } from "@/types/api";
 
 interface KindStyle {
@@ -69,12 +69,12 @@ export default function WaterfallTimeline({
     );
   }
 
-  const traceStartMs = new Date(traceStart).getTime();
+  const traceStartMs = parseTimestamp(traceStart).getTime();
 
   const actualMaxDuration = Math.max(
     traceDuration ?? 1,
     ...spans.map((s) => {
-      const spanStart = new Date(s.start_time).getTime();
+      const spanStart = parseTimestamp(s.start_time).getTime();
       return spanStart - traceStartMs + (s.duration_ms ?? 0);
     }),
   );
@@ -101,7 +101,7 @@ export default function WaterfallTimeline({
       </div>
 
       {spans.map((span) => {
-        const spanStart = new Date(span.start_time).getTime();
+        const spanStart = parseTimestamp(span.start_time).getTime();
         const offsetMs = Math.max(0, spanStart - traceStartMs);
         const durationMs = span.duration_ms ?? 1;
 

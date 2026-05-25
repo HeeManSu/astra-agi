@@ -5,7 +5,16 @@ A Trace represents a single user request flowing through the system.
 It contains multiple Spans representing individual operations.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def _now_utc() -> datetime:
+    """Return the current UTC time as a timezone-aware datetime.
+
+    Using a tz-aware value ensures the JSON serialization includes an offset
+    (`+00:00`), so browsers parse it as UTC instead of local time.
+    """
+    return datetime.now(timezone.utc)
 from enum import Enum
 from typing import Any
 import uuid
@@ -48,7 +57,7 @@ class Trace(BaseModel):
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     status: TraceStatus = TraceStatus.RUNNING
-    start_time: datetime = Field(default_factory=datetime.utcnow)
+    start_time: datetime = Field(default_factory=_now_utc)
     end_time: datetime | None = None
     attributes: dict[str, Any] = Field(default_factory=dict)
 
@@ -73,7 +82,7 @@ class Trace(BaseModel):
     def end(self, status: TraceStatus) -> None:
         """Mark the trace as ended."""
         self.status = status
-        self.end_time = datetime.utcnow()
+        self.end_time = _now_utc()
 
     def add_token_usage(
         self,

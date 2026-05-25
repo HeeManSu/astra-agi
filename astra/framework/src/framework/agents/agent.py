@@ -719,13 +719,31 @@ class Agent:
                 formatted_output = await sandbox.format_response(query, result.output)
 
                 # Run OUTPUT middlewares
-                formatted_output, error = await self._run_output_middleware(formatted_output)
-                if error:
-                    yield StreamEvent(event_type="error", data={"message": error})
-                    return
+                async with span(
+                    "middleware.output",
+                    attributes={"input_length": len(formatted_output)},
+                ):
+                    await log(LogLevel.INFO, "Running output middlewares")
+                    formatted_output, error = await self._run_output_middleware(
+                        formatted_output
+                    )
+                    if error:
+                        await log(LogLevel.ERROR, "Output middleware blocked response", {"error": error})
+                        yield StreamEvent(event_type="error", data={"message": error})
+                        return
+                    await log(LogLevel.INFO, "Output middleware passed")
 
                 # Save assistant response
-                await save_assistant_message(self.storage, thread_id, formatted_output)
+                async with span(
+                    "persistence.save_assistant_message",
+                    attributes={
+                        "thread_id": thread_id or "new",
+                        "message_length": len(formatted_output),
+                        "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
+                    },
+                ):
+                    await save_assistant_message(self.storage, thread_id, formatted_output)
+                    await log(LogLevel.INFO, "Assistant message saved")
 
                 yield StreamEvent(event_type="content", data={"text": formatted_output})
                 yield StreamEvent(event_type="done", data={"status": "complete"})

@@ -20,10 +20,20 @@ class TraceWithSpans:
     spans: list[Span]
 
 
+SYSTEM_TRACE_PREFIXES = ("server.",)
+
+
+def _is_system_trace(trace: Trace) -> bool:
+    """True for internal/operational traces (e.g. server.startup) that should
+    be hidden from user-facing trace lists."""
+    return any(trace.name.startswith(p) for p in SYSTEM_TRACE_PREFIXES)
+
+
 async def list_traces(
     storage: StorageBackend,
     limit: int = 50,
     offset: int = 0,
+    include_system: bool = False,
 ) -> list[Trace]:
     """
     List traces with pagination.
@@ -32,11 +42,20 @@ async def list_traces(
         storage: Storage backend to query
         limit: Maximum number of traces to return
         offset: Number of traces to skip
+        include_system: If True, include operational traces like ``server.startup``.
+            Default False so user-facing dashboards only show request traces.
 
     Returns:
         List of traces ordered by start_time DESC
     """
-    return await storage.list_traces(limit=limit, offset=offset)
+    if include_system:
+        return await storage.list_traces(limit=limit, offset=offset)
+
+    # Over-fetch and filter, so the post-filter result still respects the
+    # caller's limit. System traces are rare so a 2x window is safe.
+    raw = await storage.list_traces(limit=limit * 2 + 16, offset=offset)
+    filtered = [t for t in raw if not _is_system_trace(t)]
+    return filtered[:limit]
 
 
 async def get_trace_with_spans(

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, parseTimestamp } from "@/lib/utils";
 import {
   X,
   Clock,
@@ -169,42 +169,63 @@ export default function SpanDetailDrawer({
                 <span>Start:</span>
                 <span className="font-mono">
                   {span.start_time &&
-                    format(new Date(span.start_time), "HH:mm:ss.SSS")}
+                    format(parseTimestamp(span.start_time), "HH:mm:ss.SSS")}
                 </span>
               </div>
               {span.end_time && (
                 <div className="flex justify-between">
                   <span>End:</span>
                   <span className="font-mono">
-                    {format(new Date(span.end_time), "HH:mm:ss.SSS")}
+                    {format(parseTimestamp(span.end_time), "HH:mm:ss.SSS")}
                   </span>
                 </div>
               )}
             </div>
           </div>
 
+          {span.kind === "GENERATION" && (
+            <GenerationSummary attributes={span.attributes ?? {}} />
+          )}
+
+          {span.kind === "TOOL" && (
+            <ToolSummary attributes={span.attributes ?? {}} />
+          )}
+
           {span.attributes && Object.keys(span.attributes).length > 0 && (
             <div className="space-y-3">
               <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                 <Tag className="h-4 w-4" />
                 Attributes
+                {!showDebug &&
+                  Object.keys(span.attributes).some((k) => k.endsWith("_full")) && (
+                    <span className="text-[10px] normal-case font-normal text-amber-600 dark:text-amber-400">
+                      (turn on Debug to see *_full payloads)
+                    </span>
+                  )}
               </h4>
               <div className="space-y-2">
-                {Object.entries(span.attributes).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex flex-col p-2.5 bg-muted/30 rounded-lg"
-                  >
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase">
-                      {key}
-                    </span>
-                    <span className="text-sm font-mono break-all mt-0.5">
-                      {typeof value === "object"
-                        ? JSON.stringify(value, null, 2)
-                        : String(value)}
-                    </span>
-                  </div>
-                ))}
+                {Object.entries(span.attributes)
+                  .filter(([key]) => showDebug || !key.endsWith("_full"))
+                  .map(([key, value]) => (
+                    <div
+                      key={key}
+                      className={cn(
+                        "flex flex-col p-2.5 rounded-lg",
+                        key.endsWith("_full")
+                          ? "bg-amber-500/5 border border-amber-500/20"
+                          : "bg-muted/30",
+                      )}
+                    >
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase">
+                        {key}
+                      </span>
+                      <span className="text-sm font-mono break-all mt-0.5 whitespace-pre-wrap">
+                        {typeof value === "object"
+                          ? JSON.stringify(value, null, 2)
+                          : String(value)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
@@ -263,7 +284,7 @@ export default function SpanDetailDrawer({
                           </span>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {log.timestamp &&
-                              format(new Date(log.timestamp), "HH:mm:ss.SSS")}
+                              format(parseTimestamp(log.timestamp), "HH:mm:ss.SSS")}
                           </span>
                         </div>
                         <p className="text-foreground mt-0.5 break-words">
@@ -292,6 +313,182 @@ export default function SpanDetailDrawer({
           </div>
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function GenerationSummary({
+  attributes,
+}: {
+  attributes: Record<string, unknown>;
+}) {
+  const model = asString(attributes.model);
+  const provider = asString(attributes.provider);
+  const ttft = asNumber(attributes.ttft_ms);
+  const totalDuration = asNumber(attributes.total_duration_ms);
+  const latency = asNumber(attributes.latency_ms);
+  const inputTokens = asNumber(attributes.input_tokens);
+  const outputTokens = asNumber(attributes.output_tokens);
+  const thoughtsTokens = asNumber(attributes.thoughts_tokens);
+  const totalTokens = asNumber(attributes.total_tokens);
+  const chunkCount = asNumber(attributes.chunk_count);
+  const contentChunks = asNumber(attributes.content_chunks);
+  const toolCallChunks = asNumber(attributes.tool_call_chunks);
+
+  const hasAnything =
+    model ||
+    ttft != null ||
+    totalDuration != null ||
+    latency != null ||
+    totalTokens != null ||
+    chunkCount != null;
+  if (!hasAnything) return null;
+
+  return (
+    <div className="space-y-2 p-3 rounded-lg border border-violet-500/20 bg-violet-500/5">
+      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
+        Generation
+      </h4>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        {model && (
+          <Pill label="Model" value={provider ? `${provider} / ${model}` : model} mono />
+        )}
+        {ttft != null && <Pill label="TTFT" value={`${ttft.toFixed(0)} ms`} />}
+        {latency != null && (
+          <Pill label="Latency" value={`${latency.toFixed(0)} ms`} />
+        )}
+        {totalDuration != null && (
+          <Pill label="Total" value={`${totalDuration.toFixed(0)} ms`} />
+        )}
+        {inputTokens != null && (
+          <Pill label="Input tokens" value={inputTokens.toLocaleString()} accent="blue" />
+        )}
+        {outputTokens != null && (
+          <Pill label="Output tokens" value={outputTokens.toLocaleString()} accent="emerald" />
+        )}
+        {thoughtsTokens != null && thoughtsTokens > 0 && (
+          <Pill label="Thinking" value={thoughtsTokens.toLocaleString()} accent="amber" />
+        )}
+        {totalTokens != null && (
+          <Pill label="Total tokens" value={totalTokens.toLocaleString()} accent="violet" />
+        )}
+        {chunkCount != null && (
+          <Pill
+            label="Chunks"
+            value={
+              contentChunks != null || toolCallChunks != null
+                ? `${chunkCount} (${contentChunks ?? 0}c / ${toolCallChunks ?? 0}t)`
+                : String(chunkCount)
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ToolSummary({
+  attributes,
+}: {
+  attributes: Record<string, unknown>;
+}) {
+  const toolName = asString(attributes.tool_name);
+  const qualified = asString(attributes.tool_qualified_name);
+  const isAsync = attributes.is_async;
+  const resultType = asString(attributes.result_type);
+  const argsPreview = attributes.args_preview;
+  const resultPreview = attributes.result_preview;
+
+  if (!toolName && !qualified && argsPreview == null && resultPreview == null) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2 p-3 rounded-lg border border-orange-500/20 bg-orange-500/5">
+      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">
+        Tool Call
+      </h4>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        {toolName && <Pill label="Tool" value={toolName} mono />}
+        {qualified && qualified !== toolName && (
+          <Pill label="Qualified" value={qualified} mono />
+        )}
+        {typeof isAsync === "boolean" && (
+          <Pill label="Async" value={isAsync ? "yes" : "no"} />
+        )}
+        {resultType && <Pill label="Result type" value={resultType} mono />}
+      </div>
+      {argsPreview != null && (
+        <div className="text-xs">
+          <div className="text-[10px] font-medium text-muted-foreground uppercase mb-1">
+            Args
+          </div>
+          <pre className="font-mono text-[11px] whitespace-pre-wrap break-all bg-background/60 p-2 rounded">
+            {typeof argsPreview === "object"
+              ? JSON.stringify(argsPreview, null, 2)
+              : String(argsPreview)}
+          </pre>
+        </div>
+      )}
+      {resultPreview != null && (
+        <div className="text-xs">
+          <div className="text-[10px] font-medium text-muted-foreground uppercase mb-1">
+            Result
+          </div>
+          <pre className="font-mono text-[11px] whitespace-pre-wrap break-all bg-background/60 p-2 rounded">
+            {typeof resultPreview === "object"
+              ? JSON.stringify(resultPreview, null, 2)
+              : String(resultPreview)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Pill({
+  label,
+  value,
+  mono,
+  accent,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  accent?: "blue" | "emerald" | "amber" | "violet";
+}) {
+  const accentClass =
+    accent === "blue"
+      ? "text-blue-600 dark:text-blue-400"
+      : accent === "emerald"
+        ? "text-emerald-600 dark:text-emerald-400"
+        : accent === "amber"
+          ? "text-amber-600 dark:text-amber-400"
+          : accent === "violet"
+            ? "text-violet-600 dark:text-violet-400"
+            : "text-foreground";
+  return (
+    <div className="flex flex-col p-2 rounded bg-background/60">
+      <span className="text-[10px] font-medium text-muted-foreground uppercase">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "mt-0.5 font-semibold break-all",
+          mono && "font-mono text-[11px]",
+          accentClass,
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }

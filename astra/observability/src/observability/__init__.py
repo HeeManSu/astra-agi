@@ -22,16 +22,19 @@ from .instrument import (
     get_current_trace_id,
     get_engine,
     init,
+    is_debug_mode,
     log,
     span,
     trace,
     update_span,
 )
+from .streaming import StreamAccumulator, preview
 
 # Types and enums
 from .logs.model import Log, LogLevel
 
 # Queries
+from .query.metrics import MetricsSnapshot, TopItem, compute_metrics
 from .query.traces import TraceWithSpans, get_logs_for_trace, get_trace_with_spans, list_traces
 from .storage.base import StorageBackend
 from .storage.mongodb import TelemetryMongoDB
@@ -48,9 +51,12 @@ __all__ = [
     "get_current_trace_id",
     "get_engine",
     "init",
+    "is_debug_mode",
     "log",
     "LogLevel",
+    "preview",
     "span",
+    "StreamAccumulator",
     "trace",
     "update_span",
     # Types (for type hints)
@@ -68,6 +74,9 @@ __all__ = [
     # Debug
     "save_debug_artifact",
     # Queries
+    "compute_metrics",
+    "MetricsSnapshot",
+    "TopItem",
     "TraceWithSpans",
     "get_trace_with_spans",
     "get_logs_for_trace",

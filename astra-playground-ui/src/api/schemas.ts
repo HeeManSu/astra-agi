@@ -161,6 +161,44 @@ export const LogListResponseSchema = z.object({
   count: z.number(),
 });
 
+export const TopItemSchema = z.object({
+  name: z.string(),
+  count: z.number(),
+  extra: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const MetricsResponseSchema = z.object({
+  window_start: z.string(),
+  window_end: z.string(),
+  trace_sample_size: z.number(),
+  truncated: z.boolean(),
+  request_count: z.number(),
+  success_count: z.number(),
+  error_count: z.number(),
+  running_count: z.number(),
+  success_rate: z.number(),
+  error_rate: z.number(),
+  latency_p50_ms: z.number().nullable(),
+  latency_p95_ms: z.number().nullable(),
+  latency_p99_ms: z.number().nullable(),
+  latency_avg_ms: z.number().nullable(),
+  total_tokens: z.number(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  thoughts_tokens: z.number(),
+  avg_tokens_per_request: z.number(),
+  avg_ttft_ms: z.number().nullable(),
+  generation_p50_ms: z.number().nullable(),
+  generation_p95_ms: z.number().nullable(),
+  top_models: z.array(TopItemSchema),
+  top_tools: z.array(TopItemSchema),
+  top_agents: z.array(TopItemSchema),
+  top_teams: z.array(TopItemSchema),
+  tool_call_count: z.number(),
+  tool_error_count: z.number(),
+  tool_error_rate: z.number(),
+});
+
 // ---------- SSE events ----------------------------------------------
 
 const StatusEventSchema = z.object({

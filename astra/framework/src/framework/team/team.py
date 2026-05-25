@@ -508,7 +508,7 @@ class Team:
         Yields:
             StreamEvent objects for SSE streaming
         """
-        from observability import log
+        from observability import log, span
 
         query, error = await self._run_input_middleware(query)
         if error:
@@ -516,15 +516,24 @@ class Team:
             await log(LogLevel.ERROR, "Error in input middleware", {"error": error})
             return
 
-        thread_id = await save_user_message(
-            self.storage,
-            thread_id,
-            query,
-            resource_type="team",
-            resource_id=self.id,
-            resource_name=self.name,
-        )
-        await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
+        async with span(
+            "persistence.save_user_message",
+            attributes={
+                "thread_id": thread_id or "new",
+                "message_length": len(query),
+                "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
+            },
+        ):
+            await log(LogLevel.INFO, "Saving user message to storage")
+            thread_id = await save_user_message(
+                self.storage,
+                thread_id,
+                query,
+                resource_type="team",
+                resource_id=self.id,
+                resource_name=self.name,
+            )
+            await log(LogLevel.DEBUG, f"Message saved with thread_id: {thread_id}")
 
         yield StreamEvent(event_type="status", data={"message": "Generating code..."})
 
@@ -624,12 +633,33 @@ class Team:
 
             result.formatted_output = formatted_output
 
-            formatted_output, error = await self._run_output_middleware(formatted_output)
-            if error:
-                yield StreamEvent(event_type="error", data={"message": error})
-                return
+            async with span(
+                "middleware.output",
+                attributes={"input_length": len(formatted_output)},
+            ):
+                await log(LogLevel.INFO, "Running output middlewares")
+                formatted_output, error = await self._run_output_middleware(formatted_output)
+                if error:
+                    await log(
+                        LogLevel.ERROR,
+                        "Output middleware blocked response",
+                        {"error": error},
+                    )
+                    yield StreamEvent(event_type="error", data={"message": error})
+                    return
+                await log(LogLevel.INFO, "Output middleware passed")
 
-            await save_assistant_message(self.storage, thread_id, formatted_output)
+            async with span(
+                "persistence.save_assistant_message",
+                attributes={
+                    "thread_id": thread_id or "new",
+                    "message_length": len(formatted_output),
+                    "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
+                },
+            ):
+                await save_assistant_message(self.storage, thread_id, formatted_output)
+                await log(LogLevel.INFO, "Assistant message saved")
+
             yield StreamEvent(event_type="content", data={"text": formatted_output})
 
             if result.success:

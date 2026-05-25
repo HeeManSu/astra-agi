@@ -4,12 +4,17 @@ Log model for Astra Observability.
 A Log represents a structured event that occurred within a Span or Trace.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 import uuid
 
 from pydantic import BaseModel, Field
+
+
+def _now_utc() -> datetime:
+    """Return the current UTC time as a timezone-aware datetime."""
+    return datetime.now(timezone.utc)
 
 
 class LogLevel(str, Enum):
@@ -41,4 +46,4 @@ class Log(BaseModel):
     level: LogLevel
     message: str
     attributes: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_now_utc)

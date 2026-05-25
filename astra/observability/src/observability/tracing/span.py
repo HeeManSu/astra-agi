@@ -5,12 +5,17 @@ A Span represents a single operation within a Trace.
 Spans support parent-child relationships for hierarchical tracing.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 import uuid
 
 from pydantic import BaseModel, Field
+
+
+def _now_utc() -> datetime:
+    """Return the current UTC time as a timezone-aware datetime."""
+    return datetime.now(timezone.utc)
 
 
 class SpanKind(str, Enum):
@@ -54,7 +59,7 @@ class Span(BaseModel):
     name: str
     kind: SpanKind
     status: SpanStatus = SpanStatus.RUNNING
-    start_time: datetime = Field(default_factory=datetime.utcnow)
+    start_time: datetime = Field(default_factory=_now_utc)
     end_time: datetime | None = None
     duration_ms: int | None = None
     attributes: dict[str, Any] = Field(default_factory=dict)
@@ -63,7 +68,7 @@ class Span(BaseModel):
     def end(self, status: SpanStatus, error: str | None = None) -> None:
         """Mark the span as ended."""
         self.status = status
-        self.end_time = datetime.utcnow()
+        self.end_time = _now_utc()
         self.error = error
         # Calculate duration
         delta = self.end_time - self.start_time

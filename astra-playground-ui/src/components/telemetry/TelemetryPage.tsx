@@ -1,6 +1,7 @@
 import { useState } from "react";
 import TraceList from "./TraceList";
 import TraceDetail from "./TraceDetail";
+import MetricsDashboard from "./MetricsDashboard";
 import { Activity, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,12 +53,8 @@ export default function TelemetryPage() {
       )}
 
       {activeTab === "metrics" && (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          <div className="text-center">
-            <BarChart2 className="h-16 w-16 mx-auto mb-4 opacity-10" />
-            <p className="text-lg font-medium">Metrics Dashboard</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">Coming soon</p>
-          </div>
+        <div className="flex-1 overflow-hidden">
+          <MetricsDashboard />
         </div>
       )}
     </div>

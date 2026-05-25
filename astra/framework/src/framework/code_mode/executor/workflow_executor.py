@@ -30,6 +30,19 @@ from framework.code_mode.compiler.nodes import (
     TransformNode,
 )
 from framework.code_mode.compiler.workflow_builder import ExecutionWorkflow, WorkFlowConfig
+from observability import (
+    LogLevel,
+    SpanKind,
+    is_debug_mode,
+    log,
+    preview,
+    span,
+    update_span,
+)
+
+
+class _NodeExecutionError(Exception):
+    """Internal marker to surface node-execution failures through the span context."""
 
 
 @dataclass
@@ -422,33 +435,118 @@ async def run_workflow(workflow: ExecutionWorkflow, tools: dict[str, Callable]) 
         branch_result: bool | None = None
         loop_has_items: bool | None = None
 
+        # Per-node span. ActionNode -> TOOL span (it invokes a tool);
+        # everything else -> STEP span.
+        debug = is_debug_mode()
+        if isinstance(node, ActionNode):
+            node_span_name = f"node.tool.{node.tool}"
+            node_span_kind = SpanKind.TOOL
+            node_attrs: dict[str, Any] = {
+                "node_id": node.id,
+                "node_type": node.type.value,
+                "node_label": node.label,
+                "visit_index": visit_counts[cursor],
+                "tool_name": node.tool,
+                "tool_qualified_name": node.tool,
+                "input_keys": list(node.inputs.keys()),
+            }
+        else:
+            node_span_name = f"node.{node.type.value}.{node.id}"
+            node_span_kind = SpanKind.STEP
+            node_attrs = {
+                "node_id": node.id,
+                "node_type": node.type.value,
+                "node_label": node.label,
+                "visit_index": visit_counts[cursor],
+            }
+
         try:
-            if isinstance(node, ActionNode):
-                meta = await _execute_action(node, state, tools)
-                step.inputs = meta["inputs"]
-                step.outputs = meta["outputs"]
+            async with span(node_span_name, kind=node_span_kind, attributes=node_attrs):
+                try:
+                    if isinstance(node, ActionNode):
+                        meta = await _execute_action(node, state, tools)
+                        step.inputs = meta["inputs"]
+                        step.outputs = meta["outputs"]
+                        update_span(
+                            {
+                                "args_preview": preview(meta["inputs"]),
+                                "result_preview": preview(meta["outputs"]),
+                                "result_type": type(meta["outputs"]).__name__,
+                                "is_async": asyncio.iscoroutinefunction(
+                                    tools.get(node.tool)
+                                ),
+                                **(
+                                    {
+                                        "args_full": meta["inputs"],
+                                        "result_full": meta["outputs"],
+                                    }
+                                    if debug
+                                    else {}
+                                ),
+                            }
+                        )
 
-            elif isinstance(node, TransformNode):
-                meta = _execute_transform(node, state)
-                step.outputs = meta
+                    elif isinstance(node, TransformNode):
+                        meta = _execute_transform(node, state)
+                        step.outputs = meta
+                        update_span(
+                            {
+                                "outputs_preview": preview(meta),
+                                **({"outputs_full": meta} if debug else {}),
+                            }
+                        )
 
-            elif isinstance(node, BranchNode):
-                branch_result = _execute_branch(node, state)
-                step.outputs = {"condition": node.condition, "result": branch_result}
+                    elif isinstance(node, BranchNode):
+                        branch_result = _execute_branch(node, state)
+                        step.outputs = {
+                            "condition": node.condition,
+                            "result": branch_result,
+                        }
+                        update_span(
+                            {
+                                "condition": node.condition,
+                                "branch_result": branch_result,
+                            }
+                        )
 
-            elif isinstance(node, RespondNode):
-                response = _execute_respond(node, state)
-                step.outputs = {"response": response}
+                    elif isinstance(node, RespondNode):
+                        response = _execute_respond(node, state)
+                        step.outputs = {"response": response}
+                        update_span(
+                            {
+                                "response_preview": preview(response),
+                                **({"response_full": response} if debug else {}),
+                            }
+                        )
 
-            elif isinstance(node, LoopNode):
-                loop_has_items = _execute_loop(node, state, loop_state)
-                step.outputs = {"has_items": loop_has_items, "current": state.get(node.as_var)}
+                    elif isinstance(node, LoopNode):
+                        loop_has_items = _execute_loop(node, state, loop_state)
+                        step.outputs = {
+                            "has_items": loop_has_items,
+                            "current": state.get(node.as_var),
+                        }
+                        update_span(
+                            {
+                                "has_items": loop_has_items,
+                                "as_var": node.as_var,
+                                "current_preview": preview(state.get(node.as_var)),
+                            }
+                        )
 
-        except Exception as exc:
-            step.status = "error"
-            step.error = f"{type(exc).__name__}: {exc}"
-            step.duration_ms = (time.monotonic() - t_node) * 1000
-            steps.append(step)
+                except Exception as exc:
+                    step.status = "error"
+                    step.error = f"{type(exc).__name__}: {exc}"
+                    step.duration_ms = (time.monotonic() - t_node) * 1000
+                    steps.append(step)
+                    await log(LogLevel.ERROR, step.error, {"node_id": node.id})
+                    update_span({"error": step.error})
+                    raise _NodeExecutionError(step.error) from exc
+
+                # Record the step
+                step.duration_ms = (time.monotonic() - t_node) * 1000
+                update_span({"duration_ms": step.duration_ms, "status": step.status})
+                steps.append(step)
+        except _NodeExecutionError:
             return ExecutionResult(
                 success=False,
                 state=state,
@@ -456,10 +554,6 @@ async def run_workflow(workflow: ExecutionWorkflow, tools: dict[str, Callable]) 
                 error=step.error,
                 duration_ms=(time.monotonic() - t_start) * 1000,
             )
-
-        # Record the step
-        step.duration_ms = (time.monotonic() - t_node) * 1000
-        steps.append(step)
 
         # Stop on RespondNode — we have our answer
         if isinstance(node, RespondNode):

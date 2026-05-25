@@ -4,6 +4,8 @@ Storage persistence utilities.
 Simple utility functions for persisting messages during agent/team execution.
 """
 
+from observability import LogLevel, log, span, update_span
+
 
 async def save_user_message(
     storage,
@@ -33,35 +35,59 @@ async def save_user_message(
     if not storage:
         return thread_id or ""
 
-    # If thread_id provided, check if it exists
-    if thread_id:
-        thread = await storage.get_thread(thread_id)
-        if thread is None:
-            # Thread doesn't exist, create it with the provided ID
+    async with span(
+        "storage.save_user_message",
+        attributes={
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "message_length": len(query),
+            "thread_provided": thread_id is not None,
+        },
+    ):
+        # If thread_id provided, check if it exists
+        if thread_id:
+            async with span("storage.get_thread", attributes={"thread_id": thread_id}):
+                thread = await storage.get_thread(thread_id)
+            if thread is None:
+                # Thread doesn't exist, create it with the provided ID
+                title = query[:50] + ("..." if len(query) > 50 else "")
+                async with span(
+                    "storage.create_thread",
+                    attributes={"thread_id": thread_id, "title_length": len(title)},
+                ):
+                    thread = await storage.create_thread(
+                        thread_id=thread_id,
+                        resource_type=resource_type,
+                        resource_id=resource_id,
+                        resource_name=resource_name,
+                        title=title,
+                    )
+        else:
+            # No thread_id provided, create new thread (store will generate ID)
             title = query[:50] + ("..." if len(query) > 50 else "")
-            thread = await storage.create_thread(
-                thread_id=thread_id,
-                resource_type=resource_type,
-                resource_id=resource_id,
-                resource_name=resource_name,
-                title=title,
-            )
-    else:
-        # No thread_id provided, create new thread (store will generate ID)
-        title = query[:50] + ("..." if len(query) > 50 else "")
-        thread = await storage.create_thread(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            resource_name=resource_name,
-            title=title,
-        )
-        thread_id = thread.id
+            async with span(
+                "storage.create_thread",
+                attributes={"title_length": len(title)},
+            ):
+                thread = await storage.create_thread(
+                    resource_type=resource_type,
+                    resource_id=resource_id,
+                    resource_name=resource_name,
+                    title=title,
+                )
+            thread_id = thread.id
 
-    # At this point thread_id should be set (either passed in or from created thread)
-    assert thread_id is not None, "thread_id should be set after thread creation"
+        assert thread_id is not None, "thread_id should be set after thread creation"
 
-    await storage.add_message(thread_id, "user", query)
-    return thread_id
+        async with span(
+            "storage.add_message",
+            attributes={"thread_id": thread_id, "role": "user"},
+        ):
+            await storage.add_message(thread_id, "user", query)
+
+        update_span({"thread_id": thread_id})
+        await log(LogLevel.DEBUG, "User message persisted", {"thread_id": thread_id})
+        return thread_id
 
 
 async def save_assistant_message(
@@ -82,11 +108,25 @@ async def save_assistant_message(
         metadata: Optional additional metadata
     """
     if storage and thread_id:
-        await storage.add_message(
-            thread_id,
-            "assistant",
-            response,
-            tool_calls=tool_calls,
-            metadata=metadata,
-        )
-        await storage.queue.flush()
+        async with span(
+            "storage.save_assistant_message",
+            attributes={
+                "thread_id": thread_id,
+                "message_length": len(response or ""),
+                "tool_call_count": len(tool_calls or []),
+            },
+        ):
+            async with span(
+                "storage.add_message",
+                attributes={"thread_id": thread_id, "role": "assistant"},
+            ):
+                await storage.add_message(
+                    thread_id,
+                    "assistant",
+                    response,
+                    tool_calls=tool_calls,
+                    metadata=metadata,
+                )
+            async with span("storage.queue.flush"):
+                await storage.queue.flush()
+            await log(LogLevel.DEBUG, "Assistant message persisted", {"thread_id": thread_id})

@@ -29,9 +29,34 @@ from framework.models.aws.bedrock_types import (
     BEDROCK_SUPPORTED_MODELS,
 )
 from framework.models.base import Model, ModelResponse
+from observability import (
+    LogLevel,
+    SpanKind,
+    StreamAccumulator,
+    is_debug_mode,
+    log,
+    preview,
+    span,
+    update_span,
+)
 
 
 load_dotenv()
+
+
+def _messages_to_text(messages: list[dict[str, Any]]) -> str:
+    """Flatten chat messages to a single string for span previews."""
+    parts: list[str] = []
+    for m in messages or []:
+        role = m.get("role", "?") if isinstance(m, dict) else "?"
+        content = m.get("content", "") if isinstance(m, dict) else str(m)
+        if not isinstance(content, str):
+            try:
+                content = json.dumps(content, default=str)
+            except Exception:
+                content = str(content)
+        parts.append(f"[{role}] {content}")
+    return "\n".join(parts)
 
 # aioboto3 for async SigV4 signing
 try:
@@ -678,120 +703,149 @@ class Bedrock(Model):
         """
         start_time = time.perf_counter()
 
-        # Step 1: Validate model_id (optional - allow custom model IDs)
-        # Bedrock supports custom model IDs, so we just log a warning
-        if self.model_id not in self.AVAILABLE_MODELS:
-            # Don't fail - custom model IDs are valid in Bedrock
-            pass
-
-        # Step 2: Prepare messages and tools
-        # This comprehensive method handles all message conversion and tool formatting
-        bedrock_messages, system_messages, tool_config = await self._prepare_messages_and_tools(
-            messages, tools, kwargs.get("tool_choice")
-        )
-
-        # Step 3: Build inference configuration
-        # Bedrock inference config includes: maxTokens, temperature, topP, topK, stopSequences
-        # Only include parameters that are not None to avoid API errors
-        inference_config: dict[str, Any] = {}
-
-        # Use request-level parameters or fall back to instance-level
-        max_tokens = max_tokens or self.max_tokens
-        if max_tokens:
-            inference_config["maxTokens"] = max_tokens
-
-        temp = kwargs.get("temperature", temperature) or self.temperature
-        if temp is not None:
-            inference_config["temperature"] = float(temp)
-
-        top_p = kwargs.get("top_p") or self.top_p
-        if top_p is not None:
-            inference_config["topP"] = float(top_p)
-
-        top_k = kwargs.get("top_k") or self.top_k
-        if top_k is not None:
-            inference_config["topK"] = int(top_k)
-
-        stop_sequences = kwargs.get("stop_sequences") or self.stop_sequences
-        if stop_sequences:
-            inference_config["stopSequences"] = stop_sequences
-
-        # Step 4: Build request body
-        # Bedrock Converse API expects:
-        # {
-        #   "system": [...],  # Optional system messages
-        #   "messages": [...],  # Required conversation messages
-        #   "toolConfig": {...},  # Optional tool configuration
-        #   "inferenceConfig": {...},  # Optional inference parameters
-        #   "additionalModelRequestFields": {...}  # Optional model-specific fields
-        # }
-        request_body: dict[str, Any] = {
-            "messages": bedrock_messages,
+        debug = is_debug_mode()
+        prompt_repr = _messages_to_text(messages)
+        invoke_attrs: dict[str, Any] = {
+            "provider": "bedrock",
+            "model": self.model_id,
+            "region": self.aws_region,
+            "operation": "invoke",
+            "message_count": len(messages),
+            "tool_count": len(tools) if tools else 0,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "prompt_preview": preview(prompt_repr),
         }
+        if debug:
+            invoke_attrs["prompt_full"] = prompt_repr
 
-        if system_messages:
-            request_body["system"] = system_messages
+        async with span(
+            f"generation.bedrock.{self.model_id}.invoke",
+            kind=SpanKind.GENERATION,
+            attributes=invoke_attrs,
+        ):
+            # Step 1: Validate model_id (optional - allow custom model IDs)
+            # Bedrock supports custom model IDs, so we just log a warning
+            if self.model_id not in self.AVAILABLE_MODELS:
+                # Don't fail - custom model IDs are valid in Bedrock
+                pass
 
-        if tool_config:
-            request_body["toolConfig"] = tool_config
-
-        if inference_config:
-            request_body["inferenceConfig"] = inference_config
-
-        # Add any additional model request fields from kwargs
-        additional_fields = kwargs.get("additionalModelRequestFields")
-        if additional_fields:
-            request_body["additionalModelRequestFields"] = additional_fields
-
-        # Step 5: Build request URL and headers
-        base_url = self._get_base_url()
-        # URL-encode model ID (Bedrock model IDs can contain special characters like colons)
-        model_id_encoded = quote(self.model_id, safe="")
-        url = f"{base_url}/model/{model_id_encoded}/converse"
-
-        headers: dict[str, str] = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-        # Step 6: Sign request (SigV4 or Bearer token)
-        # This integrated method handles all authentication
-        body_json = json.dumps(request_body)
-        signed_headers = await self._sign_request("POST", url, headers, body_json)
-
-        # Step 7: Make HTTP POST request
-        client = self._get_client()
-        try:
-            response = await client.post(
-                url,
-                headers=signed_headers,
-                content=body_json,
+            # Step 2: Prepare messages and tools
+            # This comprehensive method handles all message conversion and tool formatting
+            bedrock_messages, system_messages, tool_config = await self._prepare_messages_and_tools(
+                messages, tools, kwargs.get("tool_choice")
             )
-            print(response.json())
-            response.raise_for_status()
-            response_data = response.json()
-        except httpx.HTTPStatusError as e:
-            # Parse error response
+
+            # Step 3: Build inference configuration
+            inference_config: dict[str, Any] = {}
+
+            # Use request-level parameters or fall back to instance-level
+            max_tokens = max_tokens or self.max_tokens
+            if max_tokens:
+                inference_config["maxTokens"] = max_tokens
+
+            temp = kwargs.get("temperature", temperature) or self.temperature
+            if temp is not None:
+                inference_config["temperature"] = float(temp)
+
+            top_p = kwargs.get("top_p") or self.top_p
+            if top_p is not None:
+                inference_config["topP"] = float(top_p)
+
+            top_k = kwargs.get("top_k") or self.top_k
+            if top_k is not None:
+                inference_config["topK"] = int(top_k)
+
+            stop_sequences = kwargs.get("stop_sequences") or self.stop_sequences
+            if stop_sequences:
+                inference_config["stopSequences"] = stop_sequences
+
+            # Step 4: Build request body
+            request_body: dict[str, Any] = {
+                "messages": bedrock_messages,
+            }
+
+            if system_messages:
+                request_body["system"] = system_messages
+
+            if tool_config:
+                request_body["toolConfig"] = tool_config
+
+            if inference_config:
+                request_body["inferenceConfig"] = inference_config
+
+            # Add any additional model request fields from kwargs
+            additional_fields = kwargs.get("additionalModelRequestFields")
+            if additional_fields:
+                request_body["additionalModelRequestFields"] = additional_fields
+
+            # Step 5: Build request URL and headers
+            base_url = self._get_base_url()
+            model_id_encoded = quote(self.model_id, safe="")
+            url = f"{base_url}/model/{model_id_encoded}/converse"
+
+            headers: dict[str, str] = {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+
+            # Step 6: Sign request
+            body_json = json.dumps(request_body)
+            signed_headers = await self._sign_request("POST", url, headers, body_json)
+
+            # Step 7: Make HTTP POST request
+            client = self._get_client()
             try:
-                error_data = e.response.json()
-                raise parse_bedrock_error(error_data) from e
-            except (ValueError, json.JSONDecodeError):
-                raise BedrockAPIError(
-                    f"HTTP {e.response.status_code}: {e.response.text}",
-                    status_code=e.response.status_code,
-                ) from e
-        except httpx.RequestError as e:
-            raise BedrockAPIError(f"Request failed: {e!s}") from e
+                response = await client.post(
+                    url,
+                    headers=signed_headers,
+                    content=body_json,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+            except httpx.HTTPStatusError as e:
+                try:
+                    error_data = e.response.json()
+                    err = parse_bedrock_error(error_data)
+                    await log(LogLevel.ERROR, f"Bedrock invoke failed: {err}")
+                    raise err from e
+                except (ValueError, json.JSONDecodeError):
+                    await log(
+                        LogLevel.ERROR,
+                        f"Bedrock HTTP {e.response.status_code}",
+                        {"text": e.response.text[:200]},
+                    )
+                    raise BedrockAPIError(
+                        f"HTTP {e.response.status_code}: {e.response.text}",
+                        status_code=e.response.status_code,
+                    ) from e
+            except httpx.RequestError as e:
+                await log(LogLevel.ERROR, f"Bedrock request error: {e}")
+                raise BedrockAPIError(f"Request failed: {e!s}") from e
 
-        # Step 8: Parse response
-        # This comprehensive parser extracts all response data
-        model_response = self._parse_response(response_data)
+            # Step 8: Parse response
+            model_response = self._parse_response(response_data)
 
-        # Add latency to metadata
-        latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        model_response.metadata["latency_ms"] = latency_ms
+            latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            model_response.metadata["latency_ms"] = latency_ms
 
-        return model_response
+            usage = model_response.usage or {}
+            finalize_attrs: dict[str, Any] = {
+                "latency_ms": latency_ms,
+                "has_tool_calls": bool(model_response.tool_calls),
+                "tool_call_count": len(model_response.tool_calls or []),
+                "response_preview": preview(model_response.content or ""),
+            }
+            for key in ("input_tokens", "output_tokens", "thoughts_tokens", "total_tokens"):
+                if usage.get(key) is not None:
+                    finalize_attrs[key] = usage[key]
+            if debug:
+                finalize_attrs["response_full"] = model_response.content or ""
+                if model_response.tool_calls:
+                    finalize_attrs["tool_calls_full"] = model_response.tool_calls
+            update_span(finalize_attrs)
+
+            return model_response
 
     async def stream(
         self,
@@ -838,245 +892,306 @@ class Bedrock(Model):
         """
         start_time = time.perf_counter()
 
-        # Steps 1-5: Same preparation as invoke()
-        # Prepare messages and tools
-        bedrock_messages, system_messages, tool_config = await self._prepare_messages_and_tools(
-            messages, tools, kwargs.get("tool_choice")
-        )
-
-        # Build inference config
-        inference_config: dict[str, Any] = {}
-        max_tokens = max_tokens or self.max_tokens
-        if max_tokens:
-            inference_config["maxTokens"] = max_tokens
-
-        temp = kwargs.get("temperature", temperature) or self.temperature
-        if temp is not None:
-            inference_config["temperature"] = float(temp)
-
-        top_p = kwargs.get("top_p") or self.top_p
-        if top_p is not None:
-            inference_config["topP"] = float(top_p)
-
-        top_k = kwargs.get("top_k") or self.top_k
-        if top_k is not None:
-            inference_config["topK"] = int(top_k)
-
-        stop_sequences = kwargs.get("stop_sequences") or self.stop_sequences
-        if stop_sequences:
-            inference_config["stopSequences"] = stop_sequences
-
-        # Build request body
-        request_body: dict[str, Any] = {"messages": bedrock_messages}
-        if system_messages:
-            request_body["system"] = system_messages
-        if tool_config:
-            request_body["toolConfig"] = tool_config
-        if inference_config:
-            request_body["inferenceConfig"] = inference_config
-
-        additional_fields = kwargs.get("additionalModelRequestFields")
-        if additional_fields:
-            request_body["additionalModelRequestFields"] = additional_fields
-
-        # Build URL and headers
-        base_url = self._get_base_url()
-        # URL-encode model ID (Bedrock model IDs can contain special characters like colons)
-        model_id_encoded = quote(self.model_id, safe="")
-        url = f"{base_url}/model/{model_id_encoded}/converse-stream"
-
-        headers: dict[str, str] = {
-            "Content-Type": "application/json",
-            "Accept": "application/x-ndjson",  # Bedrock uses newline-delimited JSON for streaming
+        debug = is_debug_mode()
+        prompt_repr = _messages_to_text(messages)
+        stream_attrs: dict[str, Any] = {
+            "provider": "bedrock",
+            "model": self.model_id,
+            "region": self.aws_region,
+            "operation": "stream",
+            "message_count": len(messages),
+            "tool_count": len(tools) if tools else 0,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "prompt_preview": preview(prompt_repr),
         }
+        if debug:
+            stream_attrs["prompt_full"] = prompt_repr
 
-        # Sign request
-        body_json = json.dumps(request_body)
-        signed_headers = await self._sign_request("POST", url, headers, body_json)
+        async with span(
+            f"generation.bedrock.{self.model_id}.stream",
+            kind=SpanKind.GENERATION,
+            attributes=stream_attrs,
+        ):
+            acc = StreamAccumulator()
+            collected_text = ""
+            collected_tool_calls: list[dict[str, Any]] = []
 
-        # Step 6: Make streaming request
-        # Bedrock uses Server-Sent Events (SSE) format with newline-delimited JSON
-        client = self._get_client()
+            # Steps 1-5: Same preparation as invoke()
+            bedrock_messages, system_messages, tool_config = await self._prepare_messages_and_tools(
+                messages, tools, kwargs.get("tool_choice")
+            )
 
-        # Track state across chunks
-        current_tool: dict[str, Any] = {}  # Track tool being built
-        usage: dict[str, Any] | None = None
-        finish_reason: str | None = None
-        content_blocks: dict[int, dict[str, Any]] = {}  # Track content blocks by index
+            # Build inference config
+            inference_config: dict[str, Any] = {}
+            max_tokens = max_tokens or self.max_tokens
+            if max_tokens:
+                inference_config["maxTokens"] = max_tokens
 
-        try:
-            async with client.stream(
-                "POST",
-                url,
-                headers=signed_headers,
-                content=body_json,
-            ) as response:
-                response.raise_for_status()
+            temp = kwargs.get("temperature", temperature) or self.temperature
+            if temp is not None:
+                inference_config["temperature"] = float(temp)
 
-                # Step 7-9: Parse chunks incrementally
-                # Bedrock streams newline-delimited JSON chunks
-                # Each chunk can contain multiple event types
-                async for line in response.aiter_lines():
-                    if not line.strip():
-                        continue
+            top_p = kwargs.get("top_p") or self.top_p
+            if top_p is not None:
+                inference_config["topP"] = float(top_p)
 
-                    try:
-                        chunk = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
+            top_k = kwargs.get("top_k") or self.top_k
+            if top_k is not None:
+                inference_config["topK"] = int(top_k)
 
-                    # Handle contentBlockStart event
-                    # This indicates the start of a new content block (text or tool)
-                    if "contentBlockStart" in chunk:
-                        start_data = chunk["contentBlockStart"]
-                        block_index = start_data.get("contentBlockIndex", 0)
-                        start_info = start_data.get("start", {})
+            stop_sequences = kwargs.get("stop_sequences") or self.stop_sequences
+            if stop_sequences:
+                inference_config["stopSequences"] = stop_sequences
 
-                        # Check if it's a tool use start
-                        if "toolUse" in start_info:
-                            tool_use = start_info["toolUse"]
-                            current_tool = {
-                                "id": tool_use.get("toolUseId", ""),
-                                "name": tool_use.get("name", ""),
-                                "arguments": "",
-                            }
-                            content_blocks[block_index] = {"type": "tool", "tool": current_tool}
-                        else:
-                            # Text block start
-                            content_blocks[block_index] = {"type": "text", "text": ""}
-                            yield ModelResponse(
-                                content="",
-                                metadata={
-                                    "is_stream": True,
-                                    "block_index": block_index,
-                                    "event": "text-start",
-                                },
-                            )
+            # Build request body
+            request_body: dict[str, Any] = {"messages": bedrock_messages}
+            if system_messages:
+                request_body["system"] = system_messages
+            if tool_config:
+                request_body["toolConfig"] = tool_config
+            if inference_config:
+                request_body["inferenceConfig"] = inference_config
 
-                    # Handle contentBlockDelta event
-                    # This provides incremental content (text delta, tool input delta, reasoning)
-                    elif "contentBlockDelta" in chunk:
-                        delta_data = chunk["contentBlockDelta"]
-                        block_index = delta_data.get("contentBlockIndex", 0)
-                        delta = delta_data.get("delta", {})
+            additional_fields = kwargs.get("additionalModelRequestFields")
+            if additional_fields:
+                request_body["additionalModelRequestFields"] = additional_fields
 
-                        # Text delta
-                        if "text" in delta:
-                            text_delta = delta["text"]
-                            if block_index in content_blocks:
-                                content_blocks[block_index]["text"] = (
-                                    content_blocks[block_index].get("text", "") + text_delta
-                                )
-                            yield ModelResponse(
-                                content=text_delta,
-                                metadata={
-                                    "is_stream": True,
-                                    "block_index": block_index,
-                                    "event": "text-delta",
-                                },
-                            )
+            # Build URL and headers
+            base_url = self._get_base_url()
+            model_id_encoded = quote(self.model_id, safe="")
+            url = f"{base_url}/model/{model_id_encoded}/converse-stream"
 
-                        # Tool use delta (accumulating tool input)
-                        elif "toolUse" in delta:
-                            tool_delta = delta["toolUse"]
-                            tool_input_delta = tool_delta.get("input", "")
-                            # Ensure tool_input_delta is a string for accumulation
-                            if not isinstance(tool_input_delta, str):
-                                tool_input_delta = str(tool_input_delta) if tool_input_delta else ""
-                            if current_tool:
-                                current_tool["arguments"] += tool_input_delta
+            headers: dict[str, str] = {
+                "Content-Type": "application/json",
+                "Accept": "application/x-ndjson",
+            }
 
-                        # Reasoning content delta
-                        elif "reasoningContent" in delta:
-                            reasoning = delta["reasoningContent"]
-                            reasoning_text = reasoning.get("text", "")
-                            yield ModelResponse(
-                                content=reasoning_text,
-                                metadata={"is_stream": True, "event": "reasoning-delta"},
-                            )
+            body_json = json.dumps(request_body)
+            signed_headers = await self._sign_request("POST", url, headers, body_json)
 
-                    # Handle contentBlockStop event
-                    # This indicates the end of a content block
-                    elif "contentBlockStop" in chunk:
-                        stop_data = chunk["contentBlockStop"]
-                        block_index = stop_data.get("contentBlockIndex", 0)
+            client = self._get_client()
 
-                        if block_index in content_blocks:
-                            block = content_blocks[block_index]
-                            if block.get("type") == "tool" and current_tool:
-                                # Tool call complete
-                                try:
-                                    tool_args = (
-                                        json.loads(current_tool["arguments"])
-                                        if current_tool["arguments"]
-                                        else {}
-                                    )
-                                except json.JSONDecodeError:
-                                    tool_args = {}
+            current_tool: dict[str, Any] = {}
+            usage: dict[str, Any] | None = None
+            finish_reason: str | None = None
+            content_blocks: dict[int, dict[str, Any]] = {}
 
-                                yield ModelResponse(
-                                    content="",
-                                    tool_calls=[
-                                        {
-                                            "name": current_tool["name"],
-                                            "arguments": tool_args,  # Return as dict, not JSON string
-                                        }
-                                    ],
-                                    metadata={"is_stream": True, "event": "tool-call"},
-                                )
-                                current_tool = {}
+            try:
+                async with client.stream(
+                    "POST",
+                    url,
+                    headers=signed_headers,
+                    content=body_json,
+                ) as response:
+                    response.raise_for_status()
+
+                    async for line in response.aiter_lines():
+                        if not line.strip():
+                            continue
+
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+                        if "contentBlockStart" in chunk:
+                            start_data = chunk["contentBlockStart"]
+                            block_index = start_data.get("contentBlockIndex", 0)
+                            start_info = start_data.get("start", {})
+
+                            if "toolUse" in start_info:
+                                tool_use = start_info["toolUse"]
+                                current_tool = {
+                                    "id": tool_use.get("toolUseId", ""),
+                                    "name": tool_use.get("name", ""),
+                                    "arguments": "",
+                                }
+                                content_blocks[block_index] = {
+                                    "type": "tool",
+                                    "tool": current_tool,
+                                }
                             else:
-                                # Text block end
-                                yield ModelResponse(
+                                content_blocks[block_index] = {"type": "text", "text": ""}
+                                out = ModelResponse(
                                     content="",
                                     metadata={
                                         "is_stream": True,
                                         "block_index": block_index,
-                                        "event": "text-end",
+                                        "event": "text-start",
                                     },
                                 )
+                                acc.observe_chunk(out)
+                                yield out
 
-                            del content_blocks[block_index]
+                        elif "contentBlockDelta" in chunk:
+                            delta_data = chunk["contentBlockDelta"]
+                            block_index = delta_data.get("contentBlockIndex", 0)
+                            delta = delta_data.get("delta", {})
 
-                    # Handle metadata event (usage information)
-                    elif "metadata" in chunk:
-                        metadata_data = chunk["metadata"]
-                        if "usage" in metadata_data:
-                            usage_data = metadata_data["usage"]
-                            usage = {
-                                "input_tokens": usage_data.get("inputTokens", 0),
-                                "output_tokens": usage_data.get("outputTokens", 0),
-                                "total_tokens": usage_data.get("inputTokens", 0)
-                                + usage_data.get("outputTokens", 0),
-                            }
+                            if "text" in delta:
+                                text_delta = delta["text"]
+                                if block_index in content_blocks:
+                                    content_blocks[block_index]["text"] = (
+                                        content_blocks[block_index].get("text", "") + text_delta
+                                    )
+                                out = ModelResponse(
+                                    content=text_delta,
+                                    metadata={
+                                        "is_stream": True,
+                                        "block_index": block_index,
+                                        "event": "text-delta",
+                                    },
+                                )
+                                acc.observe_chunk(out)
+                                collected_text += text_delta
+                                yield out
 
-                    # Handle messageStop event (final message with finish reason)
-                    elif "messageStop" in chunk:
-                        stop_data = chunk["messageStop"]
-                        finish_reason = stop_data.get("stopReason", "stop")
+                            elif "toolUse" in delta:
+                                tool_delta = delta["toolUse"]
+                                tool_input_delta = tool_delta.get("input", "")
+                                if not isinstance(tool_input_delta, str):
+                                    tool_input_delta = (
+                                        str(tool_input_delta) if tool_input_delta else ""
+                                    )
+                                if current_tool:
+                                    current_tool["arguments"] += tool_input_delta
+                                # Count tool-input delta as a tool-call chunk for accumulator
+                                acc.observe_chunk(
+                                    ModelResponse(
+                                        content="",
+                                        tool_calls=[{"name": current_tool.get("name", "")}],
+                                        metadata={"event": "tool-input-delta"},
+                                    )
+                                )
 
-        except httpx.HTTPStatusError as e:
-            try:
-                error_data = e.response.json()
-                raise parse_bedrock_error(error_data) from e
-            except (ValueError, json.JSONDecodeError):
-                raise BedrockAPIError(
-                    f"HTTP {e.response.status_code}: {e.response.text}",
-                    status_code=e.response.status_code,
-                ) from e
-        except httpx.RequestError as e:
-            raise BedrockAPIError(f"Streaming request failed: {e!s}") from e
+                            elif "reasoningContent" in delta:
+                                reasoning = delta["reasoningContent"]
+                                reasoning_text = reasoning.get("text", "")
+                                out = ModelResponse(
+                                    content=reasoning_text,
+                                    metadata={
+                                        "is_stream": True,
+                                        "event": "reasoning-delta",
+                                        "reasoning": True,
+                                    },
+                                )
+                                acc.observe_chunk(out)
+                                yield out
 
-        # Step 10: Yield final chunk with usage and finish reason
-        latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
-        yield ModelResponse(
-            content="",
-            usage=usage or {},
-            metadata={
-                "provider": "bedrock",
-                "model_id": self.model_id,
-                "finish_reason": finish_reason or "stop",
-                "latency_ms": latency_ms,
-                "final": True,
-            },
-        )
+                        elif "contentBlockStop" in chunk:
+                            stop_data = chunk["contentBlockStop"]
+                            block_index = stop_data.get("contentBlockIndex", 0)
+
+                            if block_index in content_blocks:
+                                block = content_blocks[block_index]
+                                if block.get("type") == "tool" and current_tool:
+                                    try:
+                                        tool_args = (
+                                            json.loads(current_tool["arguments"])
+                                            if current_tool["arguments"]
+                                            else {}
+                                        )
+                                    except json.JSONDecodeError:
+                                        tool_args = {}
+
+                                    tool_call = {
+                                        "name": current_tool["name"],
+                                        "arguments": tool_args,
+                                    }
+                                    collected_tool_calls.append(tool_call)
+                                    out = ModelResponse(
+                                        content="",
+                                        tool_calls=[tool_call],
+                                        metadata={"is_stream": True, "event": "tool-call"},
+                                    )
+                                    acc.observe_chunk(out)
+                                    yield out
+                                    current_tool = {}
+                                else:
+                                    out = ModelResponse(
+                                        content="",
+                                        metadata={
+                                            "is_stream": True,
+                                            "block_index": block_index,
+                                            "event": "text-end",
+                                        },
+                                    )
+                                    acc.observe_chunk(out)
+                                    yield out
+
+                                del content_blocks[block_index]
+
+                        elif "metadata" in chunk:
+                            metadata_data = chunk["metadata"]
+                            if "usage" in metadata_data:
+                                usage_data = metadata_data["usage"]
+                                usage = {
+                                    "input_tokens": usage_data.get("inputTokens", 0),
+                                    "output_tokens": usage_data.get("outputTokens", 0),
+                                    "total_tokens": usage_data.get("inputTokens", 0)
+                                    + usage_data.get("outputTokens", 0),
+                                }
+
+                        elif "messageStop" in chunk:
+                            stop_data = chunk["messageStop"]
+                            finish_reason = stop_data.get("stopReason", "stop")
+
+            except httpx.HTTPStatusError as e:
+                try:
+                    error_data = e.response.json()
+                    err = parse_bedrock_error(error_data)
+                    await log(LogLevel.ERROR, f"Bedrock stream failed: {err}")
+                    raise err from e
+                except (ValueError, json.JSONDecodeError):
+                    await log(
+                        LogLevel.ERROR,
+                        f"Bedrock stream HTTP {e.response.status_code}",
+                    )
+                    raise BedrockAPIError(
+                        f"HTTP {e.response.status_code}: {e.response.text}",
+                        status_code=e.response.status_code,
+                    ) from e
+            except httpx.RequestError as e:
+                await log(LogLevel.ERROR, f"Bedrock stream request error: {e}")
+                raise BedrockAPIError(f"Streaming request failed: {e!s}") from e
+
+            # Step 10: Finalize and yield closing chunk
+            latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            finalize_attrs = acc.finalize(
+                usage=usage,
+                model=self.model_id,
+                provider="bedrock",
+                include_raw=debug,
+            )
+            finalize_attrs["latency_ms"] = latency_ms
+            finalize_attrs["finish_reason"] = finish_reason or "stop"
+            finalize_attrs["response_preview"] = preview(collected_text)
+            finalize_attrs["tool_call_count"] = len(collected_tool_calls)
+            if debug:
+                finalize_attrs["response_full"] = collected_text
+                if collected_tool_calls:
+                    finalize_attrs["tool_calls_full"] = collected_tool_calls
+            update_span(finalize_attrs)
+            await log(
+                LogLevel.INFO,
+                "Bedrock stream completed",
+                {
+                    "chunks": acc.chunk_count,
+                    "ttft_ms": finalize_attrs.get("ttft_ms"),
+                    "total_tokens": finalize_attrs.get("total_tokens"),
+                    "finish_reason": finish_reason,
+                },
+            )
+
+            yield ModelResponse(
+                content="",
+                usage=usage or {},
+                metadata={
+                    "provider": "bedrock",
+                    "model_id": self.model_id,
+                    "finish_reason": finish_reason or "stop",
+                    "latency_ms": latency_ms,
+                    "final": True,
+                },
+            )

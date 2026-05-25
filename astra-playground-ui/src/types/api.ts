@@ -175,6 +175,50 @@ export interface LogListResponse {
   count: number;
 }
 
+export interface TopItem {
+  name: string;
+  count: number;
+  extra: Record<string, unknown>;
+}
+
+export interface MetricsResponse {
+  window_start: string;
+  window_end: string;
+  trace_sample_size: number;
+  truncated: boolean;
+
+  request_count: number;
+  success_count: number;
+  error_count: number;
+  running_count: number;
+  success_rate: number;
+  error_rate: number;
+
+  latency_p50_ms: number | null;
+  latency_p95_ms: number | null;
+  latency_p99_ms: number | null;
+  latency_avg_ms: number | null;
+
+  total_tokens: number;
+  input_tokens: number;
+  output_tokens: number;
+  thoughts_tokens: number;
+  avg_tokens_per_request: number;
+
+  avg_ttft_ms: number | null;
+  generation_p50_ms: number | null;
+  generation_p95_ms: number | null;
+
+  top_models: TopItem[];
+  top_tools: TopItem[];
+  top_agents: TopItem[];
+  top_teams: TopItem[];
+
+  tool_call_count: number;
+  tool_error_count: number;
+  tool_error_rate: number;
+}
+
 // -- Health -------------------------------------------------------------
 
 export interface HealthResponse {

@@ -16,9 +16,10 @@ import {
   BarChart3,
   Copy,
   Check,
+  Bug,
 } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, parseTimestamp } from "@/lib/utils";
 import WaterfallTimeline from "./WaterfallTimeline";
 import SpanTree from "./SpanTree";
 import SpanDetailDrawer from "./SpanDetailDrawer";
@@ -71,6 +72,7 @@ export default function TraceDetail() {
   const [activeTab, setActiveTab] = useState<DetailTab>("timeline");
   const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleCopyTrace = () => {
     const traceData = {
@@ -106,11 +108,11 @@ export default function TraceDetail() {
     );
   }
 
-  const traceStart = new Date(selectedTrace.start_time).getTime();
+  const traceStart = parseTimestamp(selectedTrace.start_time).getTime();
   const actualDuration = Math.max(
     selectedTrace.duration_ms ?? 0,
     ...selectedTraceSpans.map((s) => {
-      const spanStart = new Date(s.start_time).getTime();
+      const spanStart = parseTimestamp(s.start_time).getTime();
       return spanStart - traceStart + (s.duration_ms ?? 0);
     }),
     1,
@@ -146,7 +148,7 @@ export default function TraceDetail() {
                   <Calendar className="h-4 w-4" />
                   <span>
                     {format(
-                      new Date(selectedTrace.start_time),
+                      parseTimestamp(selectedTrace.start_time),
                       "MMM d, HH:mm:ss",
                     )}
                   </span>
@@ -236,6 +238,23 @@ export default function TraceDetail() {
 
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setShowDebug((v) => !v)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border",
+                  showDebug
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                    : "hover:bg-muted text-muted-foreground border-border",
+                )}
+                title={
+                  showDebug
+                    ? "Hide debug logs and full payloads"
+                    : "Show debug logs and full payloads (prompt_full, response_full, args_full, etc.)"
+                }
+              >
+                <Bug className="h-3.5 w-3.5" />
+                {showDebug ? "Debug: on" : "Debug"}
+              </button>
+              <button
                 onClick={handleCopyTrace}
                 className="p-2 hover:bg-muted rounded-md transition-colors"
                 title="Copy trace JSON"
@@ -324,6 +343,7 @@ export default function TraceDetail() {
           span={selectedSpan}
           logs={logs}
           onClose={() => setSelectedSpan(null)}
+          showDebug={showDebug}
         />
       )}
     </div>

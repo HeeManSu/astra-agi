@@ -22,6 +22,7 @@ import type {
   Agent,
   DeleteThreadResponse,
   LogListResponse,
+  MetricsResponse,
   Thread,
   ThreadCreate,
   ThreadMessage,
@@ -45,6 +46,7 @@ import {
   TraceListResponseSchema,
   TraceDetailResponseSchema,
   LogListResponseSchema,
+  MetricsResponseSchema,
   DeleteThreadResponseSchema,
 } from "@/api/schemas";
 import type { AppState } from "@/store/slices/appSlice";
@@ -208,6 +210,16 @@ export const rtkApi = createApi({
       }),
       transformResponse: parser(LogListResponseSchema),
     }),
+    getMetrics: builder.query<
+      MetricsResponse,
+      { hours?: number; maxTraces?: number }
+    >({
+      query: ({ hours = 24, maxTraces = 500 } = {}) => ({
+        url: `/observability/metrics?hours=${hours}&max_traces=${maxTraces}`,
+      }),
+      transformResponse: parser(MetricsResponseSchema),
+      providesTags: ["Traces"],
+    }),
   }),
 });
 
@@ -224,4 +236,5 @@ export const {
   useGetTraceListQuery,
   useGetTraceDetailQuery,
   useGetTraceLogsQuery,
+  useGetMetricsQuery,
 } = rtkApi;

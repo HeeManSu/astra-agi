@@ -37,6 +37,14 @@ from framework.rag.exceptions import (
     RagIngestionError,
     RagQueryError,
 )
+from observability import (
+    LogLevel,
+    is_debug_mode,
+    log,
+    preview,
+    span,
+    update_span,
+)
 
 
 if TYPE_CHECKING:
@@ -63,10 +71,24 @@ class Pipeline:
 
     async def execute(self, stage_state: StageState, rag_context: RagContext) -> StageState:
         """Execute all stages sequentially, injecting shared context."""
-        for stage in self.stages:
-            stage_state = await stage.process(stage_state, rag_context)
-            stage_state.mark_stage_complete(stage.name)
-        return stage_state
+        async with span(
+            f"rag.pipeline.{self.name}",
+            attributes={"pipeline_name": self.name, "stage_count": len(self.stages)},
+        ):
+            for stage in self.stages:
+                async with span(
+                    f"rag.stage.{stage.name}",
+                    attributes={"stage_name": stage.name, "pipeline": self.name},
+                ):
+                    stage_state = await stage.process(stage_state, rag_context)
+                    stage_state.mark_stage_complete(stage.name)
+                    update_span(
+                        {
+                            "result_count": len(getattr(stage_state, "results", []) or []),
+                            "error_count": len(getattr(stage_state, "errors", []) or []),
+                        }
+                    )
+            return stage_state
 
     def __repr__(self) -> str:
         stage_names = [s.name for s in self.stages]
@@ -128,34 +150,57 @@ class Rag:
         else:
             raise ValueError("Must provide path, url, or text")
 
-        # Create stage state
-        stage_state = StageState(
-            source=source,
-            raw_content=text,
-            metadata=metadata or {},
-        )
+        debug = is_debug_mode()
+        async with span(
+            "rag.ingest",
+            attributes={
+                "source": source,
+                "source_type": "path" if path else ("url" if url else "text"),
+                "name": name or "",
+                "content_length": len(text or ""),
+            },
+        ):
+            stage_state = StageState(
+                source=source,
+                raw_content=text,
+                metadata=metadata or {},
+            )
 
-        if name:
-            stage_state.metadata["name"] = name
+            if name:
+                stage_state.metadata["name"] = name
 
-        # Run ingest pipeline
-        try:
-            stage_state = await self.ingest_pipeline.execute(stage_state, self.context)
-            if stage_state.has_errors():
-                error_details = "; ".join(stage_state.errors)
+            try:
+                stage_state = await self.ingest_pipeline.execute(stage_state, self.context)
+                if stage_state.has_errors():
+                    error_details = "; ".join(stage_state.errors)
+                    await log(LogLevel.ERROR, "RAG ingestion failed", {"errors": error_details})
+                    raise RagIngestionError(
+                        f"Ingestion failed: {error_details}",
+                        suggestion=f"Check the source content at: {source}",
+                    )
+            except RagIngestionError:
+                raise
+            except Exception as e:
+                await log(LogLevel.ERROR, f"RAG ingestion unexpected error: {e}")
                 raise RagIngestionError(
-                    f"Ingestion failed: {error_details}",
-                    suggestion=f"Check the source content at: {source}",
-                )
-        except RagIngestionError:
-            raise
-        except Exception as e:
-            raise RagIngestionError(
-                f"Unexpected error during ingestion: {e!s}",
-                suggestion="Check logs for more details",
-            ) from e
+                    f"Unexpected error during ingestion: {e!s}",
+                    suggestion="Check logs for more details",
+                ) from e
 
-        return stage_state.metadata.get("content_id", "unknown")
+            content_id = stage_state.metadata.get("content_id", "unknown")
+            update_span(
+                {
+                    "content_id": content_id,
+                    "stage_count": len(self.ingest_pipeline.stages),
+                    **(
+                        {"raw_content_preview": preview(text or "")}
+                        if debug and text
+                        else {}
+                    ),
+                }
+            )
+            await log(LogLevel.INFO, "RAG ingest complete", {"content_id": content_id})
+            return content_id
 
     async def ingest_batch(self, items: list[dict[str, Any]]) -> list[str]:
         """Ingest multiple items in batch."""
@@ -200,29 +245,55 @@ class Rag:
         Returns:
             List of matching documents
         """
-        stage_state = StageState(
-            query=query,
-            metadata={
+        debug = is_debug_mode()
+        async with span(
+            "rag.query",
+            attributes={
+                "query_text_preview": preview(query),
                 "top_k": top_k or self.max_results,
-                "filters": filters or {},
+                "filter_count": len(filters or {}),
+                **({"query_text_full": query} if debug else {}),
             },
-        )
+        ):
+            stage_state = StageState(
+                query=query,
+                metadata={
+                    "top_k": top_k or self.max_results,
+                    "filters": filters or {},
+                },
+            )
 
-        # Run query pipeline
-        try:
-            stage_state = await self.query_pipeline.execute(stage_state, self.context)
-            if stage_state.has_errors():
-                error_details = "; ".join(stage_state.errors)
+            try:
+                stage_state = await self.query_pipeline.execute(stage_state, self.context)
+                if stage_state.has_errors():
+                    error_details = "; ".join(stage_state.errors)
+                    await log(LogLevel.ERROR, "RAG query failed", {"errors": error_details})
+                    raise RagQueryError(
+                        f"Query failed: {error_details}",
+                        suggestion="Ensure content has been ingested before querying",
+                    )
+            except RagQueryError:
+                raise
+            except Exception as e:
+                await log(LogLevel.ERROR, f"RAG query unexpected error: {e}")
                 raise RagQueryError(
-                    f"Query failed: {error_details}",
-                    suggestion="Ensure content has been ingested before querying",
-                )
-        except RagQueryError:
-            raise
-        except Exception as e:
-            raise RagQueryError(
-                f"Unexpected error during query: {e!s}",
-                suggestion="Check logs for more details",
-            ) from e
+                    f"Unexpected error during query: {e!s}",
+                    suggestion="Check logs for more details",
+                ) from e
 
-        return stage_state.results
+            update_span(
+                {
+                    "result_count": len(stage_state.results or []),
+                    **(
+                        {"top_results_preview": preview(stage_state.results[:3])}
+                        if debug and stage_state.results
+                        else {}
+                    ),
+                }
+            )
+            await log(
+                LogLevel.INFO,
+                "RAG query complete",
+                {"result_count": len(stage_state.results or [])},
+            )
+            return stage_state.results

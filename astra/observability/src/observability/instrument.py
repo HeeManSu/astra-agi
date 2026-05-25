@@ -66,6 +66,15 @@ def get_engine() -> ObservabilityEngine | None:
     return _engine
 
 
+def is_debug_mode() -> bool:
+    """Return True if the active engine has debug_mode enabled.
+
+    Used by instrumentation sites to decide whether to attach full payloads
+    (prompts, tool args/results) to span attributes, or only previews.
+    """
+    return bool(_engine and getattr(_engine, "debug_mode", False))
+
+
 # Trace/Span context getters
 
 

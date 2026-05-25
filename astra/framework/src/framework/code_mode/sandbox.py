@@ -37,6 +37,15 @@ import re
 import sys
 from typing import TYPE_CHECKING, Any
 
+from observability import (
+    LogLevel,
+    SpanKind,
+    is_debug_mode,
+    log,
+    preview,
+    span,
+    update_span,
+)
 from observability.debug import save_debug_artifact
 from typing_extensions import deprecated
 
@@ -808,52 +817,81 @@ class Sandbox:
         Returns:
             Human-readable formatted response
         """
-        semantic = self._semantic_layer or self.provider.build_semantic_layer()
+        debug = is_debug_mode()
+        async with span(
+            "step.format_response",
+            attributes={
+                "user_query_preview": preview(user_query),
+                "raw_output_length": len(raw_output or ""),
+                "raw_output_preview": preview(raw_output or ""),
+                **({"raw_output_full": raw_output} if debug else {}),
+            },
+        ):
+            async with span("format_response.prompt_build"):
+                semantic = self._semantic_layer or self.provider.build_semantic_layer()
 
-        # ── Gather agent instructions for synthesis context
-        seen_instructions: set[str] = set()
-        agent_instruction_parts: list[str] = []
-        for domain in semantic.domains:
-            if domain.instructions and domain.instructions.strip():
-                instr = domain.instructions.strip()
-                if instr not in seen_instructions:
-                    seen_instructions.add(instr)
-                    agent_instruction_parts.append(f"### {domain.id}\n{instr}")
-        agent_instructions_text = (
-            "\n\n".join(agent_instruction_parts)
-            if agent_instruction_parts
-            else "No additional agent instructions."
-        )
+                # ── Gather agent instructions for synthesis context
+                seen_instructions: set[str] = set()
+                agent_instruction_parts: list[str] = []
+                for domain in semantic.domains:
+                    if domain.instructions and domain.instructions.strip():
+                        instr = domain.instructions.strip()
+                        if instr not in seen_instructions:
+                            seen_instructions.add(instr)
+                            agent_instruction_parts.append(f"### {domain.id}\n{instr}")
+                agent_instructions_text = (
+                    "\n\n".join(agent_instruction_parts)
+                    if agent_instruction_parts
+                    else "No additional agent instructions."
+                )
 
-        # Escape curly braces to prevent .format() from interpreting them
-        escaped_output = raw_output.replace("{", "{{").replace("}", "}}")
-        escaped_instructions = agent_instructions_text.replace("{", "{{").replace("}", "}}")
+                # Escape curly braces to prevent .format() from interpreting them
+                escaped_output = raw_output.replace("{", "{{").replace("}", "}}")
+                escaped_instructions = agent_instructions_text.replace("{", "{{").replace(
+                    "}", "}}"
+                )
 
-        prompt = RESPONSE_FORMAT_PROMPT.format(
-            provider_name=semantic.provider_name,
-            provider_instructions=semantic.provider_instructions or "",
-            agent_instructions=escaped_instructions,
-            user_query=user_query,
-            tool_results=escaped_output,
-        )
+                prompt = RESPONSE_FORMAT_PROMPT.format(
+                    provider_name=semantic.provider_name,
+                    provider_instructions=semantic.provider_instructions or "",
+                    agent_instructions=escaped_instructions,
+                    user_query=user_query,
+                    tool_results=escaped_output,
+                )
+                update_span(
+                    {
+                        "prompt_length": len(prompt),
+                        "prompt_preview": preview(prompt),
+                        **({"prompt_full": prompt} if debug else {}),
+                    }
+                )
 
-        response = await self.model.invoke([{"role": "user", "content": prompt}])
-        content = getattr(response, "content", None) or ""
+            await log(LogLevel.INFO, "Calling LLM to format final response")
+            response = await self.model.invoke([{"role": "user", "content": prompt}])
+            content = getattr(response, "content", None) or ""
 
-        # Print token usage
-        usage = response.usage
-        if usage:
-            print(
-                f"Tokens: in={usage.get('input_tokens', 0)} "
-                f"out={usage.get('output_tokens', 0)} "
-                f"thinking={usage.get('thoughts_tokens', 0)} "
-                f"total={usage.get('total_tokens', 0)}"
+            # Print token usage
+            usage = response.usage
+            if usage:
+                print(
+                    f"Tokens: in={usage.get('input_tokens', 0)} "
+                    f"out={usage.get('output_tokens', 0)} "
+                    f"thinking={usage.get('thoughts_tokens', 0)} "
+                    f"total={usage.get('total_tokens', 0)}"
+                )
+
+            final_output = content.strip() or "(no response generated)"
+            save_debug_artifact("final_output.txt", final_output)
+
+            update_span(
+                {
+                    "final_output_length": len(final_output),
+                    "final_output_preview": preview(final_output),
+                    **({"final_output_full": final_output} if debug else {}),
+                }
             )
-
-        final_output = content.strip() or "(no response generated)"
-        save_debug_artifact("final_output.txt", final_output)
-
-        return final_output
+            await log(LogLevel.INFO, "Response formatted", {"length": len(final_output)})
+            return final_output
 
     async def _execute_planning_phase(
         self,
@@ -865,43 +903,64 @@ class Sandbox:
 
         This phase is only applicable for teams.
         """
+        debug = is_debug_mode()
+        async with span(
+            "planning_phase",
+            attributes={"user_query_preview": preview(user_query)},
+        ):
+            planner_ctx = semantic_layer.get_planner_context()
 
-        planner_ctx = semantic_layer.get_planner_context()
+            prompt = TEAM_PLANNER_PROMPT.format(
+                team_name=planner_ctx["provider_name"],
+                team_description=planner_ctx["provider_description"],
+                team_instructions=planner_ctx["provider_instructions"],
+                agents_section=planner_ctx["agents"],
+                user_query=user_query,
+            )
 
-        prompt = TEAM_PLANNER_PROMPT.format(
-            team_name=planner_ctx["provider_name"],
-            team_description=planner_ctx["provider_description"],
-            team_instructions=planner_ctx["provider_instructions"],
-            agents_section=planner_ctx["agents"],
-            user_query=user_query,
-        )
+            await log(LogLevel.INFO, "Calling LLM for team planning")
+            response = await self.model.invoke([{"role": "user", "content": prompt}])
+            print("Saved planner response to .debug/planner_response.txt")
+            save_debug_artifact("planner_response.txt", response.content)
 
-        response = await self.model.invoke([{"role": "user", "content": prompt}])
-        print("Saved planner response to .debug/planner_response.txt")
-        save_debug_artifact("planner_response.txt", response.content)
+            if not hasattr(response, "content"):
+                raise ValueError("Response content is required")
 
-        if not hasattr(response, "content"):
-            raise ValueError("Response content is required")
+            content = response.content
 
-        content = response.content
+            stripped_content = content.strip()
+            if stripped_content.startswith("```"):
+                stripped_content = stripped_content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 
-        stripped_content = content.strip()
-        if stripped_content.startswith("```"):
-            stripped_content = stripped_content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            json_content = json.loads(stripped_content)
+            planned_tool_slugs = set()
 
-        json_content = json.loads(stripped_content)
-        planned_tool_slugs = set()
+            for step in json_content.get("steps", []):
+                agent = step.get("agent", "")
+                tool_slug = step.get("tool_slug", "")
+                if agent and tool_slug:
+                    planned_tool_slugs.add(f"{agent}.{tool_slug}")
 
-        for step in json_content.get("steps", []):
-            agent = step.get("agent", "")
-            tool_slug = step.get("tool_slug", "")
-            if agent and tool_slug:
-                planned_tool_slugs.add(f"{agent}.{tool_slug}")
+            filtered_semantic_layer = semantic_layer.get_tool_stubs_by_tool_slugs(
+                planned_tool_slugs
+            )
+            filtered_stubs = generate_stubs(filtered_semantic_layer)
+            summary = json_content.get("summary", "")
 
-        filtered_semantic_layer = semantic_layer.get_tool_stubs_by_tool_slugs(planned_tool_slugs)
-        filtered_stubs = generate_stubs(filtered_semantic_layer)
+            update_span(
+                {
+                    "planned_step_count": len(json_content.get("steps", [])),
+                    "planned_tool_count": len(planned_tool_slugs),
+                    "summary_preview": preview(summary),
+                    **(
+                        {"summary_full": summary, "planner_raw": content}
+                        if debug
+                        else {}
+                    ),
+                }
+            )
 
-        return filtered_stubs, json_content.get("summary", "")
+            return filtered_stubs, summary
 
     async def generate_parse_validate_code(
         self,
@@ -923,70 +982,112 @@ class Sandbox:
         if not context:
             raise ValueError("Context is required to generate code")
 
-        # Step 1: Build semantic layer
-        tool_definitions = context.get("tool_definitions")
-        semantic_layer = self.provider.build_semantic_layer(tool_definitions)
-        save_debug_artifact(
-            "semantic_layer.json",
-            json.dumps(semantic_layer.to_dict(), indent=2, ensure_ascii=False, default=str),
-        )
-        print("Saved semantic layer to .debug/semantic_layer.json")
+        debug = is_debug_mode()
+        async with span(
+            "step.generate_code",
+            attributes={
+                "provider_type": self.provider.provider_type,
+                "thread_id": thread_id or "new",
+                "user_query_preview": preview(user_query),
+            },
+        ):
+            # Step 1: Build semantic layer
+            async with span("semantic_layer.build"):
+                tool_definitions = context.get("tool_definitions")
+                semantic_layer = self.provider.build_semantic_layer(tool_definitions)
+                save_debug_artifact(
+                    "semantic_layer.json",
+                    json.dumps(
+                        semantic_layer.to_dict(), indent=2, ensure_ascii=False, default=str
+                    ),
+                )
+                print("Saved semantic layer to .debug/semantic_layer.json")
+                update_span(
+                    {
+                        "domain_count": len(getattr(semantic_layer, "domains", []) or []),
+                        "provider_name": getattr(semantic_layer, "provider_name", ""),
+                    }
+                )
 
-        # Step 2: Planning Phase -> returns filtered stubs + planner summary
-        # TODO: R&D on including this step in if condition based on the tool count.
-        if self.provider.provider_type == "TEAM":
-            stubs, planner_summary = await self._execute_planning_phase(user_query, semantic_layer)
-            save_debug_artifact("planner_summary.txt", planner_summary)
-            save_debug_artifact("stubs.txt", stubs)
-            print("Saved planner summary to .debug/planner_summary.txt")
-            print("Saved stubs to .debug/stubs.txt")
-        else:
-            stubs = generate_stubs(semantic_layer)
+            # Step 2: Planning Phase -> returns filtered stubs + planner summary
+            if self.provider.provider_type == "TEAM":
+                stubs, planner_summary = await self._execute_planning_phase(
+                    user_query, semantic_layer
+                )
+                save_debug_artifact("planner_summary.txt", planner_summary)
+                save_debug_artifact("stubs.txt", stubs)
+                print("Saved planner summary to .debug/planner_summary.txt")
+                print("Saved stubs to .debug/stubs.txt")
+            else:
+                stubs = generate_stubs(semantic_layer)
+                planner_summary = ""
 
-        # Step 3: Build prompt
-        runtime_context = context.get("runtime_context", "")
+            # Step 3: Build prompt
+            async with span("prompt.build"):
+                runtime_context = context.get("runtime_context", "")
+                if self.provider.provider_type == "TEAM":
+                    prompt = TEAM_CODE_MODE_PROMPT.format(
+                        team_name=semantic_layer.provider_name,
+                        team_description=semantic_layer.provider_description,
+                        runtime_context=runtime_context,
+                        planner_summary=planner_summary,
+                        user_query=user_query,
+                        stubs=stubs,
+                    )
+                else:
+                    prompt = AGENT_CODE_MODE_PROMPT.format(
+                        agent_name=semantic_layer.provider_name,
+                        agent_description=semantic_layer.provider_description,
+                        agent_instructions=semantic_layer.provider_instructions or "",
+                        runtime_context=runtime_context,
+                        planner_summary="",
+                        user_query=user_query,
+                        stubs=stubs,
+                    )
+                save_debug_artifact("code_generation_prompt.txt", prompt)
+                print("Saved code generation prompt to .debug/code_generation_prompt.txt")
+                update_span(
+                    {
+                        "prompt_length": len(prompt),
+                        "stubs_length": len(stubs or ""),
+                        "prompt_preview": preview(prompt),
+                        **({"prompt_full": prompt} if debug else {}),
+                    }
+                )
 
-        if self.provider.provider_type == "TEAM":
-            prompt = TEAM_CODE_MODE_PROMPT.format(
-                team_name=semantic_layer.provider_name,
-                team_description=semantic_layer.provider_description,
-                runtime_context=runtime_context,
-                planner_summary=planner_summary,
-                user_query=user_query,
-                stubs=stubs,
+            # Step 4: Invoke LLM
+            messages: list[dict[str, Any]] = []
+            if thread_id:
+                messages.extend(await self.provider.get_history(thread_id))
+            messages.append({"role": "system", "content": prompt})
+
+            await log(LogLevel.INFO, "Calling LLM to generate code", {"messages": len(messages)})
+            response = await self.model.invoke(messages)
+            raw = response.content if hasattr(response, "content") else str(response)
+            save_debug_artifact("generated_code_response.txt", raw)
+            print("Saved generated code response to .debug/generated_code_response.txt")
+
+            # Step 5: Extract clean code and cache semantic layer for downstream
+            async with span("extract_code"):
+                code = self._extract_code(raw)
+                self._semantic_layer = semantic_layer
+                save_debug_artifact("generated_code.py", code)
+                print("Saved generated code to .debug/generated_code.py")
+                update_span(
+                    {
+                        "code_length": len(code),
+                        "code_preview": preview(code),
+                        **({"code_full": code, "raw_response_full": raw} if debug else {}),
+                    }
+                )
+
+            update_span(
+                {
+                    "code_length": len(code),
+                    "code_preview": preview(code),
+                }
             )
-        else:
-            prompt = AGENT_CODE_MODE_PROMPT.format(
-                agent_name=semantic_layer.provider_name,
-                agent_description=semantic_layer.provider_description,
-                agent_instructions=semantic_layer.provider_instructions or "",
-                runtime_context=runtime_context,
-                planner_summary="",
-                user_query=user_query,
-                stubs=stubs,
-            )
-
-        save_debug_artifact("code_generation_prompt.txt", prompt)
-        print("Saved code generation prompt to .debug/code_generation_prompt.txt")
-
-        # Step 4: Invoke LLM
-        messages: list[dict[str, Any]] = []
-        if thread_id:
-            messages.extend(await self.provider.get_history(thread_id))
-        messages.append({"role": "system", "content": prompt})
-
-        response = await self.model.invoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
-
-        save_debug_artifact("generated_code_response.txt", raw)
-        print("Saved generated code response to .debug/generated_code_response.txt")
-        # Step 5: Extract clean code and cache semantic layer for downstream
-        code = self._extract_code(raw)
-        self._semantic_layer = semantic_layer
-        save_debug_artifact("generated_code.py", code)
-        print("Saved generated code to .debug/generated_code.py")
-
-        return code
+            return code
 
     async def build_dsl_workflow(self, code: str) -> None:
         """Lower generated code into a DSL workflow graph, validate, and save artifact.
@@ -1003,25 +1104,45 @@ class Sandbox:
         Raises:
             ValueError: If DSL build or validation fails.
         """
+        async with span(
+            "step.dsl_build",
+            attributes={"code_length": len(code or "")},
+        ):
+            async with span("dsl.parse"):
+                parsed_code = parse_code(code)
+                if parsed_code.error or parsed_code.module is None:
+                    await log(LogLevel.ERROR, f"DSL parse failed: {parsed_code.error}")
+                    raise ValueError(f"DSL parse failed: {parsed_code.error}")
 
-        parsed_code = parse_code(code)
-        if parsed_code.error or parsed_code.module is None:
-            raise ValueError(f"DSL parse failed: {parsed_code.error}")
+            async with span("dsl.validate"):
+                validation_errors = validate(parsed_code.module)
+                if validation_errors:
+                    msg = "\n".join(e.message for e in validation_errors)
+                    await log(LogLevel.ERROR, "DSL validation failed", {"errors": msg})
+                    raise ValueError("DSL validation failed: " + msg)
 
-        validation_errors = validate(parsed_code.module)
-        if validation_errors:
-            raise ValueError(
-                "DSL validation failed: " + "\n".join(e.message for e in validation_errors)
+            async with span("dsl.build"):
+                build_result = build_workflow(parsed_code.module)
+                if not build_result.success:
+                    msg = "\n".join(build_result.errors)
+                    await log(LogLevel.ERROR, "DSL build failed", {"errors": msg})
+                    raise ValueError("DSL build failed: " + msg)
+
+                self._dsl_workflow = build_result.workflow
+                update_span(
+                    {
+                        "node_count": len(self._dsl_workflow.nodes),
+                        "edge_count": len(self._dsl_workflow.edges),
+                        "entry": self._dsl_workflow.entry,
+                    }
+                )
+
+            update_span(
+                {
+                    "node_count": len(self._dsl_workflow.nodes),
+                    "edge_count": len(self._dsl_workflow.edges),
+                }
             )
-
-        build_result = build_workflow(parsed_code.module)
-        if not build_result.success:
-            raise ValueError("DSL build failed: " + "\n".join(build_result.errors))
-
-        self._dsl_workflow = build_result.workflow
-
-        # save_debug_artifact("dsl_workflow.json", self._dsl_workflow.model_dump_json())
-        # print("Saved DSL workflow to .debug/dsl_workflow.json")
 
     def _build_dsl_tool_map(self) -> dict[str, Any]:
         """Build {qualified_tool_name: async_callable} for the DSL executor.
@@ -1151,53 +1272,83 @@ class Sandbox:
                 stderr="execute_dsl() called before build_dsl_workflow()",
             )
 
-        tools = self._build_dsl_tool_map()
+        async with span(
+            "step.dsl_execute",
+            attributes={
+                "node_count": len(workflow.nodes),
+                "edge_count": len(workflow.edges),
+                "entry": workflow.entry,
+                "timeout_s": timeout,
+            },
+        ):
+            tools = self._build_dsl_tool_map()
+            update_span({"tool_count": len(tools)})
 
-        try:
-            result = await asyncio.wait_for(
-                run_workflow(workflow, tools=tools),
-                timeout=timeout,
-            )
-        except asyncio.TimeoutError:
-            return SandboxResult(
-                output="",
-                success=False,
-                stderr=f"TimeoutError: DSL execution exceeded {timeout}s",
-            )
-        except Exception as exc:
-            return SandboxResult(
-                output="",
-                success=False,
-                stderr=str(exc),
-            )
+            try:
+                result = await asyncio.wait_for(
+                    run_workflow(workflow, tools=tools),
+                    timeout=timeout,
+                )
+            except asyncio.TimeoutError:
+                await log(
+                    LogLevel.ERROR,
+                    "DSL execution timed out",
+                    {"timeout_s": timeout},
+                )
+                return SandboxResult(
+                    output="",
+                    success=False,
+                    stderr=f"TimeoutError: DSL execution exceeded {timeout}s",
+                )
+            except Exception as exc:
+                await log(LogLevel.ERROR, f"DSL execution error: {exc}")
+                return SandboxResult(
+                    output="",
+                    success=False,
+                    stderr=str(exc),
+                )
 
-        # ── Map action steps to tool_calls for SandboxResult
-        node_tool_map = {
-            node.id: node.tool
-            for node in workflow.nodes
-            if isinstance(node, ActionNode)
-        }
-
-        tool_calls: list[dict[str, Any]] = [
-            {
-                "name": node_tool_map.get(step.node_id, step.label),
-                "args": step.inputs,
-                "result": step.outputs,
+            # ── Map action steps to tool_calls for SandboxResult
+            node_tool_map = {
+                node.id: node.tool for node in workflow.nodes if isinstance(node, ActionNode)
             }
-            for step in result.steps
-            if step.type == "action"
-        ]
 
-        if result.response is None:
-            output = json.dumps(result.state, default=str, ensure_ascii=False)
-        elif isinstance(result.response, (dict, list)):
-            output = json.dumps(result.response, default=str, ensure_ascii=False)
-        else:
-            output = str(result.response)
+            tool_calls: list[dict[str, Any]] = [
+                {
+                    "name": node_tool_map.get(step.node_id, step.label),
+                    "args": step.inputs,
+                    "result": step.outputs,
+                }
+                for step in result.steps
+                if step.type == "action"
+            ]
 
-        return SandboxResult(
-            output=output,
-            success=result.success,
-            tool_calls=tool_calls,
-            stderr=result.error or "",
-        )
+            if result.response is None:
+                output = json.dumps(result.state, default=str, ensure_ascii=False)
+            elif isinstance(result.response, (dict, list)):
+                output = json.dumps(result.response, default=str, ensure_ascii=False)
+            else:
+                output = str(result.response)
+
+            update_span(
+                {
+                    "step_count": len(result.steps),
+                    "success": result.success,
+                    "duration_ms": getattr(result, "duration_ms", None),
+                    "tool_call_count": len(tool_calls),
+                    "output_length": len(output),
+                    "output_preview": preview(output),
+                }
+            )
+            await log(
+                LogLevel.INFO,
+                "DSL execution complete",
+                {"steps": len(result.steps), "tool_calls": len(tool_calls)},
+            )
+
+            return SandboxResult(
+                output=output,
+                success=result.success,
+                tool_calls=tool_calls,
+                stderr=result.error or "",
+            )

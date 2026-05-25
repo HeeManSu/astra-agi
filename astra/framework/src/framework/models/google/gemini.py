@@ -34,6 +34,16 @@ import uuid
 
 from dotenv import load_dotenv
 from framework.models.base import Model, ModelResponse
+from observability import (
+    LogLevel,
+    SpanKind,
+    StreamAccumulator,
+    is_debug_mode,
+    log,
+    preview,
+    span,
+    update_span,
+)
 
 
 # Load environment variables from .env file
@@ -55,6 +65,21 @@ except ImportError as err:
         "`google-genai` not installed or outdated. "
         "Install or upgrade using: pip install -U google-genai"
     ) from err
+
+
+def _messages_to_text(messages: list[dict[str, Any]]) -> str:
+    """Flatten chat messages to a single string for span previews."""
+    parts: list[str] = []
+    for m in messages or []:
+        role = m.get("role", "?") if isinstance(m, dict) else "?"
+        content = m.get("content", "") if isinstance(m, dict) else str(m)
+        if not isinstance(content, str):
+            try:
+                content = json.dumps(content, default=str)
+            except Exception:
+                content = str(content)
+        parts.append(f"[{role}] {content}")
+    return "\n".join(parts)
 
 
 # HELPER FUNCTIONS - Schema Utilities
@@ -704,66 +729,116 @@ class Gemini(Model):
             tools=tools,
         )
 
-        # Get client and make API call
-        client = self._get_client()
+        debug = is_debug_mode()
+        prompt_repr = _messages_to_text(messages)
+        span_attrs: dict[str, Any] = {
+            "provider": "gemini",
+            "model": self.model_id,
+            "operation": "invoke",
+            "message_count": len(messages),
+            "tool_count": len(tools) if tools else 0,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "prompt_preview": preview(prompt_repr),
+        }
+        if debug:
+            span_attrs["prompt_full"] = prompt_repr
 
-        try:
-            response = await client.aio.models.generate_content(
-                model=self.model_id,
-                contents=formatted_messages,
-                config=config,
-            )
-        except (ClientError, ServerError) as e:
-            raise RuntimeError(f"Gemini request failed: {e}") from e
-        except (ValueError, Exception) as e:
-            # Handle empty response (often due to safety filters or rate limits)
-            error_str = str(e)
-            if "output text or tool calls" in error_str or "empty" in error_str.lower():
-                return ModelResponse(
-                    content="(Model returned empty response. This may be due to safety filters or rate limiting. Please try again.)",
-                    tool_calls=[],
-                    usage={},
-                    metadata={
-                        "provider": "gemini",
-                        "model_id": self.model_id,
-                        "latency_ms": round((time.perf_counter() - start_time) * 1000, 2),
-                        "blocked": True,
-                        "error": error_str,
-                    },
+        async with span(
+            f"generation.gemini.{self.model_id}.invoke",
+            kind=SpanKind.GENERATION,
+            attributes=span_attrs,
+        ):
+            # Get client and make API call
+            client = self._get_client()
+
+            try:
+                response = await client.aio.models.generate_content(
+                    model=self.model_id,
+                    contents=formatted_messages,
+                    config=config,
                 )
-            raise RuntimeError(f"Gemini request failed: {e}") from e
+            except (ClientError, ServerError) as e:
+                await log(LogLevel.ERROR, f"Gemini request failed: {e}")
+                raise RuntimeError(f"Gemini request failed: {e}") from e
+            except (ValueError, Exception) as e:
+                # Handle empty response (often due to safety filters or rate limits)
+                error_str = str(e)
+                if "output text or tool calls" in error_str or "empty" in error_str.lower():
+                    latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+                    update_span(
+                        {
+                            "latency_ms": latency_ms,
+                            "blocked": True,
+                            "error": error_str,
+                        }
+                    )
+                    await log(
+                        LogLevel.WARN,
+                        "Gemini returned empty response (possible safety/rate-limit block)",
+                        {"error": error_str},
+                    )
+                    return ModelResponse(
+                        content="(Model returned empty response. This may be due to safety filters or rate limiting. Please try again.)",
+                        tool_calls=[],
+                        usage={},
+                        metadata={
+                            "provider": "gemini",
+                            "model_id": self.model_id,
+                            "latency_ms": latency_ms,
+                            "blocked": True,
+                            "error": error_str,
+                        },
+                    )
+                await log(LogLevel.ERROR, f"Gemini request failed: {e}")
+                raise RuntimeError(f"Gemini request failed: {e}") from e
 
-        # Parse the response
-        content = ""
-        tool_calls: list[dict[str, Any]] = []
+            # Parse the response
+            content = ""
+            tool_calls: list[dict[str, Any]] = []
 
-        # Extract parts from the first candidate
-        if response.candidates:
-            candidate = response.candidates[0]
-            parts = getattr(candidate.content, "parts", None)
-            content, tool_calls = parse_response_parts(parts)
+            # Extract parts from the first candidate
+            if response.candidates:
+                candidate = response.candidates[0]
+                parts = getattr(candidate.content, "parts", None)
+                content, tool_calls = parse_response_parts(parts)
 
-        # Parse usage metadata
-        usage = parse_usage_metadata(getattr(response, "usage_metadata", None))
+            # Parse usage metadata
+            usage = parse_usage_metadata(getattr(response, "usage_metadata", None))
 
-        # Calculate latency
-        latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            # Calculate latency
+            latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        # Handle empty response
-        if not content and not tool_calls:
-            content = "(No response from model)"
+            # Handle empty response
+            if not content and not tool_calls:
+                content = "(No response from model)"
 
-        return ModelResponse(
-            content=content,
-            tool_calls=tool_calls,
-            usage=usage,
-            metadata={
-                "provider": "gemini",
-                "model_id": self.model_id,
+            finalize_attrs: dict[str, Any] = {
                 "latency_ms": latency_ms,
                 "has_tool_calls": bool(tool_calls),
-            },
-        )
+                "response_preview": preview(content),
+                "tool_call_count": len(tool_calls),
+            }
+            for key in ("input_tokens", "output_tokens", "thoughts_tokens", "total_tokens"):
+                if usage.get(key) is not None:
+                    finalize_attrs[key] = usage[key]
+            if debug:
+                finalize_attrs["response_full"] = content
+                if tool_calls:
+                    finalize_attrs["tool_calls_full"] = tool_calls
+            update_span(finalize_attrs)
+
+            return ModelResponse(
+                content=content,
+                tool_calls=tool_calls,
+                usage=usage,
+                metadata={
+                    "provider": "gemini",
+                    "model_id": self.model_id,
+                    "latency_ms": latency_ms,
+                    "has_tool_calls": bool(tool_calls),
+                },
+            )
 
     async def stream(
         self,
@@ -831,95 +906,153 @@ class Gemini(Model):
             tools=tools,
         )
 
-        # Get client
-        client = self._get_client()
+        debug = is_debug_mode()
+        prompt_repr = _messages_to_text(messages)
+        stream_attrs: dict[str, Any] = {
+            "provider": "gemini",
+            "model": self.model_id,
+            "operation": "stream",
+            "message_count": len(messages),
+            "tool_count": len(tools) if tools else 0,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "prompt_preview": preview(prompt_repr),
+        }
+        if debug:
+            stream_attrs["prompt_full"] = prompt_repr
 
-        try:
-            # Start streaming
-            async_stream = await client.aio.models.generate_content_stream(
-                model=self.model_id,
-                contents=formatted_messages,
-                config=config,
-            )
+        async with span(
+            f"generation.gemini.{self.model_id}.stream",
+            kind=SpanKind.GENERATION,
+            attributes=stream_attrs,
+        ):
+            acc = StreamAccumulator()
+            collected_text = ""
+            collected_tool_calls: list[dict[str, Any]] = []
 
-            # Process each chunk from the stream
-            async for chunk in async_stream:
-                text = ""
-                tool_calls: list[dict[str, Any]] = []
+            # Get client
+            client = self._get_client()
 
-                # Extract content from chunk
-                if chunk.candidates and len(chunk.candidates) > 0:
-                    candidate = chunk.candidates[0]
-                    candidate_content = candidate.content
-
-                    # Get parts from the candidate
-                    if candidate_content is not None and candidate_content.parts is not None:
-                        for part in candidate_content.parts:
-                            # Extract text
-                            if hasattr(part, "text") and part.text is not None:
-                                text += str(part.text)
-
-                            # Extract function calls
-                            # Generate unique ID for tracking through start/result events
-                            if hasattr(part, "function_call") and part.function_call is not None:
-                                tool_name = getattr(part.function_call, "name", "")
-                                # Skip empty tool names - they cause issues
-                                if not tool_name:
-                                    continue
-
-                                tool_call = {
-                                    "id": f"call_{uuid.uuid4().hex[:8]}",  # Unique ID for tracking
-                                    "name": tool_name,
-                                    "arguments": dict(part.function_call.args or {})
-                                    if hasattr(part.function_call, "args")
-                                    and part.function_call.args is not None
-                                    else {},
-                                }
-                                # Avoid duplicate tool calls (same name + args)
-                                existing_calls = [
-                                    (tc["name"], json.dumps(tc["arguments"], sort_keys=True))
-                                    for tc in tool_calls
-                                ]
-                                new_call_key = (
-                                    tool_call["name"],
-                                    json.dumps(tool_call["arguments"], sort_keys=True),
-                                )
-                                if new_call_key not in existing_calls:
-                                    tool_calls.append(tool_call)
-
-                # Yield chunk if we have content
-                # (some chunks might be empty, which is normal)
-                if text or tool_calls:
-                    yield ModelResponse(
-                        content=text,
-                        tool_calls=tool_calls if tool_calls else None,
-                        metadata={"is_stream": True},
-                    )
-
-            # Yield final chunk with usage metadata
-            usage_meta = getattr(async_stream, "usage_metadata", None)
-            usage = parse_usage_metadata(usage_meta)
-            latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
-
-            yield ModelResponse(
-                content="",
-                usage=usage,
-                metadata={
-                    "provider": "gemini",
-                    "model_id": self.model_id,
-                    "latency_ms": latency_ms,
-                    "final": True,
-                },
-            )
-
-        except (ClientError, ServerError) as e:
-            raise RuntimeError(f"Gemini streaming failed: {e}") from e
-        except ValueError as e:
-            # Handle safety filter blocks
-            if "output text or tool calls" in str(e):
-                yield ModelResponse(
-                    content="(Response blocked by safety filters)",
-                    metadata={"blocked": True, "error": str(e)},
+            try:
+                # Start streaming
+                async_stream = await client.aio.models.generate_content_stream(
+                    model=self.model_id,
+                    contents=formatted_messages,
+                    config=config,
                 )
-                return
-            raise RuntimeError(f"Gemini streaming failed: {e}") from e
+
+                # Process each chunk from the stream
+                async for chunk in async_stream:
+                    text = ""
+                    tool_calls: list[dict[str, Any]] = []
+
+                    # Extract content from chunk
+                    if chunk.candidates and len(chunk.candidates) > 0:
+                        candidate = chunk.candidates[0]
+                        candidate_content = candidate.content
+
+                        # Get parts from the candidate
+                        if candidate_content is not None and candidate_content.parts is not None:
+                            for part in candidate_content.parts:
+                                # Extract text
+                                if hasattr(part, "text") and part.text is not None:
+                                    text += str(part.text)
+
+                                # Extract function calls
+                                # Generate unique ID for tracking through start/result events
+                                if (
+                                    hasattr(part, "function_call")
+                                    and part.function_call is not None
+                                ):
+                                    tool_name = getattr(part.function_call, "name", "")
+                                    # Skip empty tool names - they cause issues
+                                    if not tool_name:
+                                        continue
+
+                                    tool_call = {
+                                        "id": f"call_{uuid.uuid4().hex[:8]}",
+                                        "name": tool_name,
+                                        "arguments": dict(part.function_call.args or {})
+                                        if hasattr(part.function_call, "args")
+                                        and part.function_call.args is not None
+                                        else {},
+                                    }
+                                    existing_calls = [
+                                        (tc["name"], json.dumps(tc["arguments"], sort_keys=True))
+                                        for tc in tool_calls
+                                    ]
+                                    new_call_key = (
+                                        tool_call["name"],
+                                        json.dumps(tool_call["arguments"], sort_keys=True),
+                                    )
+                                    if new_call_key not in existing_calls:
+                                        tool_calls.append(tool_call)
+
+                    # Yield chunk if we have content
+                    if text or tool_calls:
+                        out = ModelResponse(
+                            content=text,
+                            tool_calls=tool_calls if tool_calls else None,
+                            metadata={"is_stream": True},
+                        )
+                        acc.observe_chunk(out)
+                        collected_text += text
+                        if tool_calls:
+                            collected_tool_calls.extend(tool_calls)
+                        yield out
+
+                # Yield final chunk with usage metadata
+                usage_meta = getattr(async_stream, "usage_metadata", None)
+                usage = parse_usage_metadata(usage_meta)
+                latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+
+                finalize_attrs = acc.finalize(
+                    usage=usage,
+                    model=self.model_id,
+                    provider="gemini",
+                    include_raw=debug,
+                )
+                finalize_attrs["latency_ms"] = latency_ms
+                finalize_attrs["response_preview"] = preview(collected_text)
+                finalize_attrs["tool_call_count"] = len(collected_tool_calls)
+                if debug:
+                    finalize_attrs["response_full"] = collected_text
+                    if collected_tool_calls:
+                        finalize_attrs["tool_calls_full"] = collected_tool_calls
+                update_span(finalize_attrs)
+                await log(
+                    LogLevel.INFO,
+                    "Gemini stream completed",
+                    {
+                        "chunks": acc.chunk_count,
+                        "ttft_ms": finalize_attrs.get("ttft_ms"),
+                        "total_tokens": finalize_attrs.get("total_tokens"),
+                    },
+                )
+
+                yield ModelResponse(
+                    content="",
+                    usage=usage,
+                    metadata={
+                        "provider": "gemini",
+                        "model_id": self.model_id,
+                        "latency_ms": latency_ms,
+                        "final": True,
+                    },
+                )
+
+            except (ClientError, ServerError) as e:
+                await log(LogLevel.ERROR, f"Gemini streaming failed: {e}")
+                raise RuntimeError(f"Gemini streaming failed: {e}") from e
+            except ValueError as e:
+                # Handle safety filter blocks
+                if "output text or tool calls" in str(e):
+                    update_span({"blocked": True, "error": str(e)})
+                    await log(LogLevel.WARN, "Gemini stream blocked by safety filters")
+                    yield ModelResponse(
+                        content="(Response blocked by safety filters)",
+                        metadata={"blocked": True, "error": str(e)},
+                    )
+                    return
+                await log(LogLevel.ERROR, f"Gemini streaming failed: {e}")
+                raise RuntimeError(f"Gemini streaming failed: {e}") from e

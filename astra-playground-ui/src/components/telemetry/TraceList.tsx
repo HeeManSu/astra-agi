@@ -8,7 +8,7 @@ import {
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, parseTimestamp } from "@/lib/utils";
 import {
   Clock,
   Activity,
@@ -189,7 +189,7 @@ export default function TraceList() {
                 </div>
 
                 <div className="text-[11px] text-muted-foreground/70">
-                  {formatDistanceToNow(new Date(trace.start_time), {
+                  {formatDistanceToNow(parseTimestamp(trace.start_time), {
                     addSuffix: true,
                   })}
                 </div>

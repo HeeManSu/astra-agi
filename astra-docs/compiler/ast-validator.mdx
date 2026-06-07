@@ -1,0 +1,161 @@
+---
+title: "AST validator"
+description: "How Astra rejects unsafe or unsupported planner output before any tool runs."
+icon: "shield-check"
+---
+
+<Note>
+ReAct frameworks rely on the model "following instructions" to avoid dangerous behavior. Astra rejects unsafe code at compile time — the validator runs **before** the executor sees a single byte of the plan.
+</Note>
+
+## A two-step pipeline
+
+Compilation begins with two stages defined in [ast_parser.py](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py):
+
+<Steps>
+  <Step title="parse_code(code)">
+    Strips markdown fences, hands the result to `ast.parse()`, and returns a `ParseResult`. Syntax errors are caught and surfaced as a single string with line/column ([ast_parser.py:57](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L57)).
+  </Step>
+  <Step title="validate(module)">
+    Runs six structural checks against the parsed AST and returns a list of `ValidationError` objects. An empty list means the plan is accepted ([ast_parser.py:260](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L260)).
+  </Step>
+</Steps>
+
+The sandbox orchestrator wires both stages together inside `Sandbox.build_dsl_workflow()` ([sandbox.py:1092](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/sandbox.py#L1092)). If either stage fails, the error message is fed back into the regeneration loop so the planner can correct itself.
+
+## The data shapes
+
+<ParamField path="ParseResult" type="dataclass">
+Defined at [ast_parser.py:39](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L39).
+- `module: ast.Module | None` — the parsed tree, or `None` if parsing failed.
+- `error: str | None` — formatted as `SyntaxError at line N, col M: <message>`.
+- `ast_dump: str | None` — pretty-printed AST for debugging artifacts.
+</ParamField>
+
+<ParamField path="ValidationError" type="frozen dataclass">
+Defined at [ast_parser.py:29](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L29).
+- `message: str` — human-readable violation, ready to send back to the LLM.
+- `line: int` — 1-based source line (0 if unknown).
+- `col: int` — column offset.
+- `node_type: str` — friendly name like `"try/except block"` or `"list comprehension"`.
+</ParamField>
+
+`ValidationError` is `frozen=True` so the list can be safely passed between async tasks and into journal payloads without accidental mutation.
+
+## Syntax errors vs validation errors
+
+These two failure modes are surfaced differently because the regeneration prompt for each is different.
+
+<Tabs>
+  <Tab title="SyntaxError">
+    The LLM emitted code that does not parse — usually an unclosed bracket, a stray fence, or a runaway string. `parse_code()` catches `SyntaxError` and packs `lineno` plus `offset` into the error message ([ast_parser.py:81](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L81)):
+
+    ```text
+    SyntaxError at line 7, col 12: invalid syntax
+    ```
+
+    The compiler stops immediately. There is no point validating an unparsable tree.
+  </Tab>
+  <Tab title="ValidationError">
+    The code parsed, but the AST contains a construct the runtime cannot execute. The validator walks the entire module and **collects** every violation rather than failing fast, so the LLM sees all problems at once:
+
+    ```text
+    'import' is not allowed in generated code (line 1)
+    'function definition (def)' is not allowed in generated code (line 3)
+    Last statement must be synthesize_response(...) (line 9)
+    ```
+
+    Multiple errors per regeneration round reduce the average number of LLM calls.
+  </Tab>
+</Tabs>
+
+## Markdown-fence stripping
+
+LLMs love to wrap code in triple-backtick fences, even when the prompt explicitly says not to. Astra normalizes that defensively before parsing via `_strip_fences()` ([ast_parser.py:48](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L48)):
+
+```python
+def _strip_fences(code: str) -> str:
+    lines = code.strip().splitlines()
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+```
+
+A second, more aggressive extractor — `Sandbox._extract_code()` at [sandbox.py:683](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/sandbox.py#L683) — runs upstream and handles fenced blocks anywhere in the response plus surrounding prose ("Here is the code:"). Together they make the pipeline tolerant of formatting drift across model versions.
+
+## The six validation checks
+
+The `_ASTValidator.run()` method ([ast_parser.py:297](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L297)) runs these passes in order:
+
+<CardGroup cols={2}>
+  <Card title="banned nodes" icon="ban">
+    Walks every node and flags anything in `_BANNED_NODES` — imports, defs, try/except, while, await, comprehensions, walrus, match.
+  </Card>
+  <Card title="top-level" icon="list">
+    Only `Assign`, `AugAssign`, `AnnAssign`, `Expr`, `If`, `For`, `Pass` may appear at module scope.
+  </Card>
+  <Card title="nesting depth" icon="layer-group">
+    `if` and `for` nest to a maximum depth of 2. `elif` chains do not count as nesting because Python models them as `If` inside `orelse`.
+  </Card>
+  <Card title="non-empty for-bodies" icon="circle-exclamation">
+    Empty or `pass`-only `for` bodies are rejected — they would compile to a broken `LOOP_BODY` / `LOOP_BACK` cycle.
+  </Card>
+  <Card title="safe calls" icon="phone-slash">
+    Bare names against `_BANNED_FUNCTIONS` (eval, exec, open, getattr...), attribute calls against `_BANNED_MODULES` (os, subprocess, requests, pickle...), and any bare name not in `_ALLOWED_BUILTINS`.
+  </Card>
+  <Card title="terminal synthesize" icon="flag-checkered">
+    The last top-level statement **must** be a call to `synthesize_response(...)`. Without it the workflow has no `RespondNode` and the executor would never halt.
+  </Card>
+</CardGroup>
+
+## Whitelist-only philosophy
+
+Every allowed construct is enumerated by name. Adding a new node type (say, `match` statements) requires:
+
+1. A change in `_BANNED_NODES` or `_ALLOWED_TOP_LEVEL` in [ast_parser.py](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py).
+2. A handler in `WorkflowBuilder._HANDLERS` ([workflow_builder.py:455](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/workflow_builder.py#L455)).
+3. A matching dispatch path in `workflow_executor.run_workflow()`.
+
+There is no config flag, no "permissive mode", no environment toggle. This is intentional: the whitelist is the contract.
+
+<Tip>
+The `_ASTValidator` is wrapped in a try/except that converts any internal error into a single `ValidationError` ([ast_parser.py:280](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L280)). A bug in the validator never crashes the sandbox.
+</Tip>
+
+## Sample rejection
+
+Given this plan:
+
+```python
+try:
+    price = Macro.fetch_price(ticker="AAPL")
+except Exception:
+    price = None
+synthesize_response(price)
+```
+
+`parse_code()` succeeds because the snippet is valid Python. Then `validate()` returns:
+
+```python
+[
+  ValidationError(
+    message="'try/except block' is not allowed in generated code",
+    line=1, col=0, node_type="try/except block",
+  ),
+]
+```
+
+That single message is appended to the regeneration prompt and the planner produces a tool-call without exception handling. There is no second chance to smuggle the construct through — the same check fires every iteration.
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="DSL syntax" icon="code" href="/compiler/dsl-syntax">
+    The full allow-list and ban-list the validator enforces.
+  </Card>
+  <Card title="Execution graph" icon="share-nodes" href="/compiler/execution-graph">
+    What happens after the AST is approved.
+  </Card>
+</CardGroup>

@@ -1,0 +1,102 @@
+{% from "_macros.j2" import signature_block, param_field, response_field, raises_block, source_link %}
+---
+title: "{{ module.name }}"
+description: "API reference for `{{ module.qualname }}`."
+---
+
+import ReferenceBanner from '/snippets/reference-banner.mdx';
+
+<ReferenceBanner />
+
+# {{ module.name }}
+
+`{{ module.qualname }}`
+
+{{ module.description }}
+
+{% if module.classes %}
+## Classes
+
+{% for cls in module.classes %}
+## {{ cls.name }} {{ source_link(cls.source_url) }}
+
+`{{ cls.qualname }}`
+
+{{ cls.description }}
+
+{% if cls.init %}
+<Expandable title="Constructor">
+
+{{ signature_block(cls.init) }}
+
+{% if cls.init.params %}
+{% for p in cls.init.params %}
+{{ param_field(p) }}
+{% endfor %}
+{% endif %}
+
+{{ raises_block(cls.init) }}
+
+</Expandable>
+{% endif %}
+
+{% if cls.methods %}
+<Expandable title="Methods">
+
+{% for m in cls.methods %}
+#### {{ m.name }} {{ source_link(m.source_url) }}
+
+{{ signature_block(m) }}
+
+{{ m.description }}
+
+{% if m.params %}
+{% for p in m.params %}
+{{ param_field(p) }}
+{% endfor %}
+{% endif %}
+
+{{ response_field(m) }}
+{{ raises_block(m) }}
+
+{% endfor %}
+
+</Expandable>
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if module.functions %}
+## Functions
+
+{% for func in module.functions %}
+### {{ func.name }} {{ source_link(func.source_url) }}
+
+`{{ func.qualname }}`
+
+{{ signature_block(func) }}
+
+{{ func.description }}
+
+{% if func.params %}
+**Parameters**
+
+{% for p in func.params %}
+{{ param_field(p) }}
+{% endfor %}
+{% endif %}
+
+{{ response_field(func) }}
+{{ raises_block(func) }}
+
+{% endfor %}
+{% endif %}
+
+{% if module.submodules %}
+## Submodules
+
+{% for sm in module.submodules %}
+- `{{ sm }}`
+{% endfor %}
+{% endif %}

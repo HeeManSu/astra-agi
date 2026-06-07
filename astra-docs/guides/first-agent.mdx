@@ -1,0 +1,165 @@
+---
+title: "Build your first agent"
+description: "A deeper walkthrough of every Agent constructor parameter."
+icon: "rocket"
+---
+
+import ProviderTabs from '/snippets/provider-tabs.mdx';
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework astra-runtime`
+- One of: `GEMINI_API_KEY`, or AWS credentials with Bedrock model access (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- Read the [quickstart](/quickstart) first if you have never run an Astra agent before
+</Note>
+
+The quickstart got an agent running in five minutes. This guide opens the hood. You will build the same kind of agent and learn what each `Agent` constructor parameter actually controls so you can pick the right defaults for your own application.
+
+## The full Agent signature
+
+The `Agent` class is defined in [agents/agent.py:53](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L53). Every parameter has a default except `model`, `instructions`, and `name`.
+
+```python
+Agent(
+    model,                  # required: a Model instance
+    instructions,           # required: persona + task contract for the LLM
+    name,                   # required: shown in traces and the playground UI
+    id=None,                # auto-generated from name if omitted
+    description=None,       # surfaced to a parent Team when delegating
+    tools=None,             # list of @bind_tool functions or MCPToolkit instances
+    code_mode=True,         # generate Python and run it in a sandbox
+    storage=None,           # StorageClient for threads + history
+    rag_pipeline=None,      # Rag instance for knowledge retrieval
+    memory=None,            # Memory(num_history_turns=...) configuration
+    max_retries=3,          # retries for transient model failures
+    temperature=0.0,        # sampling temperature for the model
+    max_tokens=None,        # cap on tokens per response
+    stream_enabled=False,   # default to .invoke(); flip to True to stream
+    middlewares=None,       # INPUT/OUTPUT guardrails
+)
+```
+
+## A complete working example
+
+This file runs end-to-end. Save it as `first_agent.py`.
+
+<ProviderTabs />
+
+```python first_agent.py
+import asyncio
+from pydantic import BaseModel, Field
+
+from framework.agents import Agent
+from framework.tool import ToolSpec, bind_tool
+from framework.models.google import Gemini
+
+
+class WeatherInput(BaseModel):
+    city: str = Field(..., description="City name, e.g. 'Berlin'")
+    units: str = Field("metric", description="'metric' or 'imperial'")
+
+
+class WeatherOutput(BaseModel):
+    city: str
+    temperature_c: float
+    conditions: str
+
+
+GET_WEATHER_SPEC = ToolSpec(
+    name="get_weather",
+    description="Look up the current weather for a city.",
+    input_schema=WeatherInput,
+    output_schema=WeatherOutput,
+    examples=[{
+        "input": {"city": "Berlin", "units": "metric"},
+        "output": {"city": "Berlin", "temperature_c": 14.5, "conditions": "cloudy"},
+    }],
+)
+
+
+@bind_tool(GET_WEATHER_SPEC)
+async def get_weather(input: WeatherInput) -> WeatherOutput:
+    """Return a stubbed weather reading. Swap this for a real API call."""
+    return WeatherOutput(city=input.city, temperature_c=14.5, conditions="cloudy")
+
+
+agent = Agent(
+    name="Weather Concierge",
+    description="Answers casual weather questions for travellers.",
+    model=Gemini("gemini-2.5-flash"),
+    instructions=(
+        "You are a friendly concierge. Always confirm the city, then call "
+        "get_weather exactly once. Format the response in one short sentence."
+    ),
+    tools=[get_weather],
+    code_mode=True,
+    temperature=0.0,
+    max_retries=3,
+)
+
+
+async def main():
+    reply = await agent.invoke("What is the weather in Berlin?")
+    print(reply)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Why each parameter matters
+
+**`model`** picks the LLM that generates code in code mode. Gemini Flash is the cheapest and fastest production option; Bedrock Claude is the strongest reasoner. Provider-specific tuning (region, safety settings) is configured on the model instance, not the agent.
+
+**`instructions`** is the prompt that shapes behaviour for *every* call. Keep it short, declarative, and tool-aware. The framework already injects a system prompt about code-mode mechanics, so do not waste tokens repeating "you can call tools."
+
+**`name`** appears in observability traces and the [playground](/playground/overview). It is also what a parent `Team` uses for delegation. Use a human-readable proper noun.
+
+**`description`** is only consulted when this agent is a `TeamMember`: a parent team's router reads it to decide whether to delegate. If the agent runs standalone, you can omit it.
+
+**`tools`** accepts `@bind_tool`-decorated functions (see [Write a custom tool](/guides/custom-tool)) and `MCPToolkit` instances (see [Connect an MCP toolkit](/guides/mcp-toolkit)). Both end up in the same semantic layer that the LLM uses to generate code.
+
+**`code_mode=True`** is the default and the recommended setting. The agent generates a small Python program that calls your tools, then executes it in a sandbox. This produces deterministic multi-step plans without the brittleness of JSON tool-call protocols. See [Concepts: Code mode](/concepts/code-mode).
+
+**`storage`** is required only if you want threads, history, or replay. Pass a `StorageClient` wrapping `MongoDBStorage` or `LibSQLStorage`. Without storage, every `.invoke()` is stateless.
+
+**`memory`** controls how much prior conversation is replayed on each call: `Memory(add_history_to_messages=True, num_history_turns=5)` injects the last 5 turns. Requires `storage`. See [Add conversational memory](/guides/conversational-memory).
+
+**`temperature=0.0`** is the right default for tool-using agents: code generation should be deterministic. Crank it up only for creative-writing personas.
+
+**`max_retries=3`** retries transient model errors (rate limits, network blips) with exponential backoff. Keep the default unless you have a strict latency budget.
+
+**`max_tokens=None`** lets the model decide. Set it for cost ceilings.
+
+**`middlewares`** runs at `INPUT` and `OUTPUT` stages. Use it for PII redaction, prompt-injection guards, or response shaping. See [Write custom middleware](/guides/custom-middleware).
+
+<Tip>
+Order of expense: `model` choice dominates cost, then `max_tokens`, then `num_history_turns` (history is replayed on every call). Tune in that order.
+</Tip>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the script">
+    `python first_agent.py` should print something like: `The current weather in Berlin is cloudy at 14.5 degrees Celsius.`
+  </Step>
+  <Step title="Check the trace">
+    If observability is enabled, open `http://localhost:8000/observability/traces` and find the span tree showing `agent.invoke` -> `sandbox.run` -> `tool.get_weather`.
+  </Step>
+  <Step title="Confirm tool was called once">
+    The generated code should call `get_weather` exactly once. If it called it twice, tighten your `instructions`.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Write a custom tool" icon="screwdriver-wrench" href="/guides/custom-tool">
+    Pydantic-typed tools with full validation.
+  </Card>
+  <Card title="Compose a multi-agent team" icon="users-line" href="/guides/multi-agent-team">
+    Combine specialist agents under a router.
+  </Card>
+</CardGroup>

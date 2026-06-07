@@ -1,0 +1,174 @@
+---
+title: "Compose a multi-agent team"
+description: "Combine specialist agents into a Team that delegates work."
+icon: "users-line"
+---
+
+import ProviderTabs from '/snippets/provider-tabs.mdx';
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework`
+- A provider key (`GEMINI_API_KEY` recommended)
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+A `Team` is a router-shaped agent: it owns a model and an instructions block, but its "tools" are entire agents. The team's LLM generates Python code that delegates subtasks to its members and stitches the results together. This guide builds a two-specialist team (researcher + writer) and shows how the delegation surfaces in traces.
+
+The team contract is defined in [team/team.py:125](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/team/team.py#L125), and execution flows through [team/team.py:406](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/team/team.py#L406).
+
+## A complete two-agent team
+
+Save as `research_team.py`. The researcher owns a fact-lookup tool; the writer owns nothing because its only job is prose.
+
+<ProviderTabs />
+
+```python research_team.py
+import asyncio
+from pydantic import BaseModel, Field
+
+from framework.agents import Agent
+from framework.team import Team, TeamMember
+from framework.tool import ToolSpec, bind_tool
+from framework.models.google import Gemini
+
+
+class FactInput(BaseModel):
+    topic: str = Field(..., description="Subject to look up")
+
+
+class FactOutput(BaseModel):
+    topic: str
+    facts: list[str]
+
+
+LOOKUP_FACTS_SPEC = ToolSpec(
+    name="lookup_facts",
+    description="Return three short factual bullet points about a topic.",
+    input_schema=FactInput,
+    output_schema=FactOutput,
+    examples=[{
+        "input": {"topic": "octopus"},
+        "output": {"topic": "octopus", "facts": ["Three hearts.", "Eight arms.", "Excellent problem solvers."]},
+    }],
+)
+
+
+@bind_tool(LOOKUP_FACTS_SPEC)
+async def lookup_facts(input: FactInput) -> FactOutput:
+    """Stubbed knowledge base. Replace with a real search."""
+    return FactOutput(topic=input.topic, facts=[
+        f"{input.topic} is widely studied.",
+        f"There are many varieties of {input.topic}.",
+        f"{input.topic} appears in popular culture.",
+    ])
+
+
+model = Gemini("gemini-2.5-flash")
+
+researcher = Agent(
+    name="Researcher",
+    description="Looks up factual information using lookup_facts.",
+    instructions="Use lookup_facts to retrieve facts. Return the raw FactOutput.",
+    model=model,
+    tools=[lookup_facts],
+)
+
+writer = Agent(
+    name="Writer",
+    description="Turns a list of facts into a short, engaging paragraph.",
+    instructions="Given facts, write one short paragraph. No bullet points.",
+    model=model,
+    tools=[],
+)
+
+team = Team(
+    id="research-team",
+    name="Research Team",
+    description="Researches a topic and writes a short summary.",
+    model=model,
+    members=[
+        TeamMember(agent=researcher, name="Researcher"),
+        TeamMember(agent=writer, name="Writer"),
+    ],
+    instructions=(
+        "1. Ask the Researcher for facts about the requested topic.\n"
+        "2. Pass those facts to the Writer.\n"
+        "3. Return the Writer's paragraph verbatim."
+    ),
+)
+
+
+async def main():
+    reply = await team.invoke("Write a short paragraph about octopuses.")
+    print(reply)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## How delegation works
+
+When `team.invoke()` is called the team's LLM is shown stubs for every member agent and generates code roughly like:
+
+```python
+facts = researcher.lookup_facts(FactInput(topic="octopuses"))
+paragraph = writer.invoke("Turn these facts into one paragraph: " + str(facts))
+synthesize_response({"paragraph": paragraph})
+```
+
+The sandbox executes that, which causes:
+
+1. A new `agent.invoke` span for the Researcher.
+2. A new `agent.invoke` span for the Writer.
+3. Both nested under the top-level `team.invoke` span.
+
+If you open the trace at `/observability/traces/<trace_id>` you will see a tree, not a flat list. The `resource_type` field on each thread is set to `"team"` in [team/team.py:449](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/team/team.py#L449), and to `"agent"` for the sub-runs.
+
+## Nested teams and `flat_members`
+
+You can put a `Team` inside another `Team`'s `members=` list. The runtime walks nested structures via the `flat_members` property defined in [team/team.py:367](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/team/team.py#L367), which returns a flat list of `TeamMember` objects whose `.agent` is always an `Agent` (never a `Team`). The runtime uses this when syncing tools at startup so MCP servers and local tools nested deep inside the hierarchy still register.
+
+```python
+inner_team = Team(id="inner", name="Inner", description="...", model=model, members=[researcher, writer], instructions="...")
+outer_team = Team(id="outer", name="Outer", description="...", model=model, members=[inner_team], instructions="Delegate everything to inner_team.")
+
+print(len(outer_team.members))        # 1 (inner_team)
+print(len(outer_team.flat_members))   # 2 (researcher + writer)
+```
+
+<Warning>
+**Common pitfall: overlapping tools.** If two members own a tool with the same name, the team's code generator has to disambiguate them via the member's namespace (`researcher.lookup_facts` vs `writer.lookup_facts`). It usually picks correctly, but the cleanest pattern is one tool per concept owned by exactly one member. If the same tool is genuinely shared, define it once and hand the same `@bind_tool` reference to both agents.
+</Warning>
+
+<Tip>
+The `description` on each member (or on the `TeamMember` wrapper, lines 70-72) is what the team's router model uses to choose. Make descriptions task-oriented ("Looks up factual information") not personality-oriented ("Is helpful and friendly").
+</Tip>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the script">
+    `python research_team.py` should print a single paragraph about octopuses.
+  </Step>
+  <Step title="Inspect the trace tree">
+    Open the trace UI. The root span is `team.invoke`. It should contain one `agent.invoke` span for the Researcher (with a `tool.lookup_facts` child) and one for the Writer.
+  </Step>
+  <Step title="Confirm thread ownership">
+    Run `await storage.list_threads(resource_type="team")` and you should see the top-level thread tagged to the team, with child threads tagged to each agent.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Stream agent and team output" icon="bolt" href="/guides/streaming">
+    Use `team.stream()` to see delegation events live.
+  </Card>
+  <Card title="Trace and replay a run" icon="magnifying-glass" href="/guides/tracing-and-replay">
+    Drill into the span tree when a delegation fails.
+  </Card>
+</CardGroup>

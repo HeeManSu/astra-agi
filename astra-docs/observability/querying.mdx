@@ -1,0 +1,162 @@
+---
+title: "Querying"
+description: "REST endpoints and Python helpers for reading traces, spans, and logs."
+icon: "magnifying-glass"
+---
+
+Astra exposes two equivalent query surfaces for observability data: a REST API under `/observability/*` (mounted by `AstraServer`) and a small set of pure-Python coroutines you can call directly against any `StorageBackend`. Both layers share the same model classes and the same system-trace filter, so a query that returns N rows over HTTP will return the same N rows in-process.
+
+Source: [query/traces.py:32](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/query/traces.py#L32), [query/metrics.py](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/query/metrics.py).
+
+## REST endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/observability/traces` | List traces with pagination. |
+| GET | `/observability/traces/{trace_id}` | One trace plus all its spans. |
+| GET | `/observability/traces/{trace_id}/logs` | Logs scoped to a trace. |
+| GET | `/observability/metrics` | Aggregated snapshot. |
+
+All routes require a Bearer token when auth is enabled. They return `503 Observability not initialized` when `TelemetryConfig(enabled=False)`.
+
+## Python helpers
+
+<AccordionGroup>
+  <Accordion title="list_traces(storage, limit=50, offset=0, include_system=False)" icon="list">
+    Returns `list[Trace]`. Over-fetches and filters when `include_system=False` so the post-filter result still honours `limit`. Source: [traces.py:32](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/query/traces.py#L32).
+  </Accordion>
+  <Accordion title="get_trace_with_spans(storage, trace_id)" icon="diagram-project">
+    Returns `TraceWithSpans(trace, spans)` or `None`. Performs two storage reads: `get_trace()` and `get_spans_for_trace()`.
+  </Accordion>
+  <Accordion title="get_logs_for_trace(storage, trace_id, limit=500)" icon="file-lines">
+    Returns the storage backend's logs for a trace, ordered by timestamp.
+  </Accordion>
+  <Accordion title="compute_metrics(storage, hours=24, max_traces=500, include_system=False, top_n=8)" icon="chart-line">
+    Returns a `MetricsSnapshot`. See [metrics](/observability/metrics) for fields.
+  </Accordion>
+</AccordionGroup>
+
+## Listing traces
+
+<CodeGroup>
+```bash curl
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/observability/traces?limit=20&offset=0" \
+  | jq '.traces[] | {trace_id, name, status, duration_ms, total_tokens}'
+```
+
+```python python
+from observability import list_traces
+
+traces = await list_traces(engine.storage, limit=20, offset=0)
+for t in traces:
+    print(t.trace_id, t.name, t.status, t.duration_ms, t.total_tokens)
+```
+</CodeGroup>
+
+Pass `include_system=true` (or `True`) to include `server.startup` and friends. By default the system filter keeps user dashboards clean.
+
+## Trace detail with spans
+
+<CodeGroup>
+```bash curl
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/observability/traces/$TRACE_ID" \
+  | jq '{trace, spans: (.spans | length)}'
+```
+
+```python python
+from observability import get_trace_with_spans
+
+result = await get_trace_with_spans(engine.storage, trace_id)
+if result is None:
+    raise SystemExit("trace not found")
+
+print(result.trace.name, result.trace.status, result.trace.duration_ms)
+for s in result.spans:
+    print(f"  {s.kind} {s.name} {s.duration_ms}ms status={s.status}")
+```
+</CodeGroup>
+
+The HTTP response is `{"trace": Trace, "spans": Span[]}`. Spans are ordered by `start_time` ascending so client code can render the tree by walking `parent_span_id`.
+
+## Trace logs
+
+<CodeGroup>
+```bash curl
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/observability/traces/$TRACE_ID/logs?limit=200" \
+  | jq '.logs[] | {level, message, span_id}'
+```
+
+```python python
+from observability.query.traces import get_logs_for_trace
+
+logs = await get_logs_for_trace(engine.storage, trace_id, limit=200)
+for log in logs:
+    print(log.timestamp, log.level, log.message)
+```
+</CodeGroup>
+
+Logs are filtered at write time, not read time: `DEBUG` events only land on disk when `TelemetryConfig(debug=True)` was set at server boot. If you cannot find a debug log, check that flag first.
+
+## Metrics
+
+<CodeGroup>
+```bash curl
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/observability/metrics?hours=24" \
+  | jq '{request_count, latency_p95_ms, avg_ttft_ms, tool_error_rate}'
+```
+
+```python python
+from observability.query.metrics import compute_metrics
+
+snap = await compute_metrics(engine.storage, hours=24, max_traces=500)
+print(snap.request_count, snap.latency_p95_ms, snap.avg_ttft_ms)
+```
+</CodeGroup>
+
+## Filtering and pagination patterns
+
+<Steps>
+  <Step title="Newest first">
+    `list_traces` defers ordering to the storage backend, which returns `start_time DESC`. Use `offset` to page back through time. There is no cursor API; if the dataset is huge, prefer compute_metrics over scrolling.
+  </Step>
+  <Step title="System filter">
+    Set `include_system=True` only when you need operational visibility. By default operational traces are excluded from both `list_traces` and `compute_metrics`.
+  </Step>
+  <Step title="In-flight traces">
+    Running traces appear with `status=RUNNING` and `duration_ms=None`. Filter them out before computing percentiles.
+  </Step>
+</Steps>
+
+<Tip>
+For a quick debug session, point a script at `engine.storage` (you can get the engine via `from observability import get_engine`) and call `list_traces` directly. It avoids the round-trip through FastAPI and is closer to the raw storage shape.
+</Tip>
+
+<Warning>
+The REST layer assumes the engine was registered via the `AstraServer` lifespan. If you mount `observability_router` on a non-Astra FastAPI app, you must set `app.state.observability = engine` yourself, otherwise every query returns 503.
+</Warning>
+
+## Token-aware queries
+
+Token counts live on the trace, not on a separate billing record. To get "tokens used by agent X in the last hour" without scanning every span:
+
+```python
+snap = await compute_metrics(engine.storage, hours=1)
+for item in snap.top_agents:
+    print(item.name, item.count, "traces")
+# tokens are already aggregated on trace.total_tokens; sum filtered list_traces
+```
+
+For richer slicing (per-thread, per-user), pull a window of traces and aggregate locally; the snapshot only exposes top-N facets.
+
+<CardGroup cols={2}>
+  <Card title="Metrics" icon="chart-line" href="/observability/metrics">
+    Aggregations computed on top of these queries.
+  </Card>
+  <Card title="Integrations" icon="puzzle-piece" href="/observability/integrations">
+    Forward query results to other systems.
+  </Card>
+</CardGroup>

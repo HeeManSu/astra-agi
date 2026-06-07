@@ -1,0 +1,46 @@
+---
+title: "API Reference"
+description: "Auto-generated reference for astra-framework, astra-runtime, and astra-observability."
+---
+
+import ReferenceBanner from '/snippets/reference-banner.mdx';
+
+<ReferenceBanner />
+
+Astra ships as three PyPI packages. Each one has its own reference section
+below. Every page in this section is generated from the Google-style
+docstrings in the published source; to fix a typo or expand an explanation,
+edit the source rather than the MDX.
+
+<CardGroup cols={3}>
+  <Card title="astra-framework" icon="cube" href="/reference/framework">
+    Agents, teams, tools, models, memory, storage, middleware, RAG, and code
+    mode. The compiler and execution engine that turns a Python program into
+    a typed multi-agent graph.
+  </Card>
+  <Card title="astra-runtime" icon="server" href="/reference/runtime">
+    The FastAPI server, route registry, auth, sync primitives, and agent
+    registry that host a compiled Astra app behind an HTTP and WebSocket
+    surface.
+  </Card>
+  <Card title="astra-observability" icon="chart-line" href="/reference/observability">
+    Tracing engine, OpenTelemetry instrumentation, storage backends, query
+    layer, streaming, and debug helpers.
+  </Card>
+</CardGroup>
+
+## How these pages are generated
+
+The reference is rebuilt nightly (and on every push to `main` that touches
+the source or the build scripts) by
+[`scripts/build-reference.py`](https://github.com/astra-dev/astra/blob/main/astra-docs/scripts/build-reference.py).
+It uses [griffe](https://mkdocstrings.github.io/griffe/) in static mode to
+parse the source, then renders Jinja2 templates that emit Mintlify-flavoured
+MDX. The resulting changes land via an automated `docs/reference-refresh`
+pull request.
+
+<Note>
+  See the [contributing guide](/contributing) for the docstring style we
+  expect (Google-style, with `Args`, `Returns`, `Raises`, and `Examples`
+  sections where relevant).
+</Note>

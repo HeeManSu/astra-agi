@@ -1,0 +1,171 @@
+---
+title: "DSL syntax"
+description: "The restricted Python dialect that planner LLMs are allowed to emit."
+icon: "code"
+---
+
+<Note>
+ReAct loops let a model emit any token, including tool-calls hidden in prose. Astra inverts that contract: the planner LLM writes **Python** that must parse, validate, and compile against a tiny whitelisted DSL before a single tool is invoked.
+</Note>
+
+## The DSL at a glance
+
+Astra's planner is constrained to a sub-language of Python that the compiler can lower into a typed graph. Anything outside that sub-language is rejected at compile time and the LLM is asked to regenerate.
+
+| Category         | Allowed                                                  | Banned                                                            |
+| ---------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
+| Statements       | `Assign`, `AugAssign`, `AnnAssign`, `Expr`, `If`, `For`, `Pass` | `def`, `class`, `lambda`, `try/except`, `with`, `while`, `async def` |
+| Expressions      | `Compare`, `BoolOp`, `BinOp`, `Subscript`, `Attribute`, `Call` | `await`, `yield`, walrus `:=`, comprehensions, generators        |
+| Control flow     | `if / elif / else`, `for` (single target or tuple)       | `while`, `break`, `continue`, `match`, `assert`, `raise`         |
+| Imports & scope  | none                                                     | `import`, `from ... import`, `global`, `nonlocal`, `del`         |
+| Builtins         | a 24-name whitelist (see below)                          | `eval`, `exec`, `compile`, `open`, `getattr`, `__import__`, ...  |
+| Tool dispatch    | `Agent.tool(...)` or `Team.Agent.tool(...)`              | dynamic dispatch, reflection, dotted chains on state             |
+
+The full ban list lives in `_BANNED_NODES` and the friendly names in `_BANNED_NAMES`. See [ast_parser.py:89](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L89).
+
+## Why a DSL instead of free Python
+
+<CardGroup cols={2}>
+  <Card title="Determinism" icon="lock">
+    Every legal program lowers to a finite, static graph. Two runs of the same plan visit the same nodes in the same order.
+  </Card>
+  <Card title="Replayability" icon="clock-rotate-left">
+    Because there is no hidden control flow (no exceptions, no `while`, no generators), the journal of a run uniquely identifies the path taken.
+  </Card>
+  <Card title="Security" icon="shield-halved">
+    No imports, no filesystem, no network. Modules like `os`, `subprocess`, `pickle`, `httpx` are listed in `_BANNED_MODULES` and rejected at parse time.
+  </Card>
+  <Card title="Static graph extraction" icon="diagram-project">
+    The compiler can extract the full DAG before any tool runs, so we can render, validate reachability, and bound execution before execution begins.
+  </Card>
+</CardGroup>
+
+## Allowed constructs
+
+The validator accepts only these top-level statements (`_ALLOWED_TOP_LEVEL` in [ast_parser.py:166](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L166)):
+
+- `Assign` and `AnnAssign` — `name = expr` or `name: int = expr`. Targets must be simple names.
+- `AugAssign` — `x += 1`, `total -= value`. Lowered to a `TransformNode` with `x = x + (value)`.
+- `Expr` — a bare expression statement. Used for tool calls and `synthesize_response(...)`.
+- `If` — `if / elif / else` with arbitrary `Compare` and `BoolOp` tests.
+- `For` — `for item in collection:` or `for (a, b) in pairs:`. The body cannot be empty or only `pass`.
+- `Pass` — silently skipped by the workflow builder.
+
+Inside expressions you may use comparisons (`==`, `<`, `in`), boolean operators (`and`, `or`, `not`), arithmetic, subscript (`d["key"]`, `items[0]`), and dotted attribute access on state variables.
+
+### Whitelisted builtins
+
+Only these 24 names are callable as bare functions ([ast_parser.py:190](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L190)):
+
+```text
+len  range  enumerate  zip  map  filter
+list  dict  set  tuple  frozenset
+str  int  float  bool
+sum  min  max  abs  round  sorted  reversed
+all  any  isinstance  type  print
+synthesize_response  call_tool
+```
+
+Any other bare name call is flagged as `Unknown function call`. This means the LLM cannot smuggle in `os.system` via a local rebinding because the rebinding itself (the import) was already rejected.
+
+## Banned constructs
+
+Pulled directly from `_BANNED_NODES` in [ast_parser.py:89](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L89):
+
+<AccordionGroup>
+  <Accordion title="Imports">
+    `ast.Import`, `ast.ImportFrom`. No module access at all — the runtime injects `call_tool` and `synthesize_response` directly into the eval namespace.
+  </Accordion>
+  <Accordion title="Definitions">
+    `ast.FunctionDef`, `ast.AsyncFunctionDef`, `ast.ClassDef`, `ast.Lambda`. The planner cannot author abstractions; everything is inlined.
+  </Accordion>
+  <Accordion title="Exception handling">
+    `ast.Try`, `ast.Raise`. Errors are surfaced via journal entries, not unwound through Python. This keeps the graph linear.
+  </Accordion>
+  <Accordion title="Unsafe loops & async">
+    `ast.While`, `ast.AsyncFor`, `ast.Await`, `ast.AsyncWith`. Only counted `for` loops, so termination is guaranteed by collection length and `max_iterations`.
+  </Accordion>
+  <Accordion title="Generators & comprehensions">
+    `ast.Yield`, `ast.YieldFrom`, `ast.GeneratorExp`, `ast.ListComp`, `ast.DictComp`, `ast.SetComp`. Comprehensions would hide loop bodies from the graph builder.
+  </Accordion>
+  <Accordion title="Scope manipulation & introspection">
+    `ast.Global`, `ast.Nonlocal`, `ast.Delete`, plus `getattr`, `setattr`, `vars`, `globals`, `locals`, `__import__` in `_BANNED_FUNCTIONS` ([ast_parser.py:168](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/ast_parser.py#L168)).
+  </Accordion>
+  <Accordion title="Match, walrus, assertions, break/continue">
+    `ast.Match`, `ast.NamedExpr`, `ast.Assert`, `ast.Break`, `ast.Continue`. All would introduce control-flow edges that the workflow builder does not model.
+  </Accordion>
+</AccordionGroup>
+
+## Tool-call form
+
+A "real" tool dispatch must be an **attribute call on a bare Name**, e.g. `Inventory.check_stock(...)` or `Team.Macro.fetch_price(...)`. The workflow builder uses `_is_tool_call()` to require that the root of the attribute chain is an `ast.Name`, not an expression ([workflow_builder.py:107](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/workflow_builder.py#L107)).
+
+```python
+price = Macro.fetch_price(ticker="AAPL")  # ActionNode — tool dispatch
+total = price["close"] * shares           # TransformNode — pure expression
+name = price.get("symbol", "AAPL")        # TransformNode — chained call on state
+```
+
+The last line is **not** an action because `price` is a state variable, not a Name referring to an agent. The builder folds it into a `TransformNode` so the executor evaluates it inline with no IPC ([workflow_builder.py:303](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/workflow_builder.py#L303)).
+
+The qualified tool name keeps only the last two dotted segments — `Team.Macro.fetch_price` becomes `Macro.fetch_price` because the runtime tool map is keyed `{agent_id}.{tool_slug}` ([workflow_builder.py:96](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/compiler/workflow_builder.py#L96)).
+
+## Worked example
+
+<Tabs>
+  <Tab title="Allowed">
+
+```python
+tickers = ["AAPL", "MSFT", "GOOG"]
+results = {}
+
+for t in tickers:
+    quote = Macro.fetch_price(ticker=t)
+    if quote["change_pct"] > 0:
+        results[t] = quote["close"]
+    else:
+        results[t] = None
+
+summary = {
+    "gained": [k for k, v in results.items() if v is not None],
+    "total": len(results),
+}
+synthesize_response(summary)
+```
+
+Compiles cleanly: one `LoopNode`, one `BranchNode`, two `ActionNode`s (the two `results[t] = ...` assignments are `TransformNode`s), and one `RespondNode`.
+
+  </Tab>
+  <Tab title="Rejected">
+
+```python
+import os                              # Import — banned
+def fetch(t):                          # FunctionDef — banned
+    try:                               # Try — banned
+        return Macro.fetch_price(t)
+    except Exception:
+        return None
+while True:                            # While — banned
+    pass
+synthesize_response("ok")
+```
+
+The validator returns six `ValidationError`s (one per banned construct) before the workflow builder ever runs.
+
+  </Tab>
+</Tabs>
+
+<Warning>
+The summary block in the allowed example is illustrative — actual list comprehensions are banned. Replace with a `for` loop that appends. The validator catches this if you try.
+</Warning>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="AST validator" icon="shield-check" href="/compiler/ast-validator">
+    Two-step pipeline that enforces the rules above.
+  </Card>
+  <Card title="Execution graph" icon="share-nodes" href="/compiler/execution-graph">
+    How validated DSL programs become typed node graphs.
+  </Card>
+</CardGroup>

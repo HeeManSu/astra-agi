@@ -1,0 +1,59 @@
+---
+title: "astra-framework"
+description: "Reference for the compiler, agents, teams, tools, models, memory, storage, middleware, RAG, and code mode."
+---
+
+import ReferenceBanner from '/snippets/reference-banner.mdx';
+
+<ReferenceBanner />
+
+`astra-framework` is the core package. It compiles a Python program written
+against the Astra primitives into a typed multi-agent graph and provides the
+runtime primitives that the [runtime](/reference/runtime) package then hosts.
+
+Install it with:
+
+```bash
+pip install astra-framework
+```
+
+## Submodules
+
+<CardGroup cols={2}>
+  <Card title="agents" icon="robot" href="/reference/framework/agents">
+    The `Agent` base class, agent configuration, and lifecycle hooks.
+  </Card>
+  <Card title="team" icon="users" href="/reference/framework/team">
+    `Team` orchestration: coordinator, parallel, sequential, and hierarchical
+    topologies.
+  </Card>
+  <Card title="tool" icon="wrench" href="/reference/framework/tool">
+    The `@tool` decorator, `Tool` base class, and tool-result schemas.
+  </Card>
+  <Card title="models" icon="brain" href="/reference/framework/models">
+    Model adapters for OpenAI, Anthropic, Google, Bedrock, Azure, and
+    self-hosted backends.
+  </Card>
+  <Card title="memory" icon="database" href="/reference/framework/memory">
+    Short-term and long-term memory backends and the `Memory` interface.
+  </Card>
+  <Card title="storage" icon="hard-drive" href="/reference/framework/storage">
+    Pluggable session, message, and artifact storage backends.
+  </Card>
+  <Card title="middleware" icon="layer-group" href="/reference/framework/middleware">
+    Pre/post hooks, guardrails, retries, and cost-budgeting middleware.
+  </Card>
+  <Card title="rag" icon="book" href="/reference/framework/rag">
+    Retrievers, chunkers, embedders, and `RAGPipeline`.
+  </Card>
+  <Card title="code_mode" icon="code" href="/reference/framework/code_mode">
+    Code-execution sandbox and the `CodeAgent` integration.
+  </Card>
+</CardGroup>
+
+<Note>
+  Pages under this section are auto-generated. If a class or method is
+  missing, it likely lacks a docstring or is not exported in `__all__`.
+  Run `python astra-docs/scripts/build-reference.py --package framework
+  --check` locally to see the current gaps.
+</Note>

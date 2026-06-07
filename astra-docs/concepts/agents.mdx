@@ -1,0 +1,141 @@
+---
+title: "Agents"
+description: "The Agent primitive: constructor parameters, lifecycle, and public surface."
+icon: "robot"
+---
+
+An `Agent` is Astra's smallest executable unit: a model, an instruction string, a name, and (usually) a set of tools. Agents own no infrastructure at construction time — model clients, storage handles, and RAG resources are lazy. The constructor just records configuration; the first call to `.invoke()` is what spins up the sandbox.
+
+```python
+from framework.agents import Agent
+from framework.models.google import Gemini
+
+agent = Agent(
+    name="Stock Analyst",
+    instructions="You analyze equities. Always cite the source of every number.",
+    model=Gemini("gemini-2.5-flash"),
+    tools=[get_stock_price, get_earnings],
+)
+
+response = await agent.invoke("How did AAPL trade last quarter?")
+```
+
+## Model providers
+
+import ProviderTabs from '/snippets/provider-tabs.mdx';
+
+<ProviderTabs />
+
+## Constructor parameters
+
+The full signature is at [agent.py:53-90](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L53).
+
+<ParamField path="model" type="Model" required={true}>
+  An instance of a model provider (`Gemini`, `Bedrock`, etc.). The same model is used for planning, code generation, and response synthesis.
+</ParamField>
+
+<ParamField path="instructions" type="str" required={true}>
+  System prompt for the agent. Becomes part of the planner context and the code-gen prompt. Be specific about expected behavior, output format, and constraints.
+</ParamField>
+
+<ParamField path="name" type="str" required={true}>
+  Human-readable name. Used in logging, the playground UI, and stub generation (sanitized into a Python identifier when emitted).
+</ParamField>
+
+<ParamField path="id" type="str | None" required={false} default="None">
+  Stable identifier. If omitted, derived from `name` as `agent-<slug>`. Provide an explicit id when you want stability across renames.
+</ParamField>
+
+<ParamField path="description" type="str | None" required={false} default="None">
+  Short description of the agent's role. Surfaced to the planner so it can distinguish agents that share tools.
+</ParamField>
+
+<ParamField path="tools" type="list[Any] | None" required={false} default="None">
+  List of `Tool` instances (from `@bind_tool`) and/or `MCPToolkit` instances. Both kinds fold into the same semantic layer.
+</ParamField>
+
+<ParamField path="code_mode" type="bool" required={false} default="True">
+  Whether to run in code mode (the compile-and-execute pipeline). Currently the only supported mode; the flag is reserved for future ReAct fallback.
+</ParamField>
+
+<ParamField path="storage" type="StorageClient | None" required={false} default="None">
+  Persistence backend for threads, messages, and observability data. See [Memory and Storage](/concepts/memory-and-storage).
+</ParamField>
+
+<ParamField path="rag_pipeline" type="Rag | None" required={false} default="None">
+  Optional `Rag` instance. When set, the agent gets an auto-generated `retrieve_evidence` tool wired to the pipeline. See [RAG](/concepts/rag).
+</ParamField>
+
+<ParamField path="memory" type="Memory | None" required={false} default="Memory()">
+  Conversation-history configuration. Defaults to including the last 5 turns. See [Memory and Storage](/concepts/memory-and-storage).
+</ParamField>
+
+<ParamField path="max_retries" type="int" required={false} default="3">
+  Maximum retry attempts for failed model requests.
+</ParamField>
+
+<ParamField path="temperature" type="float" required={false} default="0.0">
+  Sampling temperature passed to the model. Code generation uses `0.0` internally regardless of this value to keep plans deterministic.
+</ParamField>
+
+<ParamField path="max_tokens" type="int | None" required={false} default="None">
+  Per-response token cap. `None` defers to the provider default.
+</ParamField>
+
+<ParamField path="stream_enabled" type="bool" required={false} default="False">
+  Whether `.stream()` is the default invocation path. Does not affect `.invoke()`.
+</ParamField>
+
+<ParamField path="middlewares" type="list[Middleware] | None" required={false} default="None">
+  Input/output middleware pipeline. See [Middleware](/concepts/middleware).
+</ParamField>
+
+## Public methods
+
+<AccordionGroup>
+  <Accordion title="invoke(query, *, thread_id=None, timeout=None, context=None)">
+    The main entry point. Runs input middlewares, builds the semantic layer, generates code, executes the typed graph in a sandbox, runs output middlewares, persists messages, and returns the synthesized response. Source: [agent.py:515](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L515).
+  </Accordion>
+  <Accordion title="stream(query, *, thread_id=None, timeout=None, context=None)">
+    Same pipeline as `invoke`, but yields `StreamEvent` objects (`status`, `code_generated`, `tool_call`, `tool_result`, `content`, `error`, `done`) so a UI can render progress. Source: [agent.py:582](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L582).
+  </Accordion>
+  <Accordion title="ingest / ingest_batch / ingest_directory">
+    Passthrough convenience methods for `rag_pipeline`. Raise `ValueError` if no RAG pipeline is configured. See [agent.py:336](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L336).
+  </Accordion>
+  <Accordion title="build_semantic_layer(tool_definitions=None)">
+    Builds the `EntitySemanticLayer` from local tools plus any MCP toolkits. Called internally by the sandbox; expose it if you want to introspect the planner's view of the agent. See [agent.py:190](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L190).
+  </Accordion>
+  <Accordion title="get_stubs()">
+    Returns the Python stub code the code-gen LLM will be shown for this agent. Useful for debugging "why did the planner pick that tool?" See [agent.py:439](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L439).
+  </Accordion>
+  <Accordion title="get_history(thread_id)">
+    Returns the persisted conversation history for a thread. Empty list when memory or storage is not configured.
+  </Accordion>
+</AccordionGroup>
+
+## Lifecycle
+
+<Steps>
+  <Step title="Construct">
+    `Agent(...)` records configuration. No network, no DB, no model client yet.
+  </Step>
+  <Step title="First invoke">
+    `agent.invoke(query)` runs input middlewares, builds the semantic layer, generates code, compiles the graph, executes it, runs output middlewares, and persists messages.
+  </Step>
+  <Step title="Re-invoke">
+    Subsequent calls reuse the same in-memory configuration. The semantic layer is rebuilt each call (it's cheap) so tool list changes are picked up immediately.
+  </Step>
+</Steps>
+
+<Tip>
+A standalone agent is just a one-member team. For multi-agent workflows, wrap agents in a `Team` so the planner can coordinate across them — see [Teams](/concepts/teams).
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Teams" icon="users" href="/concepts/teams">
+    Composing multiple agents into a coordinated workflow.
+  </Card>
+  <Card title="Tools" icon="screwdriver-wrench" href="/concepts/tools">
+    Defining tools with `@bind_tool` and `ToolSpec`.
+  </Card>
+</CardGroup>

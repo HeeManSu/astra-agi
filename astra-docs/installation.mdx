@@ -1,0 +1,117 @@
+---
+title: "Installation"
+description: "Install Astra and configure your environment."
+icon: "download"
+---
+
+Astra is published as three independent Python packages so you can install only what you need.
+
+## Packages
+
+| Package | What it provides | Install when you... |
+| --- | --- | --- |
+| **`astra-framework`** | The compiler, executor, `Agent`, `Team`, `Tool`, RAG, memory, middleware. | ...are building agents in Python (always required). |
+| **`astra-runtime`** | Embeddable FastAPI server with REST + Server-Sent Events. | ...need to expose agents/teams over HTTP. |
+| **`astra-observability`** | Trace, span, log, and metric capture with SQLite/MongoDB storage. | ...want production telemetry. |
+
+## Install
+
+import Installation from '/snippets/installation.mdx';
+
+<Installation />
+
+Add `astra-runtime` and `astra-observability` the same way:
+
+<CodeGroup>
+
+```bash uv
+uv add astra-framework astra-runtime astra-observability
+```
+
+```bash pip
+pip install astra-framework astra-runtime astra-observability
+```
+
+</CodeGroup>
+
+<Note>
+  Astra requires **Python 3.10+**. We recommend [uv](https://docs.astral.sh/uv/) — it's roughly 10× faster than pip and handles workspaces cleanly.
+</Note>
+
+## Optional extras
+
+`astra-framework` ships with provider extras so you only pull what you use:
+
+<CodeGroup>
+
+```bash uv
+# MongoDB storage backend
+uv add 'astra-framework[mongodb]'
+
+# AWS Bedrock model provider
+uv add 'astra-framework[aws]'
+
+# Everything
+uv add 'astra-framework[all]'
+```
+
+```bash pip
+pip install 'astra-framework[mongodb]'
+pip install 'astra-framework[aws]'
+pip install 'astra-framework[all]'
+```
+
+</CodeGroup>
+
+## Environment variables
+
+import EnvVars from '/snippets/env-vars.mdx';
+
+<EnvVars />
+
+<Tip>
+  Put these in a `.env` file at the repo root. Astra reads them automatically via [`FrameworkSettings`](/reference/framework/index).
+</Tip>
+
+## Verify your install
+
+<Steps>
+
+<Step title="Import the framework">
+
+  ```bash
+  python -c "from framework.agents import Agent; print('ok')"
+  ```
+
+  Expected output: `ok`
+</Step>
+
+<Step title="Run the quickstart">
+
+  Follow the [Quickstart](/quickstart) — it executes against `gemini-2.5-flash` and prints a final answer.
+</Step>
+
+</Steps>
+
+## Local development setup
+
+If you're hacking on Astra itself, clone the monorepo and use `uv sync`:
+
+```bash
+git clone https://github.com/astra-dev/astra
+cd astra/astra/runtime
+uv sync
+```
+
+The three packages live under `astra/` as a uv workspace. See [`pyproject.toml`](https://github.com/astra-dev/astra/blob/main/pyproject.toml) for the workspace config.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Build a working agent in five minutes.
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
+    Understand the compile-time approach.
+  </Card>
+</CardGroup>

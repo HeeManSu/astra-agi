@@ -1,0 +1,17 @@
+{% from "_macros.j2" import signature_block, param_field, response_field, raises_block, source_link %}
+### {{ func.name }} {{ source_link(func.source_url) }}
+
+{{ signature_block(func) }}
+
+{{ func.description }}
+
+{% if func.params %}
+**Parameters**
+
+{% for p in func.params %}
+{{ param_field(p) }}
+{% endfor %}
+{% endif %}
+
+{{ response_field(func) }}
+{{ raises_block(func) }}

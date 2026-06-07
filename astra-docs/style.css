@@ -1,0 +1,140 @@
+/*
+ * Astra docs — spacing overrides
+ *
+ * Mintlify ships with generous default whitespace around the title block,
+ * description, and callouts. These rules tighten that up.
+ */
+
+/* ----- Page top: shrink eyebrow → title → description stack ----- */
+
+/* Eyebrow ("Get Started" label above the page title) sits very close to the title. */
+main article > header,
+main article > div:first-child {
+  padding-top: 1rem !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+main article h1:first-of-type,
+main article header h1 {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.5rem !important;
+  padding-top: 0 !important;
+}
+
+/* The description paragraph right under h1. */
+main article h1 + p,
+main article header + p,
+main article p.lead,
+main article p[data-description] {
+  margin-top: 0 !important;
+  margin-bottom: 1rem !important;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+/* ----- Callouts (Note / Tip / Warning / Info) ----- */
+
+/* Tighter vertical padding inside callouts. */
+.callout,
+[class*="callout"],
+div[role="note"],
+div[class*="rounded-md"][class*="border"] {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* The first paragraph inside a callout shouldn't have its own top margin. */
+.callout > *:first-child,
+[class*="callout"] > *:first-child {
+  margin-top: 0 !important;
+}
+.callout > *:last-child,
+[class*="callout"] > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ----- Gaps between top-level blocks in the body ----- */
+
+main article h2 {
+  margin-top: 1.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+main article h3 {
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+main article p,
+main article ul,
+main article ol {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+/* ----- Bottom of the page: remove the empty trailing band ----- */
+
+main article {
+  padding-bottom: 1.5rem !important;
+}
+
+main article > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Footer pager (Previous / Next links) sits closer to the content. */
+main article footer,
+nav[aria-label="Pagination"],
+[class*="prev-next"] {
+  margin-top: 2rem !important;
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+/* ----- Mermaid diagrams: constrain width and center ----- */
+
+/* Wrapper around the Mermaid SVG */
+.mermaid,
+[class*="mermaid"],
+div:has(> svg[id^="mermaid-"]),
+div:has(> svg[aria-roledescription="flowchart-v2"]) {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 1.5rem auto !important;
+  max-width: 100% !important;
+}
+
+/* The SVG itself */
+.mermaid svg,
+svg[id^="mermaid-"],
+svg[aria-roledescription="flowchart-v2"],
+svg[aria-roledescription="flowchart"] {
+  max-width: 360px !important;
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* Mermaid node text — smaller, tighter */
+.mermaid svg .nodeLabel,
+.mermaid svg .label,
+.mermaid svg foreignObject div,
+svg[id^="mermaid-"] .nodeLabel,
+svg[id^="mermaid-"] foreignObject div {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  padding: 2px 4px !important;
+}
+
+/* Tighten the shape outlines themselves — reduce stroke padding visually. */
+.mermaid svg .node rect,
+.mermaid svg .node polygon,
+.mermaid svg .node circle,
+svg[id^="mermaid-"] .node rect,
+svg[id^="mermaid-"] .node polygon {
+  stroke-width: 1px !important;
+}

@@ -1,0 +1,119 @@
+---
+title: "MCP"
+description: "Model Context Protocol toolkits and how they fold into the semantic layer."
+icon: "plug"
+---
+
+The Model Context Protocol (MCP) is Anthropic's open standard for exposing tools to language models over a stdio or socket transport. A growing ecosystem of MCP servers (filesystem, git, GitHub, Postgres, Slack, browser automation, and dozens more) speaks this protocol. Astra consumes them natively.
+
+From the agent's perspective, an MCP server is just another source of tools. The same planner sees them, the same code-gen LLM calls them, the same typed graph executes them. There is no separate "MCP mode."
+
+## MCPToolkit
+
+`MCPToolkit` ([tool/mcp/toolkit.py:25-150](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/mcp/toolkit.py#L25)) is a thin wrapper around the official `mcp` Python SDK.
+
+<ParamField path="name" type="str" required={true}>
+  Display name for the toolkit. Becomes the domain name in the semantic layer.
+</ParamField>
+
+<ParamField path="command" type="str" required={true}>
+  Command to launch the MCP server (e.g. `"npx"`, `"uvx"`, `"python"`).
+</ParamField>
+
+<ParamField path="args" type="list[str] | None" required={false} default="[]">
+  Arguments passed to the command.
+</ParamField>
+
+<ParamField path="env" type="dict[str, str] | None" required={false} default="None">
+  Extra environment variables. Merged on top of the SDK's default environment from `get_default_environment()`.
+</ParamField>
+
+<ParamField path="slug" type="str | None" required={false} default="None">
+  Stable identifier. If omitted, derived from `name` plus a hash of the command and args, so two toolkits configured the same way share a slug across processes.
+</ParamField>
+
+## Methods
+
+<AccordionGroup>
+  <Accordion title="async connect()">
+    Starts the MCP server subprocess, opens a stdio session, and initializes the protocol. Idempotent — calling it twice is a no-op.
+  </Accordion>
+  <Accordion title="async list_tools() -> list[dict]">
+    Discovers tools exposed by the server. Returns a list of `{name, description, inputSchema, outputSchema}`. The JSON Schemas are what Astra translates into `ParamSchema` entries.
+  </Accordion>
+  <Accordion title="async call_tool(name: str, **kwargs) -> str">
+    Executes a tool. Args are passed as kwargs, the result text is returned. Raises `RuntimeError` if the server reports `isError=True`.
+  </Accordion>
+  <Accordion title="async close()">
+    Tears down the session and subprocess. Safe to call multiple times; errors during teardown are swallowed by design.
+  </Accordion>
+</AccordionGroup>
+
+`MCPToolkit` also supports async context manager usage:
+
+```python
+async with MCPToolkit(name="fs", command="npx", args=["-y", "@mcp/server-filesystem", "/tmp"]) as fs:
+    tools = await fs.list_tools()
+    result = await fs.call_tool("read_file", path="/tmp/notes.md")
+```
+
+## Wiring into an agent
+
+You typically don't call MCP methods directly — you hand the toolkit to an agent and let the framework handle discovery and execution.
+
+```python
+from framework.agents import Agent
+from framework.models.google import Gemini
+from framework.tool.mcp.toolkit import MCPToolkit
+
+filesystem = MCPToolkit(
+    name="filesystem",
+    command="npx",
+    args=["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+)
+
+agent = Agent(
+    name="File Assistant",
+    model=Gemini("gemini-2.5-flash"),
+    instructions="Help the user manage files in /workspace.",
+    tools=[filesystem],
+)
+
+response = await agent.invoke("List markdown files and summarize the first one.")
+```
+
+## How MCP tools fold into the semantic layer
+
+When the agent builds its semantic layer (see [agent.py:218-242](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L218)), MCP toolkits are **merged into the agent's own domain**, not given their own. The result is a single Python class in the generated stubs with native tools and MCP tools side by side:
+
+```python
+class file_assistant:
+    @staticmethod
+    def list_dir(input: ListDirInput) -> ListDirOutput:
+        """List files in a directory."""
+        ...
+
+    @staticmethod
+    def read_file(input: ReadFileInput) -> ReadFileOutput:
+        """Read the contents of a file."""
+        ...
+```
+
+The planner does not know which of those came from a local `@bind_tool` and which came from the MCP server. Neither does the code-gen LLM. The distinction only re-emerges at execution time, where the sandbox routes the call back to either a local `Tool` or `MCPToolkit.call_tool(...)` based on the entry in the tool map.
+
+<Tip>
+Most MCP servers run as subprocess commands (`npx`, `uvx`, `python -m`). Astra opens one subprocess per `MCPToolkit` and keeps it alive for the agent's lifetime. If you have many short-lived agents, share a single `MCPToolkit` instance across them rather than recreating it per request.
+</Tip>
+
+<Note>
+The `mcp` Python SDK is an optional dependency. Install with `pip install mcp` if you want to use MCP toolkits. The import at the top of [toolkit.py](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/mcp/toolkit.py) raises a friendly `ImportError` if it's missing.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Middleware" icon="filter" href="/concepts/middleware">
+    Input/output processing pipeline.
+  </Card>
+  <Card title="Observability" icon="gauge-high" href="/concepts/observability">
+    Traces, spans, and the engine that captures them.
+  </Card>
+</CardGroup>

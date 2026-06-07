@@ -1,0 +1,212 @@
+---
+title: "Trace and replay a run"
+description: "Reproduce a failure with the observability layer and the workflow journal."
+icon: "magnifying-glass"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework astra-runtime astra-observability`
+- A running `AstraServer` with telemetry enabled, or any agent calling `observability.engine.configure(...)`
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+When an agent run fails in production, the trace tree is the first thing to look at. Every `invoke`, `stream`, `tool.<name>`, and middleware step is wrapped in a span. The spans plus the workflow journal (the DSL graph the sandbox ran) give you everything you need to re-run the failure deterministically.
+
+The trace query layer is in [observability/query/traces.py:32](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/query/traces.py#L32) (`list_traces`) and [:61](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/query/traces.py#L61) (`get_trace_with_spans`).
+
+## A failing tool, end to end
+
+Save as `failing_agent.py`. The tool raises on purpose so we can trace it.
+
+```python failing_agent.py
+import asyncio
+from pydantic import BaseModel, Field
+
+from framework.agents import Agent
+from framework.tool import ToolSpec, bind_tool
+from framework.models.google import Gemini
+
+
+class PaymentInput(BaseModel):
+    order_id: str = Field(..., min_length=1)
+    amount_cents: int = Field(..., gt=0)
+
+
+class PaymentOutput(BaseModel):
+    order_id: str
+    status: str
+
+
+class GatewayDownError(Exception):
+    pass
+
+
+CHARGE_SPEC = ToolSpec(
+    name="charge_card",
+    description="Charge a customer's card. Raises GatewayDownError on outage.",
+    input_schema=PaymentInput,
+    output_schema=PaymentOutput,
+    examples=[{
+        "input": {"order_id": "o-1", "amount_cents": 1999},
+        "output": {"order_id": "o-1", "status": "ok"},
+    }],
+)
+
+
+@bind_tool(CHARGE_SPEC)
+async def charge_card(input: PaymentInput) -> PaymentOutput:
+    # Simulate a transient outage.
+    raise GatewayDownError(f"Stripe unreachable for order {input.order_id}")
+
+
+agent = Agent(
+    name="Checkout",
+    instructions="Use charge_card to process an order. Report status briefly.",
+    model=Gemini("gemini-2.5-flash"),
+    tools=[charge_card],
+)
+
+
+async def main():
+    try:
+        await agent.invoke("Charge order o-42 for 1999 cents.")
+    except Exception as e:
+        print(f"Run failed (expected): {e}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Run it. The agent emits an error event and the trace records the failure.
+
+## Find the trace
+
+Two surfaces let you locate traces: the REST endpoint exposed by `runtime` (`GET /observability/traces`) and the Python API. The Python API is right for scripted analysis.
+
+```python find_trace.py
+import asyncio
+
+from observability.engine import get_storage
+from observability.query.traces import get_trace_with_spans, list_traces
+
+
+async def main():
+    storage = get_storage()
+    if storage is None:
+        raise RuntimeError("Observability not configured. Run via AstraServer or configure() directly.")
+
+    # Most recent first; filter out internal server.* traces.
+    traces = await list_traces(storage, limit=20, include_system=False)
+    if not traces:
+        print("No traces yet. Run failing_agent.py first.")
+        return
+
+    # The newest trace is the one we just made.
+    head = traces[0]
+    print(f"Trace {head.id} | {head.name} | status={head.status}")
+
+    detail = await get_trace_with_spans(storage, head.id)
+    assert detail is not None
+    for span in detail.spans:
+        marker = "x" if span.status == "error" else "-"
+        print(f"  [{marker}] {span.name} ({span.duration_ms} ms)")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+You will see something like:
+
+```
+Trace trace-abc123 | agent.invoke | status=error
+  [-] agent.invoke (213 ms)
+  [-] sandbox.run (198 ms)
+  [-] sandbox.generate_parse_validate_code (140 ms)
+  [-] sandbox.execute_dsl (55 ms)
+  [x] tool.charge_card (2 ms)
+```
+
+The first error span tells you the failure point: `tool.charge_card`.
+
+## Drill into a span
+
+`get_trace_with_spans` returns a list of `Span` objects, each with `attributes` (the structured payload), `events` (log lines emitted during the span), and `status`. The tool span carries the input arguments under `attributes["arguments"]` and the captured exception under `events[*]` with level `ERROR`.
+
+```python drill.py
+import asyncio
+
+from observability.engine import get_storage
+from observability.query.traces import get_trace_with_spans, list_traces
+
+
+async def main():
+    storage = get_storage()
+    head = (await list_traces(storage, limit=1))[0]
+    detail = await get_trace_with_spans(storage, head.id)
+
+    failed = next((s for s in detail.spans if s.status == "error"), None)
+    if not failed:
+        return
+    print(f"Failed span: {failed.name}")
+    print(f"  Attributes: {failed.attributes}")
+    for ev in failed.events:
+        print(f"  Event[{ev.level}]: {ev.message}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+This is everything you need to reproduce: the exact tool name, the exact arguments, and the original exception message.
+
+## Examine the workflow journal
+
+Code mode does not just execute the LLM's Python. It compiles the code into a typed DSL workflow first (see the `code_generated` and DSL `status` events in [Stream agent and team output](/guides/streaming)). The workflow's structure is persisted on the parent span under `attributes["dsl_summary"]`: number of nodes, number of edges, and the entry node id. For deeper replay, the streaming version of `invoke` emits a `dsl_summary` payload you can capture (see [agents/agent.py:683](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L683)).
+
+## Replay with the same inputs
+
+To re-run the failure deterministically:
+
+1. Read the failing span's `attributes["arguments"]`.
+2. Call the tool directly: `await charge_card(PaymentInput(**args))`.
+3. Add logging or set a breakpoint. The exception now happens in your debugger, not behind the LLM.
+
+To replay the *whole* agent invocation, capture the original `query` (it is on the root `agent.invoke` span as `attributes["query"]`) and the `thread_id`, then re-run `agent.invoke(query, thread_id=thread_id)`. With `temperature=0.0` (the default), code-mode generation is reproducible.
+
+<Tip>
+**System traces are hidden by default.** `list_traces` filters out names starting with `server.` (startup, shutdown). Pass `include_system=True` to see them. Source: [traces.py:23-29](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/query/traces.py#L23).
+</Tip>
+
+<Warning>
+**Tracing is best-effort.** If the storage backend is unreachable, spans are dropped, not retried. For mission-critical audit logs, mirror tool inputs/outputs into your own append-only log alongside the trace.
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the failure">
+    `python failing_agent.py` should print `Run failed (expected): ...`.
+  </Step>
+  <Step title="Locate the trace">
+    `python find_trace.py` should list one trace with status `error` and a failed `tool.charge_card` span.
+  </Step>
+  <Step title="Reproduce in isolation">
+    Calling `await charge_card(PaymentInput(order_id="o-42", amount_cents=1999))` from a REPL raises the same `GatewayDownError` you saw in the trace.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Stream agent and team output" icon="bolt" href="/guides/streaming">
+    Capture failures live via the `error` event.
+  </Card>
+  <Card title="Deploy to production" icon="cloud-arrow-up" href="/guides/deploying-to-production">
+    Configure persistent observability storage in your cluster.
+  </Card>
+</CardGroup>

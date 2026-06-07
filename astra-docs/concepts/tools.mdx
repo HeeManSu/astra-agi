@@ -1,0 +1,148 @@
+---
+title: "Tools"
+description: "Declarative tool specs, the @bind_tool decorator, and the runtime Tool wrapper."
+icon: "screwdriver-wrench"
+---
+
+Tools are the only way an Astra agent talks to the outside world. The framework separates **what a tool is** (a declarative spec) from **what a tool does** (an async Python function). The decorator `@bind_tool` ties them together and produces a runtime `Tool` instance.
+
+## The three layers
+
+<CardGroup cols={3}>
+  <Card title="ToolSpec" icon="file-lines">
+    Declarative source of truth. Name, description, input and output Pydantic schemas, examples. No implementation.
+  </Card>
+  <Card title="@bind_tool" icon="link">
+    Decorator. Validates that the implementation's signature matches the spec, wraps it with error context, returns a `Tool`.
+  </Card>
+  <Card title="Tool" icon="wrench">
+    Runtime object. Callable like a function. Carries the schemas and metadata the semantic layer needs.
+  </Card>
+</CardGroup>
+
+## ToolSpec
+
+`ToolSpec` ([tool_spec.py:116-142](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool_spec.py#L116)) is a Pydantic model. It captures everything the planner LLM needs to understand a tool without seeing the implementation.
+
+<ParamField path="name" type="str" required={true}>
+  Tool name in `snake_case`. Becomes the Python identifier the LLM emits in generated code.
+</ParamField>
+
+<ParamField path="description" type="str" required={true}>
+  One-line description of what the tool does. The planner reads this when choosing tools.
+</ParamField>
+
+<ParamField path="input_schema" type="type[BaseModel]" required={true}>
+  Pydantic model describing the input. Every field becomes a `ParamSchema` in the semantic layer with type, description, required flag, and default.
+</ParamField>
+
+<ParamField path="output_schema" type="type[BaseModel]" required={true}>
+  Pydantic model describing the output. Field descriptions surface in the generated stub so the LLM knows what shape it can destructure.
+</ParamField>
+
+<ParamField path="examples" type="list[dict]" required={false} default="[]">
+  Optional list of `{"input": {...}, "output": {...}}` dicts for few-shot learning. The first example is attached to the runtime `Tool`.
+</ParamField>
+
+## Simple tool
+
+<CodeGroup>
+
+```python Tool definition
+from pydantic import BaseModel, Field
+from framework.tool import ToolSpec, bind_tool
+
+
+class StockPriceInput(BaseModel):
+    symbol: str = Field(description="Ticker symbol, e.g. AAPL")
+
+
+class StockPriceOutput(BaseModel):
+    symbol: str
+    price: float = Field(description="Last close in USD")
+    currency: str = Field(default="USD")
+
+
+STOCK_PRICE_SPEC = ToolSpec(
+    name="get_stock_price",
+    description="Fetch the latest close price for a ticker.",
+    input_schema=StockPriceInput,
+    output_schema=StockPriceOutput,
+)
+
+
+@bind_tool(STOCK_PRICE_SPEC)
+async def get_stock_price(input: StockPriceInput) -> StockPriceOutput:
+    """Return the last close for the given symbol."""
+    price = await fetch_price(input.symbol)
+    return StockPriceOutput(symbol=input.symbol, price=price)
+```
+
+```python Tool with examples
+STOCK_PRICE_SPEC = ToolSpec(
+    name="get_stock_price",
+    description="Fetch the latest close price for a ticker.",
+    input_schema=StockPriceInput,
+    output_schema=StockPriceOutput,
+    examples=[
+        {
+            "input": {"symbol": "AAPL"},
+            "output": {"symbol": "AAPL", "price": 228.52, "currency": "USD"},
+        },
+    ],
+)
+```
+
+</CodeGroup>
+
+## @bind_tool
+
+The decorator at [tool.py:124-296](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool.py#L124) performs three jobs:
+
+<Steps>
+  <Step title="Signature validation">
+    The implementation must take **exactly one** parameter typed as `spec.input_schema` and return `spec.output_schema`. Mismatches raise `TypeError` with a concrete fix-it message at decoration time, not at runtime.
+  </Step>
+  <Step title="Error wrapping">
+    Every call goes through a wrapper that catches exceptions and re-raises with the tool name in the message. The trace span on `tool.<name>` carries the same info, so failures are easy to localize.
+  </Step>
+  <Step title="Tool construction">
+    Builds and returns a `Tool` instance. The decorated symbol is no longer a function — it's a `Tool` you pass into `Agent(tools=[...])`.
+  </Step>
+</Steps>
+
+<Warning>
+Tools must be `async`. The sandbox executor awaits every action node, so a sync function will return a coroutine object and crash the workflow. If you have a sync library to wrap, do it inside an `async def` that calls the library directly (or via `asyncio.to_thread` for blocking I/O).
+</Warning>
+
+## The runtime Tool
+
+`Tool` is callable like a function:
+
+```python
+result = await get_stock_price(StockPriceInput(symbol="AAPL"))
+# StockPriceOutput(symbol='AAPL', price=228.52, currency='USD')
+```
+
+But you rarely call it directly — the sandbox does, after the planner has decided to invoke it. What you do touch is the metadata: `tool.name`, `tool.description`, `tool.input_schema`, `tool.output_schema`. The semantic layer reads these to build Python stubs that the code-gen LLM sees as type-hinted functions.
+
+## How tools reach the LLM
+
+1. You attach a list of `Tool` (and optionally `MCPToolkit`) instances to an agent.
+2. The agent's [`build_semantic_layer`](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L190) walks them and produces an `EntitySemanticLayer`.
+3. The stub generator emits Python class definitions: one class per agent, one `@staticmethod` per tool.
+4. Those stubs land in the code-gen prompt. The LLM writes code that calls them by name.
+5. At execution time the typed graph dispatches each `ActionNode` back to the real `Tool` via the tool map.
+
+<Tip>
+Use rich Pydantic `Field(description=...)` text everywhere — both on input fields and output fields. The description is what the planner LLM reads to decide whether your tool is the right one for the job. Sparse descriptions lead to wrong tool selection.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Semantic Layer" icon="layer-group" href="/concepts/semantic-layer">
+    How specs become typed stubs the LLM can plan against.
+  </Card>
+  <Card title="Memory and Storage" icon="database" href="/concepts/memory-and-storage">
+    Conversation history and persistence backends.
+  </Card>
+</CardGroup>

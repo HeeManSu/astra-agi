@@ -1,0 +1,70 @@
+---
+title: "Why compile, not loop?"
+description: "Compile-time graph construction versus ReAct: what changes, what it costs, what it buys."
+icon: "code-compare"
+---
+
+Most agent frameworks (LangChain, Agno, CrewAI, AutoGen, OpenAI's Assistants) run the LLM inside a **ReAct loop**: at every step the model decides what to do next, the framework runs the chosen tool, and the result is fed back into the next prompt. The loop terminates when the model says it is done.
+
+Astra takes a different position. The LLM is called three times: a planner, a code generator, and a synthesizer. Between the second and third call, a deterministic executor runs the entire workflow with zero model involvement.
+
+## The comparison
+
+|                              | ReAct / tool-calling          | Astra                                       |
+| ---------------------------- | ----------------------------- | ------------------------------------------- |
+| LLM calls per query          | Unbounded (one per tool step) | **Fixed: 3 calls**                          |
+| Execution path               | Decided at runtime            | **Compiled upfront**                        |
+| Tool-call order              | Non-deterministic             | **Guaranteed by the typed graph**           |
+| Inspectability               | Emergent after the fact       | **Full plan visible before any tool runs**  |
+| Safety                       | Runtime, ad-hoc               | **Compile-time AST validation**             |
+| Token cost on heavy queries  | Grows with workload           | **Bounded by plan size**                    |
+
+## The numbers
+
+On a 4-analyst investment-research workload (90 trials, 5 frameworks):
+
+| Architecture                     | n  | LLM calls | tokens (mean / p95) | wall p50 (s) |
+| -------------------------------- | -- | --------- | ------------------- | ------------ |
+| **Compiler (Astra)**             | 18 | **3.0**   | **21,013 / 28,804** | **26.1**     |
+| ReAct pool (Agno+CrewAI+AutoGen) | 54 | 16.1      | 49,219 / 85,452     | 50.3         |
+| Hand-graph (LangGraph)           | 18 | 10.4      | 29,645 / 55,086     | 32.4         |
+
+Against the pooled ReAct baseline: **5.37x fewer LLM calls, 2.34x fewer tokens, 1.93x faster wall p50**. The tail gap on tokens is 2.97x at p95 — ReAct trajectories occasionally explode into 80k+ token transcripts when the model gets stuck in a loop. Astra's tail is bounded because the plan is fixed before any tool fires.
+
+Full per-query breakdown and reproduction scripts are in [benchmarking/](https://github.com/astra-dev/astra/tree/main/benchmarking) and the paper at [research/research.md](https://github.com/astra-dev/astra/blob/main/research/research.md).
+
+## What you gain
+
+<CardGroup cols={2}>
+  <Card title="Bounded LLM bills" icon="receipt">
+    Three calls per query, every query. Cost is a compile-time fixture, not a per-step accumulator.
+  </Card>
+  <Card title="Deterministic order" icon="list-ol">
+    The typed graph fixes tool-call sequencing. Two runs of the same query hit tools in the same order.
+  </Card>
+  <Card title="Pre-execution audit" icon="magnifying-glass">
+    `dsl_workflow.summary()` returns the full graph as JSON before any tool fires. You can review, log, or veto.
+  </Card>
+  <Card title="Compile-time safety" icon="shield-check">
+    The AST validator at [ast_parser.py](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/code_mode/compiler/ast_parser.py) rejects imports, file I/O, network calls, and any expression not on a tight allowlist before the code becomes a graph.
+  </Card>
+</CardGroup>
+
+## The honest tradeoff
+
+Astra doesn't replan mid-execution. For workflows where the next step depends on what an earlier tool returned, a ReAct loop adapts and Astra doesn't (yet). The compiler picks an execution path once, then commits to it.
+
+For sequential and structured pipelines — which most production multi-agent workflows turn out to be — the compile-time approach wins on every cost axis we measure. For genuinely open-ended exploration (an agent debugging an unfamiliar codebase, say) you still want a loop. The honest position: use Astra when the **shape** of the workflow is knowable from the query, even if specific values are not; reach for ReAct when the workflow shape itself depends on intermediate results in ways the planner can't anticipate.
+
+<Note>
+Conditional branching **is** expressible in the typed graph (see `BranchNode` and `LoopNode` in the [architecture](/concepts/architecture) page). What's not supported is replanning — the planner does not get to revise its mind after seeing tool output. That's a roadmap item.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Agents" icon="robot" href="/concepts/agents">
+    The Agent primitive, parameters, and lifecycle.
+  </Card>
+  <Card title="Teams" icon="users" href="/concepts/teams">
+    Composing multiple agents into a coordinated workflow.
+  </Card>
+</CardGroup>

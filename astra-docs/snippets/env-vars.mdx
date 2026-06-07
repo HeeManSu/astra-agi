@@ -1,0 +1,12 @@
+{/* Reusable env-var table. */}
+
+| Variable | Required for | Example |
+| --- | --- | --- |
+| `GOOGLE_API_KEY` | Gemini models | `AIza...` |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Bedrock models | — |
+| `AWS_REGION` | Bedrock models | `us-east-1` |
+| `ASTRA_JWT_SECRET` | `AstraServer` auth | any string (use a strong secret in production) |
+| `ASTRA_JWT_EXPIRY_HOURS` | `AstraServer` auth (optional) | `24` (default) |
+| `MONGODB_URL` | MongoDB storage + telemetry | `mongodb://localhost:27017` |
+| `HOST` / `PORT` | `AstraServer` bind address | `127.0.0.1` / `8000` |
+| `FRED_API_KEY` | `investment_team` example (macro tools) | — |

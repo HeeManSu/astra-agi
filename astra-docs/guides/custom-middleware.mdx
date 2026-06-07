@@ -1,0 +1,177 @@
+---
+title: "Write custom middleware"
+description: "Inject guardrails and transformations before and after each agent call."
+icon: "filter"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework`
+- A provider key (`GEMINI_API_KEY` recommended)
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+Middleware in Astra runs at one of two stages: `INPUT` (before the LLM sees the user query) and `OUTPUT` (after the agent produces a response, before persistence). Each middleware sees a `MiddlewareContext` and can mutate `ctx.data`, attach metadata, or call `ctx.reject(message)` to short-circuit the pipeline. The base classes and decorator are at [middleware/base.py:141](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/base.py#L141).
+
+## Stages and categories
+
+Stages are temporal: they control *when* the middleware runs. The framework defines two today (see [middleware/enums.py:16](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/enums.py#L16)):
+
+- `INPUT` - validation, safety, prompt-injection checks.
+- `OUTPUT` - JSON-schema checks, content moderation, formatting.
+
+Categories are semantic: they describe *what kind* of middleware this is. They never affect execution order. Use them so observability and the playground UI can group your middleware (`SAFETY`, `VALIDATION`, `LOGGING`, `OPTIMIZATION`, `FORMATTING`, `CUSTOM`).
+
+## A complete PII-redaction middleware
+
+Save as `pii_middleware.py`. It masks email addresses on the way in so the LLM never sees them.
+
+```python pii_middleware.py
+import asyncio
+import re
+
+from framework.agents import Agent
+from framework.middleware import (
+    MiddlewareCategory,
+    MiddlewareStage,
+    middleware,
+)
+from framework.models.google import Gemini
+
+
+EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+
+
+def mask_email(text: str) -> tuple[str, int]:
+    masked = EMAIL_RE.sub("[REDACTED_EMAIL]", text)
+    count = len(EMAIL_RE.findall(text))
+    return masked, count
+
+
+@middleware(
+    stages=[MiddlewareStage.INPUT],
+    category=MiddlewareCategory.SAFETY,
+    name="pii_redact_input",
+)
+async def pii_redact_input(ctx):
+    """Replace any email address in the user query with [REDACTED_EMAIL]."""
+    masked, count = mask_email(ctx.data)
+    ctx.data = masked
+    ctx.metadata["pii_emails_redacted"] = count
+    return ctx
+
+
+@middleware(
+    stages=[MiddlewareStage.OUTPUT],
+    category=MiddlewareCategory.SAFETY,
+    name="pii_redact_output",
+)
+async def pii_redact_output(ctx):
+    """Belt-and-braces: also mask anything the model might have hallucinated."""
+    masked, count = mask_email(ctx.data)
+    if count > 0:
+        ctx.data = masked
+    return ctx
+
+
+@middleware(
+    stages=[MiddlewareStage.INPUT],
+    category=MiddlewareCategory.VALIDATION,
+    name="reject_empty",
+)
+async def reject_empty(ctx):
+    """Reject blank inputs so the LLM never sees them."""
+    if not ctx.data or not ctx.data.strip():
+        ctx.reject("Input was empty.")
+    return ctx
+
+
+agent = Agent(
+    name="Support Bot",
+    instructions="Help the user. Never quote email addresses back to them.",
+    model=Gemini("gemini-2.5-flash"),
+    # Order matters: validation first, then redaction.
+    middlewares=[reject_empty, pii_redact_input, pii_redact_output],
+)
+
+
+async def main():
+    reply = await agent.invoke(
+        "My address is alex@example.com. Can you help me reset my password?"
+    )
+    print(reply)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## How the pipeline runs
+
+`Agent.invoke` calls `_run_input_middleware` (which calls `run_middlewares` at [middleware/base.py:195](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/base.py#L195)) with `MiddlewareStage.INPUT`. The runner iterates `self.middlewares` in declaration order, filtering by `mw.effective_stages` so each middleware only runs at the stages it opted into. If any middleware sets `ctx.stop = True` (via `ctx.reject(...)`), the loop short-circuits and the agent raises `MiddlewareError`.
+
+The same machinery runs again on the way out with `MiddlewareStage.OUTPUT`. A middleware can opt into *both* stages by passing `stages=[MiddlewareStage.INPUT, MiddlewareStage.OUTPUT]`; the same instance gets two chances to inspect data.
+
+## Ordering and chaining
+
+The order in which you pass middlewares to the `Agent` is the order they execute *within a stage*. This matters:
+
+- Put validation (cheap rejects) before redaction (expensive regex passes).
+- Put redaction before logging so logs never see raw PII.
+- Put schema-checking after content-moderation so you do not waste tokens validating rejected outputs.
+
+A middleware can modify `ctx.metadata` to communicate with later middlewares. In the example above, `pii_redact_input` records `pii_emails_redacted` so a downstream `LOGGING` middleware can emit a structured event without recomputing the regex.
+
+## Configurable middleware
+
+The decorator pattern shown above creates a single instance per definition. If you need configurable behaviour (different modes per agent), wrap the decorator in a factory:
+
+```python
+def pii_guardrail(mode: str = "mask"):
+    @middleware(stages=[MiddlewareStage.INPUT], category=MiddlewareCategory.SAFETY)
+    async def _pii(ctx):
+        masked, count = mask_email(ctx.data)
+        if mode == "reject" and count > 0:
+            ctx.reject("PII detected in input.")
+        else:
+            ctx.data = masked
+        return ctx
+    return _pii
+
+agent = Agent(..., middlewares=[pii_guardrail(mode="reject")])
+```
+
+<Tip>
+**Subclass `Middleware` for state.** The decorator is right for stateless functions. If you need a connection pool, a cache, or expensive init, subclass `Middleware` directly (see [middleware/base.py:64](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/base.py#L64)) and put your `__init__` work there.
+</Tip>
+
+<Warning>
+**Never raise from a middleware.** Use `ctx.reject(message)` to stop the pipeline. Raising an exception bypasses the framework's error envelope and breaks the streaming contract.
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the script">
+    `python pii_middleware.py` should reply without ever mentioning `alex@example.com`.
+  </Step>
+  <Step title="Confirm the redaction count">
+    Add `print(agent.middlewares[1].name)`; the metadata key `pii_emails_redacted` should equal 1 on the input span in the trace.
+  </Step>
+  <Step title="Test the reject path">
+    Call `await agent.invoke("")`. It should raise `MiddlewareError("Input was empty.")` before reaching the model.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Write a custom tool" icon="screwdriver-wrench" href="/guides/custom-tool">
+    Validate tool inputs with Pydantic instead of middleware.
+  </Card>
+  <Card title="Trace and replay a run" icon="magnifying-glass" href="/guides/tracing-and-replay">
+    See middleware spans in the trace tree.
+  </Card>
+</CardGroup>

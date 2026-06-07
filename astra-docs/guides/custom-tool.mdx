@@ -1,0 +1,169 @@
+---
+title: "Write a custom tool"
+description: "Use @bind_tool with Pydantic input and output schemas."
+icon: "screwdriver-wrench"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework pydantic`
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+A tool in Astra is a function whose input and output are Pydantic models, declared once via a `ToolSpec` and bound via `@bind_tool`. That single binding gives you four things: stub generation for the LLM, runtime validation, error wrapping, and a stable identity for sync to storage. The decorator lives at [tool/tool.py:124](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool.py#L124).
+
+This guide builds a `web_search` tool end to end.
+
+## The complete file
+
+Save as `web_search_tool.py`. It runs as a script and prints the result of calling the tool directly, with no agent involved (useful for testing).
+
+```python web_search_tool.py
+import asyncio
+from typing import Literal
+from pydantic import BaseModel, Field, ValidationError
+
+from framework.tool import ToolSpec, bind_tool
+
+
+class SearchInput(BaseModel):
+    query: str = Field(..., min_length=1, max_length=200, description="Search query")
+    max_results: int = Field(5, ge=1, le=20, description="How many results to return")
+    safesearch: Literal["off", "moderate", "strict"] = Field("moderate")
+
+
+class SearchResult(BaseModel):
+    title: str
+    url: str
+    snippet: str
+
+
+class SearchOutput(BaseModel):
+    query: str
+    results: list[SearchResult]
+
+
+WEB_SEARCH_SPEC = ToolSpec(
+    name="web_search",
+    description=(
+        "Search the public web and return up to max_results results. "
+        "Use this whenever the user asks about current events, recent news, "
+        "or anything outside the model's training cutoff."
+    ),
+    input_schema=SearchInput,
+    output_schema=SearchOutput,
+    examples=[{
+        "input": {"query": "astra framework github", "max_results": 3, "safesearch": "moderate"},
+        "output": {
+            "query": "astra framework github",
+            "results": [
+                {"title": "Astra", "url": "https://github.com/astra-dev/astra", "snippet": "Multi-agent framework"},
+            ],
+        },
+    }],
+)
+
+
+class SearchProviderError(Exception):
+    """Raised when the underlying search provider is unreachable."""
+
+
+@bind_tool(WEB_SEARCH_SPEC)
+async def web_search(input: SearchInput) -> SearchOutput:
+    """
+    Search the web for `input.query` and return up to `input.max_results` results.
+
+    The LLM sees this docstring verbatim as the tool contract, so be precise
+    about preconditions, idempotency, and what counts as an error.
+
+    Raises:
+        SearchProviderError: when the upstream provider is unavailable.
+    """
+    # In production, call your search provider here. We mock for this guide.
+    if not input.query.strip():
+        raise SearchProviderError("Empty query reached the provider.")
+
+    fake_hits = [
+        SearchResult(
+            title=f"Result {i+1} for {input.query}",
+            url=f"https://example.com/r{i+1}",
+            snippet=f"Snippet {i+1} about {input.query}.",
+        )
+        for i in range(input.max_results)
+    ]
+    return SearchOutput(query=input.query, results=fake_hits)
+
+
+async def main():
+    # Test the tool in isolation, no agent required.
+    result = await web_search(SearchInput(query="astra framework", max_results=3))
+    for hit in result.results:
+        print(f"{hit.title} -> {hit.url}")
+
+    # Pydantic rejects bad input before it reaches your function.
+    try:
+        await web_search(SearchInput(query="", max_results=3))
+    except ValidationError as e:
+        print(f"Validation caught bad input: {e.errors()[0]['msg']}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Anatomy of a tool
+
+**The Pydantic input model is the LLM contract.** `Field(..., description=...)` and validation constraints (`min_length`, `ge`, `le`, `Literal`) are surfaced in the JSON schema and in the Python stubs the agent shows the model. Every constraint you add reduces the surface area for hallucinated arguments.
+
+**The `ToolSpec` is declarative.** It separates *what the tool is* (name, description, schemas, examples) from *how the tool works* (the function body). This lets you ship a spec to a registry, or version it, without touching the implementation.
+
+**The docstring on the bound function is the LLM-facing description for the *behaviour*.** While the `ToolSpec.description` is the marketing blurb, the docstring should describe preconditions, side effects, idempotency, and known failure modes. The stub generator includes both.
+
+**`@bind_tool` enforces the type contract.** It reads type hints with `get_type_hints` and rejects mismatches up front (see [tool/tool.py:237](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool.py#L237) and [:249](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool.py#L249)). You will get a `TypeError` at import time if the input or return annotation does not match the spec, which is far better than a runtime failure during an LLM call.
+
+**Errors are wrapped.** The async wrapper at [tool/tool.py:272](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool.py#L272) catches every exception and re-raises with `Error in async tool 'web_search': ...`. Your domain exceptions (like `SearchProviderError`) bubble up with that context. The recommended pattern is: let Pydantic `ValidationError` propagate for bad LLM-supplied arguments, and raise a small set of named domain exceptions for upstream failures.
+
+## Wire it into an agent
+
+```python
+from framework.agents import Agent
+from framework.models.google import Gemini
+
+agent = Agent(
+    name="Researcher",
+    instructions="Use web_search whenever the user asks about current events.",
+    model=Gemini("gemini-2.5-flash"),
+    tools=[web_search],   # the @bind_tool decorated function is itself a Tool
+)
+```
+
+<Tip>
+Because the decorator returns a `Tool` instance that is *callable* (see `Tool.__call__` at [tool/tool.py:107](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/tool.py#L107)), you can use `await web_search(SearchInput(...))` in tests just like the original function. This makes unit testing trivial.
+</Tip>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run in isolation">
+    `python web_search_tool.py` should print three fake hits, then a "Validation caught bad input" line.
+  </Step>
+  <Step title="Inspect the JSON schema">
+    Add `print(web_search.input_schema.model_json_schema())`. Confirm `min_length`, `max_length`, and `ge`/`le` constraints are present.
+  </Step>
+  <Step title="Hand it to an agent">
+    Build an agent with `tools=[web_search]` and ask "search for astra framework on github". The trace should show one `tool.web_search` span.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connect an MCP toolkit" icon="plug" href="/guides/mcp-toolkit">
+    Add Exa, Brave, or any stdio MCP server.
+  </Card>
+  <Card title="Write custom middleware" icon="filter" href="/guides/custom-middleware">
+    Guardrails that run before and after tools.
+  </Card>
+</CardGroup>

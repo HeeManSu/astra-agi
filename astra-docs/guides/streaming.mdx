@@ -1,0 +1,162 @@
+---
+title: "Stream agent and team output"
+description: "Consume typed Server-Sent Events from Agent.stream() and Team.stream()."
+icon: "bolt"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework`
+- A provider key (`GEMINI_API_KEY` recommended)
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+`Agent.stream()` and `Team.stream()` are async generators that yield `StreamEvent` objects: a small, typed dataclass with an `event_type` string and a `data` dict. The shape is identical for agents and teams, so any UI you write against one works against both. The agent generator is implemented at [agents/agent.py:582](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L582); the team version at [team/team.py:482](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/team/team.py#L482); the event class itself at [team/team.py:76](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/team/team.py#L76).
+
+## The event vocabulary
+
+| `event_type` | When emitted | Useful `data` keys |
+| --- | --- | --- |
+| `status` | Progress markers (code-gen started, DSL built) | `message`, `dsl_summary` |
+| `code_generated` | Python code has been produced, before execution | `message`, `code_preview` |
+| `tool_call` | A tool is about to run | `index`, `tool_name`, `arguments` |
+| `tool_result` | Tool finished (success or error) | `index`, `tool_name`, `result`, `success` |
+| `content` | Final assistant text (single chunk in current builds) | `text` |
+| `error` | Anything went wrong | `message`, optional `traceback` |
+| `done` | Stream terminator | `status` ("complete", "needs_clarification", "error") |
+
+The lifecycle is roughly: `status` -> `code_generated` -> `status` (DSL built) -> N x (`tool_call`, `tool_result`) -> `content` -> `done`. On failure, an `error` event arrives in place of `content` and is followed by `done` with `status="error"`.
+
+## A complete consumer
+
+Save as `stream_agent.py`. This script subscribes to a stream and pretty-prints each event.
+
+```python stream_agent.py
+import asyncio
+from pydantic import BaseModel, Field
+
+from framework.agents import Agent
+from framework.tool import ToolSpec, bind_tool
+from framework.models.google import Gemini
+
+
+class AddInput(BaseModel):
+    a: int = Field(..., description="First addend")
+    b: int = Field(..., description="Second addend")
+
+
+class AddOutput(BaseModel):
+    sum: int
+
+
+ADD_SPEC = ToolSpec(
+    name="add",
+    description="Return the sum of two integers.",
+    input_schema=AddInput,
+    output_schema=AddOutput,
+    examples=[{"input": {"a": 2, "b": 3}, "output": {"sum": 5}}],
+)
+
+
+@bind_tool(ADD_SPEC)
+async def add(input: AddInput) -> AddOutput:
+    return AddOutput(sum=input.a + input.b)
+
+
+agent = Agent(
+    name="Calc",
+    instructions="Use add to compute sums. Show your work.",
+    model=Gemini("gemini-2.5-flash"),
+    tools=[add],
+)
+
+
+async def main():
+    chunks: list[str] = []
+
+    async for ev in agent.stream("What is 17 plus 25?"):
+        et = ev.event_type
+        data = ev.data
+
+        if et == "status":
+            print(f"[status] {data.get('message')}")
+        elif et == "code_generated":
+            print(f"[code]\n{data.get('code_preview')}")
+        elif et == "tool_call":
+            print(f"[tool_call #{data['index']}] {data['tool_name']}({data['arguments']})")
+        elif et == "tool_result":
+            ok = "ok" if data.get("success") else "FAILED"
+            print(f"[tool_result #{data['index']}] {data['tool_name']} -> {ok}: {data['result']}")
+        elif et == "content":
+            chunks.append(data["text"])
+            print(f"[content] {data['text']}")
+        elif et == "error":
+            print(f"[ERROR] {data['message']}")
+            if "traceback" in data:
+                print(data["traceback"])
+        elif et == "done":
+            print(f"[done] status={data.get('status')}")
+
+    final = "".join(chunks)
+    print(f"\nReconstructed final answer: {final}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Reconstructing the final answer
+
+In the current build, the `content` event arrives as a single chunk containing the formatted output. The code above still concatenates because the API contract is "many `content` events per stream" and future builds may emit token-level chunks. Treat `content` as a stream and always reconstruct.
+
+A robust consumer pattern: keep a `chunks` buffer for `content`, render incrementally, and freeze on `done`. If `done.data["status"]` is `"needs_clarification"` (see [agents/agent.py:662](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L662)), the agent is asking the user a follow-up; pass the user's reply to the next `stream()` call with the same `thread_id`.
+
+## Error handling
+
+If `event_type == "error"` arrives, three things are true:
+
+1. The agent has saved the user message but will not save an assistant message.
+2. A `done` event with `status="error"` (or no `done` at all if the generator raised) follows.
+3. The `data["message"]` is safe to render to end users; the optional `data["traceback"]` is for logs only.
+
+In production, log the `error` event, surface `data["message"]` in the UI, and call `agent.stream()` again with the same `thread_id` if the user retries.
+
+## Teams stream identically
+
+```python
+async for ev in team.stream("Process order #123"):
+    print(ev.event_type, ev.data)
+```
+
+The same event types appear. For teams you will see multiple `tool_call`/`tool_result` pairs as members are delegated to. See [Compose a multi-agent team](/guides/multi-agent-team).
+
+<Tip>
+**Wiring streams into FastAPI/SSE.** The `runtime` package's stream endpoints serialize `StreamEvent.model_dump()` directly to `event: <type>\ndata: <json>\n\n`. If you build your own transport, mirror that mapping for compatibility with the Astra playground UI.
+</Tip>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the script">
+    `python stream_agent.py` should print one `status`, one `code_generated`, at least one `tool_call`/`tool_result` pair, exactly one `content`, then `done`.
+  </Step>
+  <Step title="Force an error">
+    Change `add` to raise `ValueError("nope")`. You should now see a `tool_result` with `success=False`, an `error` event, and `done` with `status="error"`.
+  </Step>
+  <Step title="Check the reconstructed answer">
+    The last line of stdout should be the same as what `agent.invoke()` would have returned for the same query.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Compose a multi-agent team" icon="users-line" href="/guides/multi-agent-team">
+    See delegation events arrive over a single stream.
+  </Card>
+  <Card title="Trace and replay a run" icon="magnifying-glass" href="/guides/tracing-and-replay">
+    Use the events that were emitted to reconstruct a failed run.
+  </Card>
+</CardGroup>

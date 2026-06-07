@@ -1,0 +1,260 @@
+---
+title: "Deploy to production"
+description: "Dockerfile, gunicorn workers, Kubernetes probes, and startup-sync tuning."
+icon: "cloud-arrow-up"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- Docker 24+ and a container registry
+- Kubernetes 1.27+ (only for the K8s example)
+- A storage backend (MongoDB or libsql) reachable from the container
+- Completed [Build your first agent](/guides/first-agent) and [Connect an MCP toolkit](/guides/mcp-toolkit) if you use MCP tools
+</Note>
+
+`AstraServer.get_app()` returns a FastAPI application you can run under any ASGI server. Production typically means: a multi-worker gunicorn process behind a load balancer, a persistent storage backend, observability shipping to durable storage, and Kubernetes-style health probes. The server class is at [runtime/server.py:63](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L63), and the startup-sync knobs are at [:42](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L42).
+
+## The application entry point
+
+Save as `app.py`. Everything below assumes this file exists at the project root.
+
+```python app.py
+import os
+
+from framework.agents import Agent
+from framework.models.google import Gemini
+from framework.storage.client import StorageClient
+from framework.storage.databases.mongodb import MongoDBStorage
+from runtime import AstraServer, StartupSyncConfig, TelemetryConfig
+
+
+# 1. Storage: MongoDB in production.
+backend = MongoDBStorage(
+    uri=os.environ["MONGODB_URI"],
+    database=os.environ.get("MONGODB_DATABASE", "astra"),
+)
+storage = StorageClient(storage=backend)
+
+# 2. Agents (define yours; this is a minimal stand-in).
+assistant = Agent(
+    name="Assistant",
+    instructions="Be concise and helpful.",
+    model=Gemini("gemini-2.5-flash"),
+)
+
+# 3. Server configuration.
+server = AstraServer(
+    storage=storage,
+    agents=[assistant],
+    teams=[],
+    name="Astra API",
+    version="1.0.0",
+    auth_enabled=True,
+    cors_allowed_origins=os.environ.get("CORS_ORIGINS", "").split(",") or ["*"],
+    telemetry=TelemetryConfig(
+        enabled=True,
+        db_path=os.environ.get("OBS_DB_PATH", "./observability.db"),
+        debug=False,
+    ),
+    startup_sync=StartupSyncConfig(
+        require_mcp_sync=False,
+        mcp_connect_timeout_seconds=30.0,
+        mcp_connect_concurrency=4,
+        mcp_list_timeout_seconds=30.0,
+        mcp_retries=3,
+        mcp_retry_backoff_seconds=1.0,
+    ),
+)
+
+# `uvicorn app:app` or `gunicorn app:app -k uvicorn.workers.UvicornWorker`
+app = server.get_app()
+```
+
+## The Dockerfile
+
+Save as `Dockerfile`. The two-stage build keeps the final image small.
+
+```dockerfile Dockerfile
+FROM python:3.12-slim AS builder
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /build
+COPY pyproject.toml uv.lock ./
+RUN uv pip install --system --no-cache \
+        astra-framework \
+        astra-runtime \
+        astra-observability \
+        gunicorn \
+        uvicorn[standard] \
+        motor
+
+
+FROM python:3.12-slim
+
+# Node is required if you use stdio MCP toolkits like exa-mcp-server.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        nodejs \
+        npm \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY app.py /app/app.py
+
+ENV PORT=8000 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 8000
+
+# Gunicorn with the Uvicorn worker class is the recommended production setup.
+CMD ["gunicorn", "app:app", \
+     "-k", "uvicorn.workers.UvicornWorker", \
+     "--workers", "4", \
+     "--bind", "0.0.0.0:8000", \
+     "--timeout", "120", \
+     "--graceful-timeout", "30"]
+```
+
+Build and run locally:
+
+```bash
+docker build -t astra-api:1.0.0 .
+docker run --rm -p 8000:8000 \
+  -e MONGODB_URI="mongodb://host.docker.internal:27017" \
+  -e GEMINI_API_KEY="$GEMINI_API_KEY" \
+  -e ASTRA_JWT_SECRET="dev-only-secret" \
+  astra-api:1.0.0
+```
+
+## Kubernetes deployment
+
+Save as `deployment.yaml`. The readiness probe uses `/health/readiness` which the `health_router` registers in `_add_routes` (see [server.py:369](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L369)).
+
+```yaml deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astra-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: astra-api
+  template:
+    metadata:
+      labels:
+        app: astra-api
+    spec:
+      containers:
+        - name: api
+          image: your-registry/astra-api:1.0.0
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: astra-secrets   # MONGODB_URI, GEMINI_API_KEY, ASTRA_JWT_SECRET, ...
+          env:
+            - name: CORS_ORIGINS
+              value: "https://app.example.com,https://admin.example.com"
+            - name: OBS_DB_PATH
+              value: "/var/astra/observability.db"
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          volumeMounts:
+            - name: obs
+              mountPath: /var/astra
+      volumes:
+        - name: obs
+          persistentVolumeClaim:
+            claimName: astra-obs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: astra-api
+spec:
+  selector:
+    app: astra-api
+  ports:
+    - port: 80
+      targetPort: 8000
+```
+
+The readiness probe matters: the server runs MCP startup sync during the lifespan event, and `require_mcp_sync=False` (set above) means startup still succeeds when an MCP server is briefly unreachable. The probe will turn the pod healthy as soon as `/health/readiness` responds 200.
+
+## CORS and JWT
+
+CORS is configured on the `AstraServer` constructor (`cors_allowed_origins=`). In production, never leave it at `["*"]` once you enable cookies or `Authorization` headers; list the exact origins.
+
+Auth is enabled with `auth_enabled=True` *and* an `ASTRA_JWT_SECRET` env var (see [server.py:140](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L140)). Without the env var, auth is silently disabled, which is a foot-gun: confirm in your trace that `auth.middleware` spans appear.
+
+## Startup sync gotchas
+
+`StartupSyncConfig` (defined at [server.py:42](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L42)) controls how the runtime registers MCP toolkits and tool schemas at boot.
+
+- `require_mcp_sync=True` fails startup if any MCP tool sync fails. Right for staging where you want loud failures; consider `False` in production with monitoring.
+- `mcp_connect_timeout_seconds` defaults to 10. Behind a private VPC with NAT, raise to 30.
+- `mcp_connect_concurrency` defaults to 10. If your MCP servers spawn heavy subprocesses (full Node runtimes), drop to 4 to avoid pegging CPU on the API node.
+- `mcp_retries=2` with `mcp_retry_backoff_seconds=0.5` retries quickly. For flaky external APIs, raise both.
+
+<Tip>
+**Two-tier rollout.** Build a `:next` image, deploy to a canary with `replicas: 1` and `require_mcp_sync=True`, and watch the startup logs. When green, retag as `:1.0.0` and roll the main deployment.
+</Tip>
+
+<Warning>
+**Do not run with `--workers 1` and code-mode generation under load.** Each worker is a single event loop. Two or three concurrent `invoke` calls saturate a worker because LLM generation is the bottleneck. Four workers per pod is a reasonable starting point.
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Container starts">
+    `docker logs <container>` shows "Astra Server" startup, MCP sync report, and "Uvicorn running on http://0.0.0.0:8000".
+  </Step>
+  <Step title="Readiness probe passes">
+    `curl http://localhost:8000/health/readiness` returns 200 with a JSON status body.
+  </Step>
+  <Step title="Auth is on">
+    `curl http://localhost:8000/agents` returns 401 without a JWT, and 200 with a valid one.
+  </Step>
+  <Step title="Traces persist">
+    After issuing a request, check that `/observability/traces` returns at least one trace and that the SQLite file at `OBS_DB_PATH` has grown.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Trace and replay a run" icon="magnifying-glass" href="/guides/tracing-and-replay">
+    Wire production traces into your debugging workflow.
+  </Card>
+  <Card title="Connect an MCP toolkit" icon="plug" href="/guides/mcp-toolkit">
+    Tune startup sync for stdio MCP servers in your image.
+  </Card>
+</CardGroup>

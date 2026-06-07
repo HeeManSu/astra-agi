@@ -1,0 +1,116 @@
+---
+title: "Introduction"
+description: "Astra is a code-first DSL compiler for multi-agent LLM orchestration with bounded LLM calls."
+icon: "sparkles"
+---
+
+<Note>
+  **Astra is in active development.** APIs, architecture, and documentation may change. Contributions and feedback are welcome but expect breaking changes before `v1.0`.
+</Note>
+
+## What is Astra?
+
+Astra is a **code-first DSL compiler for multi-agent orchestration**. Instead of running a language model inside a ReAct loop at every step, Astra uses the model **once** to produce a short Python program, validates it against compile-time safety rules, compiles it into a typed execution graph, and runs that graph deterministically with **no further model calls during execution**.
+
+The result: **bounded LLM calls (~3 per query)** regardless of how many tools or agents the workflow uses, plus an inspectable execution plan and a fully replayable audit trail.
+
+## How it works
+
+The LLM is called exactly **three times** per query — every query, regardless of how many tools or agents the workflow uses.
+
+<div style={{display: 'flex', justifyContent: 'center', margin: '1.5rem 0'}}>
+<svg width="340" height="430" viewBox="0 0 340 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pipeline: user query, three LLM calls with a deterministic execution step in the middle, final response.">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#666" />
+    </marker>
+  </defs>
+
+  {/* User query (pill) */}
+  <rect x="100" y="6" width="140" height="36" rx="18" fill="#0d0d0d" stroke="#444" strokeWidth="1" />
+  <text x="170" y="29" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#ccc" textAnchor="middle">User query</text>
+
+  <line x1="170" y1="46" x2="170" y2="64" stroke="#666" strokeWidth="1.5" markerEnd="url(#arr)" />
+
+  {/* LLM call 1 */}
+  <rect x="60" y="68" width="220" height="44" rx="6" fill="#7C5CFF" stroke="#5A3FE6" strokeWidth="1" />
+  <text x="170" y="94" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#fff" textAnchor="middle">
+    <tspan fontWeight="700">1.</tspan> Plan &nbsp;·&nbsp; LLM
+  </text>
+
+  <line x1="170" y1="116" x2="170" y2="134" stroke="#666" strokeWidth="1.5" markerEnd="url(#arr)" />
+
+  {/* LLM call 2 */}
+  <rect x="60" y="138" width="220" height="44" rx="6" fill="#7C5CFF" stroke="#5A3FE6" strokeWidth="1" />
+  <text x="170" y="164" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#fff" textAnchor="middle">
+    <tspan fontWeight="700">2.</tspan> Generate code &nbsp;·&nbsp; LLM
+  </text>
+
+  <line x1="170" y1="186" x2="170" y2="204" stroke="#666" strokeWidth="1.5" markerEnd="url(#arr)" />
+
+  {/* Deterministic step (dashed) */}
+  <rect x="40" y="208" width="260" height="62" rx="6" fill="#1a1a1a" stroke="#7C5CFF" strokeWidth="1.5" strokeDasharray="6 3" />
+  <text x="170" y="232" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#A88BFF" textAnchor="middle">Compile · validate · execute</text>
+  <text x="170" y="252" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="11" fill="#8a7ad6" textAnchor="middle" fontStyle="italic">no LLM calls</text>
+
+  <line x1="170" y1="274" x2="170" y2="292" stroke="#666" strokeWidth="1.5" markerEnd="url(#arr)" />
+
+  {/* LLM call 3 */}
+  <rect x="60" y="296" width="220" height="44" rx="6" fill="#7C5CFF" stroke="#5A3FE6" strokeWidth="1" />
+  <text x="170" y="322" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#fff" textAnchor="middle">
+    <tspan fontWeight="700">3.</tspan> Synthesize &nbsp;·&nbsp; LLM
+  </text>
+
+  <line x1="170" y1="344" x2="170" y2="362" stroke="#666" strokeWidth="1.5" markerEnd="url(#arr)" />
+
+  {/* Final response (pill) */}
+  <rect x="100" y="366" width="140" height="36" rx="18" fill="#0d0d0d" stroke="#444" strokeWidth="1" />
+  <text x="170" y="389" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="13" fill="#ccc" textAnchor="middle">Final response</text>
+</svg>
+</div>
+
+The dashed step in the middle is where Astra differs from ReAct: a typed execution graph runs deterministically with **zero LLM calls**. The third LLM call only fires at the end to format the answer.
+
+For the full pipeline (DSL → AST → typed graph → executor), see [Architecture](/concepts/architecture).
+
+## Headline numbers
+
+On a 4-analyst investment-research workload (90 trials, 5 frameworks):
+
+| Architecture | n | LLM calls | tokens (mean / p95) | wall p50 (s) |
+| --- | --: | --: | --: | --: |
+| **Astra (compiled)** | 18 | **3.0** | **21,013 / 28,804** | **26.1** |
+| ReAct pool (Agno + CrewAI + AutoGen) | 54 | 16.1 | 49,219 / 85,452 | 50.3 |
+| Hand-graph (LangGraph) | 18 | 10.4 | 29,645 / 55,086 | 32.4 |
+
+Against the pooled ReAct baseline: **5.37× fewer LLM calls, 2.34× fewer tokens, 1.93× faster wall p50**. Full numbers, ratios, and reproduction in [`benchmarking/`](https://github.com/astra-dev/astra/tree/main/benchmarking) and the [research paper](https://github.com/astra-dev/astra/blob/main/paper/main.pdf).
+
+## When to choose Astra
+
+<CardGroup cols={2}>
+  <Card title="Choose Astra when" icon="circle-check">
+    - Your workflow is **sequential and structured** (most multi-agent pipelines are)
+    - You need **predictable cost** per query
+    - You want a **typed, inspectable plan** before tools run
+    - Compile-time safety matters (AST validation, no shell/file/network escape)
+  </Card>
+  <Card title="Choose a ReAct loop when" icon="circle-info">
+    - The workflow must **replan mid-execution** based on intermediate results
+    - You need **adaptive recovery** from unexpected tool outputs
+    - The problem is **exploratory** rather than structured
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Build your first agent" icon="rocket" href="/quickstart">
+    Five-minute install, define a tool, run an agent.
+  </Card>
+  <Card title="Compose a team" icon="users" href="/concepts/teams">
+    Wire multiple agents into a coordinated team.
+  </Card>
+  <Card title="Read the research" icon="book-open" href="https://github.com/astra-dev/astra/blob/main/paper/main.pdf">
+    The compiled-graph approach explained in full.
+  </Card>
+</CardGroup>

@@ -1,0 +1,143 @@
+---
+title: "Switch model providers"
+description: "Gemini, Bedrock today; Anthropic, OpenAI, and Ollama in v0.2."
+icon: "arrows-rotate"
+---
+
+import ProviderTabs from '/snippets/provider-tabs.mdx';
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework`
+- An API key or credentials for your chosen provider
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+The `model` parameter on `Agent` and `Team` is the only place provider choice surfaces. Everything else (tools, memory, RAG, middleware, observability) is provider-agnostic. Switching providers is a one-line change.
+
+## The provider matrix
+
+| Provider | Status | Class | Required env |
+| --- | --- | --- | --- |
+| Gemini | GA | `framework.models.google.Gemini` | `GEMINI_API_KEY` |
+| Bedrock | GA | `framework.models.aws.Bedrock` | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| Anthropic | Coming in v0.2 | `framework.models.anthropic.Anthropic` | `ANTHROPIC_API_KEY` |
+| OpenAI | Coming in v0.2 | `framework.models.openai.OpenAI` | `OPENAI_API_KEY` |
+| Ollama | Coming in v0.2 | `framework.models.ollama.Ollama` | none (local) |
+
+<Note>
+**Gemini** and **Bedrock** are production-ready. The other three providers are scheduled for v0.2. Track progress at [astra-dev/astra issues](https://github.com/astra-dev/astra/issues).
+</Note>
+
+## The same agent, three providers
+
+<ProviderTabs />
+
+The only thing that changed across the tabs above is the line that builds `model`. The `Agent(...)` call after it is identical.
+
+## A complete switcher
+
+Save as `provider_switch.py`. The script reads an env var to pick a provider and runs the same query against the one you select.
+
+```python provider_switch.py
+import asyncio
+import os
+
+from framework.agents import Agent
+
+
+def build_model():
+    provider = os.getenv("ASTRA_PROVIDER", "gemini").lower()
+
+    if provider == "gemini":
+        from framework.models.google import Gemini
+        # GEMINI_API_KEY is read from env.
+        return Gemini("gemini-2.5-flash")
+
+    if provider == "bedrock":
+        from framework.models.aws import Bedrock
+        # AWS_REGION must be set; credentials come from the standard AWS chain.
+        return Bedrock("anthropic.claude-3-5-sonnet-20241022-v2:0")
+
+    # v0.2 providers: uncomment when released.
+    # if provider == "anthropic":
+    #     from framework.models.anthropic import Anthropic
+    #     return Anthropic("claude-sonnet-4-6")
+    # if provider == "openai":
+    #     from framework.models.openai import OpenAI
+    #     return OpenAI("gpt-4o")
+    # if provider == "ollama":
+    #     from framework.models.ollama import Ollama
+    #     return Ollama("llama3.1")
+
+    raise ValueError(f"Unknown provider: {provider!r}")
+
+
+async def main():
+    agent = Agent(
+        name="Assistant",
+        instructions="Answer concisely in one sentence.",
+        model=build_model(),
+    )
+    print(await agent.invoke("Name one principle of good API design."))
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Run with `ASTRA_PROVIDER=gemini python provider_switch.py` or `ASTRA_PROVIDER=bedrock python provider_switch.py`.
+
+## Provider-specific configuration
+
+**Gemini** is the simplest: set `GEMINI_API_KEY` and you are done. The constructor accepts `safety_settings`, `system_instruction`, and standard generation params; tune these on the `Gemini(...)` call, not on the `Agent`.
+
+**Bedrock** needs three env vars: `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`. In production, use an IAM role instead of static credentials. Model availability is region-dependent: Claude 3.5 Sonnet is in `us-east-1`, `us-west-2`, and a handful of EU regions. Calling a model in a region where it is not enabled fails with `AccessDeniedException`.
+
+Bedrock's pricing is per-token at the model level. The Astra layer adds no markup; tokens you see in the trace are the same tokens AWS bills for.
+
+## Cost and latency notes
+
+| Use case | Recommended provider |
+| --- | --- |
+| High-throughput, cost-sensitive code-mode generation | Gemini Flash |
+| Long-context reasoning, complex tool chains | Bedrock Claude 3.5 Sonnet |
+| Strict data-residency (EU, US-only) | Bedrock in the appropriate region |
+| Offline / air-gapped (v0.2) | Ollama |
+
+Code-mode generation is the dominant LLM cost in Astra: every `invoke` round-trips at least one generation, and OUTPUT formatting adds a second. Pick a fast model for production load and a strong model only where reasoning quality matters.
+
+<Tip>
+You can mix providers within a single team. The team's router model can be Gemini Flash (cheap routing) while a member agent uses Bedrock Claude (strong reasoning on heavy subtasks). Just hand each `Agent`/`Team` a different `model=` instance.
+</Tip>
+
+<Warning>
+**Do not hard-code keys.** All providers read credentials from environment variables. Use a secret manager (AWS Secrets Manager, Doppler, 1Password) and inject at deploy time. See [Deploy to production](/guides/deploying-to-production).
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run on Gemini">
+    `ASTRA_PROVIDER=gemini python provider_switch.py` prints a single sentence.
+  </Step>
+  <Step title="Run on Bedrock">
+    With AWS creds and `ASTRA_PROVIDER=bedrock`, the same query returns a sentence (style may differ).
+  </Step>
+  <Step title="Check trace attributes">
+    The `model.generate` span should record `model.provider` ("gemini" or "bedrock") and the exact model id.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build your first agent" icon="rocket" href="/guides/first-agent">
+    Revisit constructor parameters now that provider choice is unblocked.
+  </Card>
+  <Card title="Deploy to production" icon="cloud-arrow-up" href="/guides/deploying-to-production">
+    Inject provider credentials safely in Docker and Kubernetes.
+  </Card>
+</CardGroup>

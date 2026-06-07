@@ -1,0 +1,219 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Astra",
+  "theme": "mint",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://astra.dev"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#7C5CFF",
+    "light": "#A88BFF",
+    "dark": "#5A3FE6",
+    "anchors": {
+      "from": "#7C5CFF",
+      "to": "#A88BFF"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/astra-dev/astra"
+    }
+  ],
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/astra-dev/astra"
+  },
+  "tabs": [
+    {
+      "name": "Documentation",
+      "url": "/"
+    },
+    {
+      "name": "API Reference",
+      "url": "reference"
+    },
+    {
+      "name": "Cookbook",
+      "url": "cookbook"
+    },
+    {
+      "name": "Playground",
+      "url": "https://github.com/astra-dev/astra/tree/main/astra-playground-ui"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Research Paper",
+      "icon": "book-open",
+      "url": "https://github.com/astra-dev/astra/blob/main/paper/main.pdf"
+    },
+    {
+      "name": "Benchmarks",
+      "icon": "chart-line",
+      "url": "https://github.com/astra-dev/astra/tree/main/benchmarking"
+    },
+    {
+      "name": "Discord",
+      "icon": "discord",
+      "url": "https://discord.gg/astra"
+    },
+    {
+      "name": "X / Twitter",
+      "icon": "twitter",
+      "url": "https://x.com/astra_dev"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "installation"
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        "concepts/architecture",
+        "concepts/why-compile-not-loop",
+        "concepts/agents",
+        "concepts/teams",
+        "concepts/tools",
+        "concepts/semantic-layer",
+        "concepts/memory-and-storage",
+        "concepts/rag",
+        "concepts/mcp",
+        "concepts/middleware",
+        "concepts/observability"
+      ]
+    },
+    {
+      "group": "The Compiler",
+      "pages": [
+        "compiler/dsl-syntax",
+        "compiler/ast-validator",
+        "compiler/execution-graph",
+        "compiler/executor",
+        "compiler/replay"
+      ]
+    },
+    {
+      "group": "How-to Guides",
+      "pages": [
+        "guides/first-agent",
+        "guides/multi-agent-team",
+        "guides/custom-tool",
+        "guides/mcp-toolkit",
+        "guides/conversational-memory",
+        "guides/rag-knowledge-base",
+        "guides/streaming",
+        "guides/ingest-documents",
+        "guides/custom-middleware",
+        "guides/multi-provider",
+        "guides/tracing-and-replay",
+        "guides/deploying-to-production"
+      ]
+    },
+    {
+      "group": "Runtime",
+      "pages": [
+        "runtime/astra-server",
+        "runtime/rest-endpoints",
+        "runtime/sse-streaming",
+        "runtime/auth",
+        "runtime/registry",
+        "runtime/tool-sync",
+        "runtime/health-probes"
+      ]
+    },
+    {
+      "group": "Observability",
+      "pages": [
+        "observability/setup",
+        "observability/traces-and-spans",
+        "observability/metrics",
+        "observability/streaming-metrics",
+        "observability/querying",
+        "observability/integrations"
+      ]
+    },
+    {
+      "group": "Comparisons",
+      "pages": [
+        "comparisons/vs-langgraph",
+        "comparisons/vs-crewai",
+        "comparisons/vs-agno",
+        "comparisons/vs-autogen"
+      ]
+    },
+    {
+      "group": "Contributing",
+      "pages": [
+        "contributing",
+        "changelog"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "reference/index"
+      ]
+    },
+    {
+      "group": "astra-framework",
+      "pages": [
+        "reference/framework/index"
+      ]
+    },
+    {
+      "group": "astra-runtime",
+      "pages": [
+        "reference/runtime/index"
+      ]
+    },
+    {
+      "group": "astra-observability",
+      "pages": [
+        "reference/observability/index"
+      ]
+    },
+    {
+      "group": "Cookbook",
+      "pages": [
+        "cookbook/index",
+        "cookbook/investment-team",
+        "cookbook/market-research",
+        "cookbook/enterprise-teams",
+        "cookbook/limca"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/astra-dev/astra",
+    "x": "https://x.com/astra_dev",
+    "discord": "https://discord.gg/astra"
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "search": {
+    "prompt": "Search Astra docs..."
+  },
+  "metadata": {
+    "og:image": "/images/og/default.png",
+    "og:site_name": "Astra Documentation",
+    "twitter:card": "summary_large_image"
+  },
+  "analytics": {
+    "plausible": {
+      "domain": "docs.astra.dev"
+    }
+  }
+}

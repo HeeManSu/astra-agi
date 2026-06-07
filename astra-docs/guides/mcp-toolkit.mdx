@@ -1,0 +1,157 @@
+---
+title: "Connect an MCP toolkit"
+description: "Plug Exa, Brave, and custom stdio MCP servers into an Agent."
+icon: "plug"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework mcp`
+- Node.js 18+ on PATH (most public MCP servers ship as `npx` packages)
+- An API key for the server you plan to use: `EXA_API_KEY` for Exa, `BRAVE_API_KEY` for Brave Search
+- A provider key for the agent (`GEMINI_API_KEY` recommended)
+- Completed [Write a custom tool](/guides/custom-tool)
+</Note>
+
+[Model Context Protocol](https://modelcontextprotocol.io/) is a JSON-RPC dialect for exposing tools, prompts, and resources over stdio or SSE. Astra ships a thin wrapper, `MCPToolkit`, that connects to any compliant server, lists its tools, and merges them into the same semantic layer your native `@bind_tool` functions live in. The implementation is at [tool/mcp/toolkit.py:25](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/mcp/toolkit.py#L25).
+
+This guide wires up two production servers (Exa and Brave) and a custom one.
+
+## Connect Exa and Brave
+
+Save as `mcp_agent.py`. Exa offers high-recall neural search; Brave is faster and cheaper for keyword queries.
+
+```python mcp_agent.py
+import asyncio
+import os
+
+from framework.agents import Agent
+from framework.tool.mcp import MCPToolkit
+from framework.models.google import Gemini
+
+
+exa = MCPToolkit(
+    name="exa",
+    command="npx",
+    args=["-y", "exa-mcp-server"],
+    env={"EXA_API_KEY": os.environ["EXA_API_KEY"]},
+)
+
+brave = MCPToolkit(
+    name="brave",
+    command="npx",
+    args=["-y", "@modelcontextprotocol/server-brave-search"],
+    env={"BRAVE_API_KEY": os.environ["BRAVE_API_KEY"]},
+)
+
+
+async def main():
+    # Connect both servers in parallel.
+    await asyncio.gather(exa.connect(), brave.connect())
+
+    # Discover what each server exposes.
+    exa_tools = await exa.list_tools()
+    brave_tools = await brave.list_tools()
+    print(f"Exa exposes:   {[t['name'] for t in exa_tools]}")
+    print(f"Brave exposes: {[t['name'] for t in brave_tools]}")
+
+    agent = Agent(
+        name="Researcher",
+        instructions=(
+            "Use exa.web_search_exa for neural and long-tail queries. "
+            "Use brave.brave_web_search for fresh news and homepage lookups. "
+            "Cite every source URL."
+        ),
+        model=Gemini("gemini-2.5-flash"),
+        tools=[exa, brave],   # MCPToolkit instances go in `tools` directly
+    )
+
+    reply = await agent.invoke(
+        "Find two recent articles about the Model Context Protocol and summarise them."
+    )
+    print(reply)
+
+    await exa.close()
+    await brave.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+The `Agent.tools` list accepts both `Tool` instances (from `@bind_tool`) and `MCPToolkit` instances. They merge into a single semantic layer where each MCP tool appears under a namespace derived from `MCPToolkit.name`, so the LLM sees `exa.web_search_exa(...)` and `brave.brave_web_search(...)` as if they were ordinary Python methods on those modules.
+
+## Build a custom stdio MCP server
+
+Any process that speaks MCP over stdio works. Save as `custom_mcp.py` and run it once to confirm the binary launches.
+
+```python custom_mcp.py
+import asyncio
+from framework.tool.mcp import MCPToolkit
+
+
+# Suppose you have an in-house MCP server at ./bin/internal-mcp that reads docs
+# from a private S3 bucket.
+internal = MCPToolkit(
+    name="internal-docs",
+    command="./bin/internal-mcp",
+    args=["--bucket", "my-team-docs"],
+    env={"AWS_REGION": "us-east-1"},
+)
+
+
+async def main():
+    await internal.connect()
+    tools = await internal.list_tools()
+    for t in tools:
+        print(f"{t['name']}: {t['description']}")
+    # Call one directly to smoke-test.
+    out = await internal.call_tool("search_docs", query="onboarding")
+    print(out)
+    await internal.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+`call_tool` (lines [120-143](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/mcp/toolkit.py#L120)) returns the text content of the MCP response. If the server flags an error, it raises `RuntimeError("MCP tool 'X' failed: ...")`.
+
+## Lifecycle and slugs
+
+Each `MCPToolkit` gets a stable `slug` (see [toolkit.py:58-68](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/tool/mcp/toolkit.py#L58)) derived from `name`, `command`, and `args`. The slug is used by the runtime's startup sync to detect unchanged toolkits across deploys. If you change the command or args, the slug changes and the sync re-registers the toolkit. You can override the slug explicitly if you need to migrate.
+
+<Warning>
+**Startup timeouts on slow servers.** The `runtime` server connects MCP toolkits at startup with a default 10s timeout per server (see `StartupSyncConfig.mcp_connect_timeout_seconds` in [runtime/server.py:42](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L42)). If your custom server boots slowly, raise the timeout or set `require_mcp_sync=False` to make startup non-fatal.
+</Warning>
+
+<Tip>
+**MCP tools and native tools are equal citizens.** They share the same trace span shape (`tool.<name>`), the same middleware pipeline, and the same code-mode stubs. The LLM cannot tell them apart, which is exactly the point.
+</Tip>
+
+## Verify it worked
+
+<Steps>
+  <Step title="List tools">
+    The `print(...)` lines should output non-empty arrays. If empty, the server crashed at boot; run the `npx` command directly to see its stderr.
+  </Step>
+  <Step title="Invoke the agent">
+    The agent should call at least one MCP tool. Open the trace and look for a `tool.exa.web_search_exa` (or `tool.brave.brave_web_search`) span under `agent.invoke`.
+  </Step>
+  <Step title="Confirm cleanup">
+    After `close()`, no stray `node` processes should be left behind. Run `ps aux | grep mcp-server` to confirm.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Write a custom tool" icon="screwdriver-wrench" href="/guides/custom-tool">
+    Mix MCP and native tools on the same agent.
+  </Card>
+  <Card title="Deploy to production" icon="cloud-arrow-up" href="/guides/deploying-to-production">
+    Tune startup sync for MCP servers behind load balancers.
+  </Card>
+</CardGroup>

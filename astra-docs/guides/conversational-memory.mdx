@@ -1,0 +1,132 @@
+---
+title: "Add conversational memory"
+description: "Persist chat history across runs with Memory and a StorageClient."
+icon: "brain"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework`
+- A `StorageClient`: MongoDB (`pip install motor`) or libsql (`pip install libsql-experimental`)
+- A provider key (`GEMINI_API_KEY` recommended)
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+The `Memory` class is a tiny policy object: it decides *whether* prior turns are replayed and *how many*. Persistence is the storage layer's job. The split keeps `Memory` portable across storage backends. The full implementation is in [memory/memory.py:16](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/memory/memory.py#L16) and is roughly forty lines.
+
+This guide threads a chat across three turns and inspects the saved history.
+
+## Memory + storage + agent
+
+Save as `memory_agent.py`. We use libsql (file-backed, no server) so the example runs anywhere.
+
+```python memory_agent.py
+import asyncio
+
+from framework.agents import Agent
+from framework.memory import Memory
+from framework.models.google import Gemini
+from framework.storage.client import StorageClient
+from framework.storage.databases.libsql import LibSQLStorage
+
+
+async def main():
+    # 1. Storage: a libsql file on disk.
+    backend = LibSQLStorage(url="file:./chat.db")
+    await backend.initialize()
+    storage = StorageClient(storage=backend)
+
+    # 2. Memory policy: include the last 5 user/assistant turns on every call.
+    memory = Memory(add_history_to_messages=True, num_history_turns=5)
+
+    # 3. Agent wires them together.
+    agent = Agent(
+        name="Concierge",
+        instructions=(
+            "You are a hotel concierge. Remember the guest's name and preferences "
+            "across the conversation. Reference them when helpful."
+        ),
+        model=Gemini("gemini-2.5-flash"),
+        storage=storage,
+        memory=memory,
+    )
+
+    # 4. Three turns on the SAME thread.
+    thread_id = None  # first call creates one; subsequent calls reuse it
+
+    r1 = await agent.invoke("Hi, I'm Alex. I prefer rooms on a high floor.", thread_id=thread_id)
+    print("Turn 1:", r1)
+
+    # Pull the freshly created thread_id from storage.
+    threads = await storage.list_threads(resource_type="agent", resource_id=agent.id, limit=1)
+    thread_id = threads[0].id
+    print(f"(using thread_id={thread_id})")
+
+    r2 = await agent.invoke("Can you remind me what I prefer?", thread_id=thread_id)
+    print("Turn 2:", r2)
+
+    r3 = await agent.invoke("Great, please book me for two nights starting tomorrow.", thread_id=thread_id)
+    print("Turn 3:", r3)
+
+    # 5. Inspect what was persisted.
+    history = await storage.messages.list_for_thread(thread_id, limit=20)
+    print(f"\nPersisted {len(history)} messages on thread {thread_id}:")
+    for msg in history:
+        print(f"  [{msg.role}] {msg.content[:80]}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## How history reaches the LLM
+
+On every `agent.invoke()`, the agent calls `memory.get_context(thread_id, storage)` (see [memory.py:51](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/memory/memory.py#L51)). That method computes `message_limit = num_history_turns * 2` (each turn is a user + assistant pair) and asks the storage backend for the most recent slice via `get_history_as_messages`. The result is a list ordered oldest-first, ready to splice into the prompt.
+
+If `add_history_to_messages=False`, `get_context` returns an empty list and the LLM sees only the current query. This is the right setting for stateless tools (one-shot extraction, batch classification) where every call must be reproducible without context.
+
+## Tuning `num_history_turns`
+
+| Value | Behaviour | When to use |
+| --- | --- | --- |
+| `0` | Effectively stateless even with storage | Batch / one-shot jobs |
+| `5` (default) | Recent context, ~10 messages | Casual chat, short tasks |
+| `20` | Rich context, ~40 messages | Long support sessions |
+| `50+` | Approaches context-window pressure | Specialist research bots |
+
+Each extra turn is replayed on *every* call, so the cost scales linearly with both turns and call frequency. If you need long-term recall without paying that cost on every turn, use RAG instead (see [Build a RAG knowledge base](/guides/rag-knowledge-base)).
+
+<Tip>
+**Threads are how memory is scoped.** Memory does not look across threads. Use one thread per logical conversation (per user session, per chat tab, per support ticket). The `thread_id` is returned from `save_user_message` inside `Agent.invoke` on the first call, then echoed back on subsequent ones.
+</Tip>
+
+<Warning>
+**Do not share threads across agents with conflicting personas.** History is replayed verbatim, so if Agent A wrote "I'm a helpful assistant" and Agent B then reads that history, B might inherit A's persona. Use separate threads or scope by `resource_id`.
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the script">
+    `python memory_agent.py` should print three replies. Turn 2 must mention "high floor" without you re-stating it.
+  </Step>
+  <Step title="Count persisted messages">
+    The final loop should print six messages (three user, three assistant), all on the same thread id.
+  </Step>
+  <Step title="Inspect via list_threads">
+    `await storage.list_threads(resource_type="agent")` should return exactly one thread, with `resource_id` equal to `agent.id`.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build a RAG knowledge base" icon="book" href="/guides/rag-knowledge-base">
+    Long-term recall without burning context tokens.
+  </Card>
+  <Card title="Stream agent and team output" icon="bolt" href="/guides/streaming">
+    Stream replies while preserving memory.
+  </Card>
+</CardGroup>

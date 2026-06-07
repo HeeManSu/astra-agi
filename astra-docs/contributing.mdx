@@ -1,0 +1,162 @@
+---
+title: "Contributing"
+description: "How to contribute to Astra: code, docs, and examples."
+icon: "code-pull-request"
+---
+
+Astra is open source. Contributions of all kinds are welcome — bug reports, fixes, new features, docs improvements, example cookbooks, and translations.
+
+## Where to start
+
+<CardGroup cols={2}>
+  <Card title="Source repo" icon="github" href="https://github.com/astra-dev/astra">
+    Code, issues, and pull requests.
+  </Card>
+  <Card title="Discord" icon="discord" href="https://discord.gg/astra">
+    Real-time chat with maintainers and other contributors.
+  </Card>
+  <Card title="Good first issues" icon="seedling" href="https://github.com/astra-dev/astra/labels/good%20first%20issue">
+    Beginner-friendly tasks tagged on GitHub.
+  </Card>
+  <Card title="Docs source" icon="book" href="https://github.com/astra-dev/astra/tree/main/astra-docs">
+    The MDX content behind this site.
+  </Card>
+</CardGroup>
+
+## Local development
+
+### Source packages
+
+The three packages live in a [uv workspace](https://docs.astral.sh/uv/concepts/workspaces/) at `astra/`:
+
+```bash
+git clone https://github.com/astra-dev/astra
+cd astra/astra/runtime
+uv sync
+```
+
+Run the test suite from the repo root:
+
+```bash
+uv run pytest
+```
+
+Lint with `ruff` before opening a PR:
+
+```bash
+uv run ruff check .
+uv run ruff format .
+```
+
+### Documentation site
+
+This site is built with [Mintlify](https://mintlify.com/). To preview locally:
+
+```bash
+cd astra-docs
+npx mintlify@latest dev
+```
+
+The site lives at [`docs.astra.dev`](https://docs.astra.dev). Mintlify auto-deploys from `main` on every push.
+
+<Tip>
+  `mintlify broken-links` catches broken internal links; `mintlify validate` checks `mint.json`. Run both before pushing.
+</Tip>
+
+## Writing documentation
+
+### Style
+
+- **Voice**: direct, second-person ("you"). Avoid hedging ("might", "could").
+- **Length**: concept pages 500–900 words, guides 500–800 words, compiler deep-dives 700–1200 words.
+- **Code**: every code block should be a complete, runnable file. No `# ...` placeholders for required logic.
+- **Links**: root-relative paths without the `.mdx` suffix — e.g. `[/concepts/agents](/concepts/agents)`.
+- **Source citations**: `[file.py:lineN](https://github.com/astra-dev/astra/blob/main/<path>#LN)`.
+
+### Mintlify components
+
+Common building blocks used throughout the site:
+
+| Component | When to use |
+| --- | --- |
+| `<Note>` | Side information that is not a warning. |
+| `<Tip>` | Practical advice or shortcuts. |
+| `<Warning>` | Caveats, footguns, or breaking changes. |
+| `<Steps>` | Ordered procedures (install, run, verify). |
+| `<CodeGroup>` | Tabbed code samples (uv/pip, curl/Python/JS). |
+| `<CardGroup>` + `<Card>` | Navigation grids and "next steps" footers. |
+| `<ParamField>` | Constructor parameters in concept and reference pages. |
+| `<ResponseField>` | Return values and response bodies. |
+
+For every model snippet, import the shared provider tabs instead of inlining:
+
+```mdx
+import ProviderTabs from '/snippets/provider-tabs.mdx';
+
+<ProviderTabs />
+```
+
+### API reference
+
+The pages under `/reference/` are **auto-generated** from Python docstrings by the build script at [`astra-docs/scripts/build-reference.py`](https://github.com/astra-dev/astra/blob/main/astra-docs/scripts/build-reference.py). Do not hand-edit MDX files in that directory.
+
+To improve a reference page, edit the docstring in the Python source. The next CI run will refresh the MDX automatically.
+
+We use [Google-style docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings):
+
+```python
+def add(a: float, b: float) -> float:
+    """Add two numbers.
+
+    Args:
+        a: The first addend.
+        b: The second addend.
+
+    Returns:
+        The sum of ``a`` and ``b``.
+
+    Raises:
+        TypeError: If either argument is not numeric.
+    """
+    return a + b
+```
+
+Run the docstring check locally before pushing:
+
+```bash
+python astra-docs/scripts/build-reference.py --package framework --check
+```
+
+The CI workflow ([reference.yml](https://github.com/astra-dev/astra/blob/main/.github/workflows/reference.yml)) fails on any public symbol (in `__all__`) without a docstring.
+
+## Pull-request checklist
+
+Before opening a PR:
+
+<Steps>
+  <Step title="Code">
+    `uv run pytest` and `uv run ruff check .` both pass.
+  </Step>
+  <Step title="Docs">
+    `mintlify broken-links` is clean and `python scripts/check-frontmatter.py` exits zero.
+  </Step>
+  <Step title="Changelog">
+    Add a line under `## [Unreleased]` in `astra/CHANGELOG.md` if the change affects users.
+  </Step>
+  <Step title="Description">
+    Reference the issue you're closing and include before/after screenshots for UI-affecting changes.
+  </Step>
+</Steps>
+
+## Releasing a new docs version
+
+When Astra cuts a new minor release (e.g. `v0.1` → `v0.2`):
+
+1. Add the new version to `mint.json` → `versions`.
+2. Copy current content under `astra-docs/versions/v0.1/`.
+3. Update `reference.yml` to write to the active version's reference dir.
+4. Smoke-test the version switcher in Mintlify's preview.
+
+## License
+
+Astra is licensed under [Apache 2.0](https://github.com/astra-dev/astra/blob/main/astra/framework/LICENSE). By contributing, you agree to license your work under the same terms.

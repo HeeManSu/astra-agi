@@ -1,0 +1,175 @@
+---
+title: "Build a RAG knowledge base"
+description: "Ingest documents into a vector store and query them through an agent."
+icon: "book"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework sentence-transformers lancedb`
+- A provider key (`GEMINI_API_KEY` recommended)
+- A directory of `.txt` or `.md` files to ingest
+- Completed [Build your first agent](/guides/first-agent)
+</Note>
+
+A RAG (retrieval-augmented generation) pipeline in Astra is built from three pieces: an embedder, a vector store, and a `Pipeline` of stages. You assemble them into a `Rag` object once, hand it to the agent via `rag_pipeline=`, and the agent gets `ingest*` and `query` convenience methods for free. The orchestrator lives in [rag/pipeline.py:98](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/rag/pipeline.py#L98), and the agent passthroughs are at [agents/agent.py:336](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L336).
+
+## Build a working pipeline
+
+Save as `rag_agent.py`. This example uses HuggingFace embeddings (CPU, no API call) and LanceDB (file-backed, no server).
+
+```python rag_agent.py
+import asyncio
+from pathlib import Path
+
+from framework.agents import Agent
+from framework.models.google import Gemini
+from framework.rag import (
+    HuggingFaceEmbedder,
+    LanceDB,
+    Pipeline,
+    Rag,
+    RagContext,
+)
+from framework.rag.stages import (
+    ChunkStage,
+    EmbedStage,
+    ReadStage,
+    RetrieveStage,
+    StoreStage,
+)
+
+
+def build_rag() -> Rag:
+    context = RagContext(
+        embedder=HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2"),
+        vector_db=LanceDB(uri="./kb.lance"),
+        config={"default_top_k": 5},
+    )
+
+    ingest_pipeline = Pipeline(
+        name="ingest",
+        stages=[
+            ReadStage(),
+            ChunkStage(strategy="recursive", chunk_size=512, chunk_overlap=50),
+            EmbedStage(),
+            StoreStage(),
+        ],
+    )
+
+    query_pipeline = Pipeline(
+        name="query",
+        stages=[RetrieveStage(top_k=5)],
+    )
+
+    return Rag(
+        context=context,
+        ingest_pipeline=ingest_pipeline,
+        query_pipeline=query_pipeline,
+    )
+
+
+async def main():
+    rag = build_rag()
+
+    agent = Agent(
+        name="Docs Bot",
+        instructions=(
+            "Answer questions strictly from the retrieved context. "
+            "If the answer is not in the context, say 'I don't know.' "
+            "Cite the source document name for every claim."
+        ),
+        model=Gemini("gemini-2.5-flash"),
+        rag_pipeline=rag,
+    )
+
+    # Make sure ./docs exists with at least one .md file.
+    Path("./docs").mkdir(exist_ok=True)
+    Path("./docs/welcome.md").write_text(
+        "# Astra\n"
+        "Astra is a Python multi-agent framework that compiles LLM-generated "
+        "Python into a typed execution graph for deterministic execution."
+    )
+
+    # Bulk ingest the directory. Returns content IDs.
+    ids = await agent.ingest_directory("./docs", pattern="*.md", recursive=True)
+    print(f"Ingested {len(ids)} documents")
+
+    reply = await agent.invoke("What does Astra compile, and why?")
+    print(reply)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Stage by stage
+
+**`ReadStage`** turns a path, URL, or raw text into a `Document` object. It dispatches on the source type.
+
+**`ChunkStage(chunk_size=512, chunk_overlap=50)`** splits documents using a recursive character splitter. The 50-token overlap preserves context across boundaries; bump it up for legal or code-heavy corpora.
+
+**`EmbedStage`** uses the embedder from `RagContext` to vectorise each chunk. The HuggingFace embedder runs locally; swap it for an API-backed embedder when you need GPU-quality embeddings without local hardware.
+
+**`StoreStage`** writes the embeddings into LanceDB. Each chunk gets a stable id derived from content + metadata.
+
+**`RetrieveStage(top_k=5)`** is the query-side stage. The agent's prompt template prepends the top-k retrieved chunks to the user query before code generation runs.
+
+## How the agent uses RAG
+
+When you set `rag_pipeline=rag` on an `Agent`, two things happen:
+
+1. The agent registers a synthetic `retrieve_context` tool in its semantic layer that wraps `rag.query`. The LLM can call it explicitly in code-mode generation.
+2. The agent exposes `ingest`, `ingest_batch`, and `ingest_directory` as passthroughs to `rag.ingest*` (see [agents/agent.py:336](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L336)).
+
+Either pattern works: explicit retrieval in code mode gives you precise control; the convenience methods are right for one-shot pipelines.
+
+## Ingest in three ways
+
+```python
+# Single document, raw text
+await agent.ingest(text="Astra is...", name="intro", metadata={"team": "platform"})
+
+# Single document, file path
+await agent.ingest(path="./docs/architecture.md", name="architecture")
+
+# Many documents in a directory (recursive)
+await agent.ingest_directory("./docs", pattern="*.md", recursive=True)
+```
+
+The agent variants are thin wrappers over `Rag.ingest*` and will raise `ValueError("No rag_pipeline configured. Cannot ingest.")` if you forget the `rag_pipeline=` parameter on the agent.
+
+<Tip>
+**Idempotency.** Re-ingesting the same content with the same name and metadata replaces the old chunks in LanceDB rather than appending duplicates. See [Ingest documents](/guides/ingest-documents) for the details.
+</Tip>
+
+<Warning>
+**Embedder downloads.** The first run of `HuggingFaceEmbedder("sentence-transformers/all-MiniLM-L6-v2")` downloads ~90 MB of model weights. If you deploy to a sandboxed container, pre-bake the weights into the image to avoid cold-start surprises.
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run the script">
+    `python rag_agent.py` should print `Ingested 1 documents` and an answer that mentions "typed execution graph" or similar phrasing from the ingested doc.
+  </Step>
+  <Step title="Check LanceDB on disk">
+    A `./kb.lance/` directory should exist with at least one parquet file inside.
+  </Step>
+  <Step title="Probe retrieval directly">
+    Add `print(await rag.query("execution graph"))`. You should get five `Document` results, with the welcome.md chunk first.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Ingest documents" icon="file-arrow-up" href="/guides/ingest-documents">
+    Single, batch, and directory ingestion compared.
+  </Card>
+  <Card title="Add conversational memory" icon="brain" href="/guides/conversational-memory">
+    Combine RAG (long-term) with Memory (recent turns).
+  </Card>
+</CardGroup>

@@ -1,0 +1,164 @@
+---
+title: "Middleware"
+description: "The input/output processing pipeline: stages, categories, and the @middleware decorator."
+icon: "filter"
+---
+
+Middleware is the hook for everything that has to wrap an agent's input or output: PII scrubbing, prompt-injection guards, JSON validation, output formatting, logging. Astra's middleware model is intentionally minimal — there are two stages (input, output), one base class, one decorator, and a strict rule that **categories never affect execution order**.
+
+## The base class
+
+`Middleware` ([middleware/base.py:64](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/base.py#L64)) is an abstract base. Subclass it and implement `run`:
+
+```python
+from framework.middleware import (
+    Middleware,
+    MiddlewareContext,
+    MiddlewareStage,
+    MiddlewareCategory,
+)
+
+
+class PiiRedaction(Middleware):
+    stages = {MiddlewareStage.INPUT}
+    category = MiddlewareCategory.SAFETY
+
+    async def run(self, ctx: MiddlewareContext) -> MiddlewareContext:
+        ctx.data = redact_emails_and_phones(ctx.data)
+        return ctx
+```
+
+The `stages` class variable declares which stages the middleware runs in. The `effective_stages` property allows per-instance override via `self._effective_stages = ...` in `__init__`, so a single class can be configured for either stage at construction time.
+
+## The decorator
+
+For lighter middlewares, use the `@middleware(...)` decorator ([middleware/base.py:141-192](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/base.py#L141)):
+
+```python
+from framework.middleware import middleware, MiddlewareStage, MiddlewareCategory
+
+
+@middleware(stages=[MiddlewareStage.OUTPUT], category=MiddlewareCategory.FORMATTING)
+async def trim_whitespace(ctx):
+    ctx.data = ctx.data.strip()
+    return ctx
+```
+
+The decorator builds a one-off `Middleware` subclass and returns an instance. `name` defaults to the function name.
+
+## MiddlewareContext
+
+`MiddlewareContext` ([middleware/base.py:20](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/base.py#L20)) is the data carrier passed through the pipeline.
+
+<ParamField path="data" type="Any">
+  The payload. For input middlewares, the user's query string. For output middlewares, the synthesized response.
+</ParamField>
+
+<ParamField path="stage" type="MiddlewareStage | None">
+  The current stage. Set by `run_middlewares` so middlewares can introspect.
+</ParamField>
+
+<ParamField path="metadata" type="dict[str, Any]">
+  Shared mutable state across middlewares in the same call. Use it to pass intermediate decisions between middlewares.
+</ParamField>
+
+The context has two control-flow primitives:
+
+- `ctx.stop = True; ctx.error = "..."` — short-circuit the pipeline. The agent's `invoke` raises `MiddlewareError`; the agent's `stream` yields an `error` event and returns.
+- `ctx.reject("PII detected")` — shorthand for the above.
+
+## Stages
+
+`MiddlewareStage` ([middleware/enums.py:16](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/enums.py#L16)) is a strict `Enum`:
+
+<CardGroup cols={2}>
+  <Card title="INPUT" icon="arrow-right-to-bracket">
+    Runs before the planner LLM sees the query. Typical: PII redaction, prompt-injection guards, query normalization.
+  </Card>
+  <Card title="OUTPUT" icon="arrow-right-from-bracket">
+    Runs after the synthesizer LLM produces the response. Typical: content filtering, JSON validation, format normalization.
+  </Card>
+</CardGroup>
+
+Future stages (`TOOL_INPUT`, `TOOL_OUTPUT`, `LLM_INPUT`, `LLM_OUTPUT`) are reserved in the enum but not yet wired.
+
+## Categories
+
+`MiddlewareCategory` ([middleware/enums.py:64](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/middleware/enums.py#L64)) is purely descriptive:
+
+| Category       | Use case                                                       |
+| -------------- | -------------------------------------------------------------- |
+| `SAFETY`       | PII detection, prompt-injection guards, content moderation     |
+| `VALIDATION`   | JSON schema validation, structural checks                      |
+| `OPTIMIZATION` | Reversible transformations (e.g. TOON encoding, key compression) |
+| `FORMATTING`   | Whitespace, newline, truncation                                |
+| `LOGGING`      | Observability and timing                                       |
+| `CUSTOM`       | Everything else                                                |
+
+Categories support UI grouping and policy enforcement ("disable all safety middleware in dev"). They do **not** affect execution order — that's set by the list order in `Agent(middlewares=[...])`.
+
+## Built-in middlewares
+
+Two ship in [middleware/builtin/](https://github.com/astra-dev/astra/tree/main/astra/framework/src/framework/middleware/builtin):
+
+- **`pii.py`** — heuristic email/phone/SSN redaction or rejection.
+- **`injection.py`** — prompt-injection patterns (instruction overrides, role hijacks).
+
+Both are configurable factories — call them with options to get a middleware instance.
+
+## Example: a PII redactor
+
+```python
+import re
+from framework.middleware import (
+    Middleware,
+    MiddlewareContext,
+    MiddlewareStage,
+    MiddlewareCategory,
+)
+
+
+EMAIL = re.compile(r"[\w.\-]+@[\w.\-]+\.\w+")
+PHONE = re.compile(r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b")
+
+
+class PiiRedaction(Middleware):
+    stages = {MiddlewareStage.INPUT, MiddlewareStage.OUTPUT}
+    category = MiddlewareCategory.SAFETY
+
+    def __init__(self, *, reject: bool = False):
+        self.reject = reject
+
+    async def run(self, ctx: MiddlewareContext) -> MiddlewareContext:
+        text = ctx.data
+        if self.reject and (EMAIL.search(text) or PHONE.search(text)):
+            ctx.reject("Input contains PII")
+            return ctx
+        text = EMAIL.sub("[REDACTED_EMAIL]", text)
+        text = PHONE.sub("[REDACTED_PHONE]", text)
+        ctx.data = text
+        return ctx
+
+
+agent = Agent(
+    name="Support",
+    model=Gemini("gemini-2.5-flash"),
+    instructions="...",
+    middlewares=[PiiRedaction(reject=False)],
+)
+```
+
+The same instance runs on both stages because `effective_stages` includes both. If you wanted reject-on-input but redact-on-output, you'd attach two instances configured differently.
+
+<Tip>
+Middlewares run in list order, stopping at the first one that sets `ctx.stop`. Order matters: put cheap rejection middlewares first (so they short-circuit before the expensive ones), and put logging middlewares last (so they see the final transformed payload).
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Observability" icon="gauge-high" href="/concepts/observability">
+    The engine that captures traces and spans, including middleware spans.
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
+    The compiler pipeline middlewares plug into.
+  </Card>
+</CardGroup>

@@ -1,0 +1,48 @@
+---
+title: "astra-runtime"
+description: "Reference for the embeddable FastAPI server: app factory, routes, auth, registry, and sync."
+---
+
+import ReferenceBanner from '/snippets/reference-banner.mdx';
+
+<ReferenceBanner />
+
+`astra-runtime` hosts a compiled [`astra-framework`](/reference/framework)
+app behind an HTTP and WebSocket surface. It exposes an app factory, a route
+registry, pluggable auth, and the primitives used by the agent registry and
+worker-pool synchroniser.
+
+Install it with:
+
+```bash
+pip install astra-runtime
+```
+
+## Submodules
+
+<CardGroup cols={2}>
+  <Card title="server" icon="server" href="/reference/runtime/server">
+    `AstraServer` entry point and Uvicorn integration.
+  </Card>
+  <Card title="app" icon="cube" href="/reference/runtime/app">
+    `create_app()` factory and the lifecycle hooks it wires up.
+  </Card>
+  <Card title="routes" icon="route" href="/reference/runtime/routes">
+    Built-in REST and WebSocket route handlers.
+  </Card>
+  <Card title="auth" icon="lock" href="/reference/runtime/auth">
+    Auth backends: API key, JWT, OAuth, and the `AuthBackend` protocol.
+  </Card>
+  <Card title="registry" icon="list" href="/reference/runtime/registry">
+    `AgentRegistry`: lookup, registration, and hot-reload of agents.
+  </Card>
+  <Card title="sync" icon="arrows-rotate" href="/reference/runtime/sync">
+    Worker-pool synchroniser and distributed-state helpers.
+  </Card>
+</CardGroup>
+
+<Note>
+  Pages under this section are auto-generated. Run `python
+  astra-docs/scripts/build-reference.py --package runtime --check` locally
+  to see which symbols are missing docstrings.
+</Note>

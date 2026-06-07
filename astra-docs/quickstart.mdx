@@ -1,0 +1,133 @@
+---
+title: "Quickstart"
+description: "Build your first Astra agent in five minutes."
+icon: "rocket"
+---
+
+This quickstart walks through installing Astra, defining a tool, instantiating an agent, and running it against a Gemini model.
+
+<Steps>
+
+<Step title="Install astra-framework">
+
+import Installation from '/snippets/installation.mdx';
+
+<Installation />
+
+  Astra requires **Python 3.10+**. Use [uv](https://docs.astral.sh/uv/) for the smoothest experience.
+</Step>
+
+<Step title="Set your model API key">
+
+  ```bash
+  export GOOGLE_API_KEY=your-google-genai-key
+  ```
+
+  <Tip>
+    Don't have a Gemini key? Get one free at [aistudio.google.com](https://aistudio.google.com/app/apikey). Bedrock works too — see [multi-provider](/guides/multi-provider).
+  </Tip>
+</Step>
+
+<Step title="Define a tool">
+
+  Tools are typed Python functions Astra binds to your agent. Each tool declares Pydantic input and output schemas — the planner LLM uses these to write the compiled program.
+
+  ```python
+  from pydantic import BaseModel
+  from framework.tool import ToolSpec, bind_tool
+
+
+  class AddInput(BaseModel):
+      a: float
+      b: float
+
+
+  class AddOutput(BaseModel):
+      result: float
+
+
+  @bind_tool(
+      ToolSpec(
+          name="add",
+          description="Add two numbers.",
+          input_schema=AddInput,
+          output_schema=AddOutput,
+      )
+  )
+  async def add(input: AddInput) -> AddOutput:
+      return AddOutput(result=input.a + input.b)
+  ```
+</Step>
+
+<Step title="Build the agent">
+
+import ProviderTabs from '/snippets/provider-tabs.mdx';
+
+<ProviderTabs />
+
+  Now wire the model and tools into an [`Agent`](/concepts/agents):
+
+  ```python
+  from framework.agents import Agent
+  from framework.models.google import Gemini
+
+  agent = Agent(
+      name="calculator",
+      model=Gemini("gemini-2.5-flash"),
+      instructions="You are a careful calculator. Use the `add` tool for any arithmetic.",
+      tools=[add],
+  )
+  ```
+</Step>
+
+<Step title="Run it">
+
+  Call `.invoke()` from an async context:
+
+  ```python
+  import asyncio
+
+
+  async def main() -> None:
+      response = await agent.invoke("What is 41 plus 1?")
+      print(response)
+
+
+  asyncio.run(main())
+  ```
+
+  You should see Astra plan the query, compile a one-line program that calls `add(41, 1)`, execute it deterministically, and synthesize the answer:
+
+  ```
+  41 plus 1 is 42.
+  ```
+</Step>
+
+</Steps>
+
+## What just happened
+
+Astra called the LLM **three times**:
+
+1. **Planner** — read the query and decided which tools were relevant.
+2. **Code-gen** — emitted a short Python snippet calling `add`.
+3. **Synthesizer** — turned the typed `AddOutput` into a natural answer.
+
+In between code-gen and synthesizer, a deterministic executor ran the compiled graph. **No model calls happened during tool execution.** Open the compiled plan and the journal in the [observability layer](/observability/setup) to inspect every step.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Why three LLM calls?" icon="circle-question" href="/concepts/why-compile-not-loop">
+    The compile-time approach explained.
+  </Card>
+  <Card title="Compose a team" icon="users" href="/guides/multi-agent-team">
+    Wire two specialist agents into a `Team`.
+  </Card>
+  <Card title="Write a real tool" icon="screwdriver-wrench" href="/guides/custom-tool">
+    The full `@bind_tool` reference.
+  </Card>
+  <Card title="Stream output" icon="bolt" href="/guides/streaming">
+    Use `agent.stream()` for Server-Sent Events.
+  </Card>
+</CardGroup>

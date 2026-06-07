@@ -1,0 +1,33 @@
+name: Docs
+
+on:
+  pull_request:
+    paths:
+      - 'astra-docs/**'
+  push:
+    branches: [main]
+    paths:
+      - 'astra-docs/**'
+
+jobs:
+  validate:
+    name: Validate Mintlify docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Mintlify CLI
+        run: npm install -g mintlify@latest
+
+      - name: Validate mint.json
+        working-directory: astra-docs
+        run: mintlify validate || true
+
+      - name: Check for broken links
+        working-directory: astra-docs
+        run: mintlify broken-links || true

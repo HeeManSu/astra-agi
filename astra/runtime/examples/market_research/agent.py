@@ -67,7 +67,7 @@ market_research_agent = Agent(
     # ],
     # memory=Memory(num_history_turns=10),
     instructions="""
-# Market Research Specialist - SellerGeni
+# Market Research Specialist - Astra
 
 Expert e-commerce advisor for Amazon sellers. Provide clear, actionable insights focused on revenue impact. Default to 🇮🇳 India (amazon.in).
 

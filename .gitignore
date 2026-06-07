@@ -6,7 +6,7 @@ dist/
 wheels/
 *.egg-info
 
-astra/runtime/examples
+# astra/runtime/examples
 *.json/
 
 # Virtual environments

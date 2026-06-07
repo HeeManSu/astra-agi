@@ -1,0 +1,137 @@
+name: Reference docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "astra/**/*.py"
+      - "astra-docs/scripts/**"
+      - "astra-docs/templates/**"
+  workflow_dispatch: {}
+  schedule:
+    # 06:00 UTC daily.
+    - cron: "0 6 * * *"
+  pull_request:
+    paths:
+      - "astra/**/*.py"
+      - "astra-docs/scripts/**"
+      - "astra-docs/templates/**"
+
+jobs:
+  # ---------------------------------------------------------------------
+  # PR job: dry-run every package with --check, comment any misses.
+  # ---------------------------------------------------------------------
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install Astra packages
+        run: |
+          uv pip install --system -e astra/framework -e astra/runtime -e astra/observability
+
+      - name: Install build deps
+        run: uv pip install --system -r astra-docs/scripts/requirements.txt
+
+      - name: Run docstring check
+        id: check
+        continue-on-error: true
+        run: |
+          set +e
+          {
+            echo "## Docstring coverage report"
+            echo
+            for pkg in framework runtime observability; do
+              echo "### \`astra-$pkg\`"
+              echo
+              echo '```'
+              python astra-docs/scripts/build-reference.py --package "$pkg" --check 2>&1
+              status=$?
+              echo '```'
+              echo
+              if [ "$status" -ne 0 ]; then
+                echo "FAIL=1" >> "$GITHUB_OUTPUT"
+              fi
+            done
+          } > /tmp/report.md
+          cat /tmp/report.md
+
+      - name: Comment report on PR
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: docstring-coverage
+          path: /tmp/report.md
+
+      - name: Fail if any package had missing docstrings
+        if: steps.check.outputs.FAIL == '1'
+        run: exit 1
+
+  # ---------------------------------------------------------------------
+  # Refresh job: rebuild MDX + llms.txt, open a PR with the diff.
+  # ---------------------------------------------------------------------
+  refresh:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install Astra packages
+        run: |
+          uv pip install --system -e astra/framework -e astra/runtime -e astra/observability
+
+      - name: Install build deps
+        run: uv pip install --system -r astra-docs/scripts/requirements.txt
+
+      - name: Build reference MDX
+        run: |
+          for pkg in framework runtime observability; do
+            python astra-docs/scripts/build-reference.py \
+              --package "$pkg" \
+              --out "astra-docs/reference/$pkg" \
+              --emit-nav "astra-docs/reference/$pkg/_nav.json"
+          done
+
+      - name: Rebuild llms.txt
+        run: python astra-docs/scripts/build-llms-txt.py
+
+      - name: Open refresh PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: docs/reference-refresh
+          base: main
+          title: "docs: refresh auto-generated reference"
+          commit-message: "docs: refresh auto-generated reference"
+          body: |
+            Automated refresh of the API reference and `llms.txt` from the
+            current Astra source.
+
+            - Regenerated MDX under `astra-docs/reference/{framework,runtime,observability}/`.
+            - Regenerated `astra-docs/llms.txt` and `astra-docs/llms-full.txt`.
+
+            Triggered by: ${{ github.event_name }}
+          add-paths: |
+            astra-docs/reference/**
+            astra-docs/llms.txt
+            astra-docs/llms-full.txt

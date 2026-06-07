@@ -1,0 +1,31 @@
+[project]
+name = "agno-agentos-investment-team"
+version = "1.0.0"
+requires-python = ">=3.12,<4"
+description = "Agno AgentOS app exposing the institutional investment committee (8 agents, 5 teams)."
+
+dependencies = [
+  "agno",
+  "google-genai",
+  "yfinance",
+  "fredapi",
+  "pandas",
+  "python-dotenv",
+  "fastapi",
+  "uvicorn",
+  "sqlalchemy",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agents*", "teams*", "tools*", "context*"]
+
+[tool.ruff]
+line-length = 120
+exclude = [".venv*"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]

@@ -29,7 +29,7 @@ from agent import market_research_agent
 server = AstraServer(
     name="Market Research Server",
     agents=[market_research_agent],
-    description="SellerGeni Market Research Agent powered by Astra.",
+    description="Astra Market Research Agent powered by Astra.",
     storage=StorageClient(
         storage=MongoDBStorage("mongodb://localhost:27017", "market_research_agent")
     ),

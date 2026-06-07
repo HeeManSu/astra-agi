@@ -47,7 +47,11 @@ class ThreadStore(BaseStore[Thread]):
         Returns:
             Created Thread object with id populated
         """
-        data = thread.model_dump(exclude_unset=True)
+        # Dump including defaults so created_at/updated_at land in the DB.
+        # exclude_unset would drop default_factory fields that the caller did
+        # not explicitly set, leaving MongoDB rows without timestamps and
+        # forcing Pydantic to mint fresh ones on every read.
+        data = thread.model_dump()
 
         # For SQL backends, generate id if not provided
         if not isinstance(self._storage, MongoDBStorage):

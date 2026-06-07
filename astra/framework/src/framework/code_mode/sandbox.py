@@ -1061,6 +1061,13 @@ class Sandbox:
                 messages.extend(await self.provider.get_history(thread_id))
             messages.append({"role": "system", "content": prompt})
 
+            # Gemini rejects a system-only payload with "contents are required".
+            # On the first turn the message-queue hasn't flushed yet, so
+            # get_history returns []; ensure there is always at least one user
+            # turn by appending the raw query.
+            if not any(m.get("role") == "user" for m in messages):
+                messages.append({"role": "user", "content": user_query})
+
             await log(LogLevel.INFO, "Calling LLM to generate code", {"messages": len(messages)})
             response = await self.model.invoke(messages)
             raw = response.content if hasattr(response, "content") else str(response)
@@ -1123,24 +1130,25 @@ class Sandbox:
 
             async with span("dsl.build"):
                 build_result = build_workflow(parsed_code.module)
-                if not build_result.success:
+                if not build_result.success or build_result.workflow is None:
                     msg = "\n".join(build_result.errors)
                     await log(LogLevel.ERROR, "DSL build failed", {"errors": msg})
                     raise ValueError("DSL build failed: " + msg)
 
-                self._dsl_workflow = build_result.workflow
+                workflow = build_result.workflow
+                self._dsl_workflow = workflow
                 update_span(
                     {
-                        "node_count": len(self._dsl_workflow.nodes),
-                        "edge_count": len(self._dsl_workflow.edges),
-                        "entry": self._dsl_workflow.entry,
+                        "node_count": len(workflow.nodes),
+                        "edge_count": len(workflow.edges),
+                        "entry": workflow.entry,
                     }
                 )
 
             update_span(
                 {
-                    "node_count": len(self._dsl_workflow.nodes),
-                    "edge_count": len(self._dsl_workflow.edges),
+                    "node_count": len(workflow.nodes),
+                    "edge_count": len(workflow.edges),
                 }
             )
 
@@ -1252,13 +1260,20 @@ class Sandbox:
 
         return dsl_tools
 
-    async def execute_dsl(self, timeout: float = 60.0) -> SandboxResult:
+    async def execute_dsl(
+        self,
+        timeout: float = 60.0,
+        on_event: Any = None,
+    ) -> SandboxResult:
         """Execute the compiled DSL workflow graph and return a SandboxResult.
 
         Requires build_dsl_workflow() to have been called first.
 
         Args:
             timeout: Maximum seconds for workflow execution.
+            on_event: Optional async callback invoked with `{type, node_id,
+                tool_name, ...}` on each tool start/end so callers (agent.stream,
+                team.stream) can surface progress over SSE.
 
         Returns:
             SandboxResult with output, tool_calls, and success flag.
@@ -1286,7 +1301,7 @@ class Sandbox:
 
             try:
                 result = await asyncio.wait_for(
-                    run_workflow(workflow, tools=tools),
+                    run_workflow(workflow, tools=tools, on_event=on_event),
                     timeout=timeout,
                 )
             except asyncio.TimeoutError:

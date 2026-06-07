@@ -9,6 +9,7 @@ in an isolated sandbox.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+import asyncio
 import dataclasses
 import json
 import re
@@ -590,30 +591,53 @@ class Team:
             )
             return
 
-        # Execute DSL workflow
-        try:
-            result = await sandbox.execute_dsl(timeout=exec_timeout)
-            # result = await sandbox.execute(code)
+        # Execute DSL workflow — interleave executor events with the SSE
+        # stream so the client sees tool calls as they happen instead of one
+        # big batch after the whole workflow finishes.
+        event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        tool_index_by_node: dict[str, int] = {}
+        next_index = 0
 
-            if result.tool_calls:
-                for i, tool_call in enumerate(result.tool_calls):
+        async def _push(evt: dict[str, Any]) -> None:
+            await event_queue.put(evt)
+
+        exec_task = asyncio.create_task(
+            sandbox.execute_dsl(timeout=exec_timeout, on_event=_push)
+        )
+
+        try:
+            while not exec_task.done() or not event_queue.empty():
+                try:
+                    evt = await asyncio.wait_for(event_queue.get(), timeout=0.1)
+                except asyncio.TimeoutError:
+                    continue
+
+                if evt["type"] == "tool_start":
+                    idx = next_index
+                    next_index += 1
+                    tool_index_by_node[evt["node_id"]] = idx
                     yield StreamEvent(
                         event_type="tool_call",
                         data={
-                            "index": i,
-                            "tool_name": tool_call.get("name", "unknown"),
-                            "arguments": tool_call.get("args", {}),
+                            "index": idx,
+                            "tool_name": evt["tool_name"],
+                            "arguments": {},
                         },
                     )
+                elif evt["type"] == "tool_end":
+                    idx = tool_index_by_node.get(evt["node_id"], next_index)
+                    if evt["node_id"] not in tool_index_by_node:
+                        next_index += 1
                     yield StreamEvent(
                         event_type="tool_result",
                         data={
-                            "index": i,
-                            "tool_name": tool_call.get("name", "unknown"),
-                            "result": tool_call.get("result", ""),
+                            "index": idx,
+                            "tool_name": evt["tool_name"],
+                            "result": evt.get("outputs", ""),
                         },
                     )
-                    await log(LogLevel.INFO, "Tool call emitted", {"tool_call": tool_call})
+
+            result = await exec_task
 
             if result.success:
                 synth_input = result.output or "{}"

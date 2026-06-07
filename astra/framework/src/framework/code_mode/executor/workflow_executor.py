@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 import time
 from typing import Any
@@ -357,7 +357,14 @@ def check_guardrails(ctx: ExecutionContext) -> ExecutionResult | None:
     return None
 
 
-async def run_workflow(workflow: ExecutionWorkflow, tools: dict[str, Callable]) -> ExecutionResult:
+ExecutorEventCallback = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+async def run_workflow(
+    workflow: ExecutionWorkflow,
+    tools: dict[str, Callable],
+    on_event: ExecutorEventCallback | None = None,
+) -> ExecutionResult:
     """Walk the ExecutionWorkflow graph, execute every node, and return the result.
 
     Algorithm:
@@ -464,9 +471,29 @@ async def run_workflow(workflow: ExecutionWorkflow, tools: dict[str, Callable]) 
             async with span(node_span_name, kind=node_span_kind, attributes=node_attrs):
                 try:
                     if isinstance(node, ActionNode):
+                        if on_event is not None:
+                            await on_event(
+                                {
+                                    "type": "tool_start",
+                                    "node_id": node.id,
+                                    "tool_name": node.tool,
+                                    "label": node.label,
+                                }
+                            )
                         meta = await _execute_action(node, state, tools)
                         step.inputs = meta["inputs"]
                         step.outputs = meta["outputs"]
+                        if on_event is not None:
+                            await on_event(
+                                {
+                                    "type": "tool_end",
+                                    "node_id": node.id,
+                                    "tool_name": node.tool,
+                                    "label": node.label,
+                                    "inputs": meta["inputs"],
+                                    "outputs": meta["outputs"],
+                                }
+                            )
                         update_span(
                             {
                                 "args_preview": preview(meta["inputs"]),

@@ -1,0 +1,263 @@
+---
+title: "Integrations"
+description: "Forward Astra traces to OpenTelemetry, Langfuse, or any backend by implementing the StorageBackend interface."
+icon: "puzzle-piece"
+---
+
+Astra Observability is deliberately minimal. The data model is just `Trace`, `Span`, and `Log`; the storage layer is an abstract base class with nine async methods. To ship traces to OpenTelemetry, Langfuse, Datadog, or a custom warehouse, implement the interface and pass an instance to `TelemetryConfig(db_path=...)`. The ObservabilityEngine treats every backend identically.
+
+<Note>
+These integrations are not shipped today. The point of this page is to document the extension surface so you can build them. SQLite and MongoDB are the only first-party backends in the current release.
+</Note>
+
+Source: [storage/base.py:14](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/storage/base.py#L14).
+
+## The StorageBackend contract
+
+```python
+from abc import ABC, abstractmethod
+from observability.logs.model import Log
+from observability.tracing.span import Span
+from observability.tracing.trace import Trace
+
+class StorageBackend(ABC):
+    @abstractmethod
+    async def init(self) -> None: ...
+    @abstractmethod
+    async def close(self) -> None: ...
+
+    # Traces
+    @abstractmethod
+    async def save_trace(self, trace: Trace) -> None: ...
+    @abstractmethod
+    async def get_trace(self, trace_id: str) -> Trace | None: ...
+    @abstractmethod
+    async def list_traces(self, limit: int = 50, offset: int = 0) -> list[Trace]: ...
+
+    # Spans
+    @abstractmethod
+    async def save_span(self, span: Span) -> None: ...
+    @abstractmethod
+    async def get_spans_for_trace(self, trace_id: str) -> list[Span]: ...
+
+    # Logs
+    @abstractmethod
+    async def save_log(self, log: Log) -> None: ...
+    @abstractmethod
+    async def list_logs(self, trace_id: str, limit: int = 100, offset: int = 0) -> list[Log]: ...
+```
+
+<ResponseField name="init()">
+Open connections, create tables or collections, set up indexes. Called once during the FastAPI lifespan.
+</ResponseField>
+<ResponseField name="close()">
+Tear down connections. Called during lifespan shutdown.
+</ResponseField>
+<ResponseField name="save_trace(trace)">
+Upsert by `trace_id`. Called when a trace ends.
+</ResponseField>
+<ResponseField name="save_span(span)">
+Upsert by `span_id`. Called when a span ends.
+</ResponseField>
+<ResponseField name="save_log(log)">
+Append. Called once per `await log(...)` call.
+</ResponseField>
+<ResponseField name="get_trace / list_traces / get_spans_for_trace / list_logs">
+Read paths used by `/observability/*` and `compute_metrics`. Must return ordered results (traces by `start_time DESC`, spans by `start_time ASC`, logs by timestamp).
+</ResponseField>
+
+## Forwarder pattern
+
+A common approach is to forward to an external system on writes while still persisting locally so the dashboard works:
+
+```python
+from observability.storage.base import StorageBackend
+from observability.storage.sqlite import TelemetrySQLite
+
+class TeeBackend(StorageBackend):
+    """Persist to SQLite and forward to a remote sink."""
+
+    def __init__(self, primary: StorageBackend, sink: "RemoteSink"):
+        self.primary = primary
+        self.sink = sink
+
+    async def init(self):
+        await self.primary.init()
+        await self.sink.connect()
+
+    async def close(self):
+        await self.primary.close()
+        await self.sink.close()
+
+    async def save_trace(self, trace):
+        await self.primary.save_trace(trace)
+        await self.sink.send_trace(trace)
+
+    async def save_span(self, span):
+        await self.primary.save_span(span)
+        await self.sink.send_span(span)
+
+    async def save_log(self, log):
+        await self.primary.save_log(log)
+        await self.sink.send_log(log)
+
+    # Reads delegate to the primary
+    async def get_trace(self, trace_id):
+        return await self.primary.get_trace(trace_id)
+    async def list_traces(self, limit=50, offset=0):
+        return await self.primary.list_traces(limit, offset)
+    async def get_spans_for_trace(self, trace_id):
+        return await self.primary.get_spans_for_trace(trace_id)
+    async def list_logs(self, trace_id, limit=100, offset=0):
+        return await self.primary.list_logs(trace_id, limit, offset)
+```
+
+## OpenTelemetry sketch
+
+OpenTelemetry's Python SDK uses spans with `start_as_current_span` and a `BatchSpanProcessor` that drains to an OTLP exporter. Map Astra spans onto OTel spans on every `save_span`:
+
+```python
+from opentelemetry import trace as otel_trace
+from opentelemetry.trace import Status, StatusCode, SpanKind as OtelKind
+
+from observability.storage.base import StorageBackend
+from observability.tracing.span import SpanKind, SpanStatus
+
+class OpenTelemetryBackend(StorageBackend):
+    """Forward Astra spans into the OTel SDK; no local persistence."""
+
+    KIND_MAP = {
+        SpanKind.WORKFLOW: OtelKind.SERVER,
+        SpanKind.STEP: OtelKind.INTERNAL,
+        SpanKind.GENERATION: OtelKind.CLIENT,
+        SpanKind.TOOL: OtelKind.CLIENT,
+    }
+
+    def __init__(self, tracer_name: str = "astra"):
+        self._tracer = otel_trace.get_tracer(tracer_name)
+
+    async def init(self) -> None: ...
+    async def close(self) -> None: ...
+
+    async def save_trace(self, trace) -> None:
+        # Astra trees are flattened to one OTel span tree; trace-level
+        # token totals become attributes on a synthetic root span.
+        ...
+
+    async def save_span(self, span) -> None:
+        otel_kind = self.KIND_MAP.get(span.kind, OtelKind.INTERNAL)
+        with self._tracer.start_as_current_span(
+            span.name, kind=otel_kind, attributes=span.attributes
+        ) as otel_span:
+            if span.status == SpanStatus.ERROR:
+                otel_span.set_status(Status(StatusCode.ERROR, span.error))
+            # Astra spans are already closed; we end immediately.
+
+    async def save_log(self, log) -> None:
+        # Forward via the OTel logs SDK or attach as a span event.
+        ...
+
+    async def get_trace(self, trace_id): return None
+    async def list_traces(self, limit=50, offset=0): return []
+    async def get_spans_for_trace(self, trace_id): return []
+    async def list_logs(self, trace_id, limit=100, offset=0): return []
+```
+
+The read methods return empty so the Astra dashboard shows no data; if you want both, wrap this backend behind `TeeBackend` alongside SQLite.
+
+## Langfuse sketch
+
+Langfuse uses Sessions, Traces, and Observations. Map Astra `Trace` to a Langfuse trace, and Astra spans of kind `GENERATION` to Langfuse generations (which carry token usage natively):
+
+```python
+from langfuse import Langfuse
+
+from observability.storage.base import StorageBackend
+from observability.tracing.span import SpanKind
+
+class LangfuseBackend(StorageBackend):
+    def __init__(self, client: Langfuse):
+        self.lf = client
+
+    async def init(self) -> None: ...
+    async def close(self) -> None:
+        self.lf.flush()
+
+    async def save_trace(self, trace) -> None:
+        self.lf.trace(
+            id=trace.trace_id,
+            name=trace.name,
+            input=trace.attributes.get("user_query"),
+            metadata=trace.attributes,
+        )
+
+    async def save_span(self, span) -> None:
+        attrs = span.attributes or {}
+        if span.kind == SpanKind.GENERATION:
+            self.lf.generation(
+                trace_id=span.trace_id,
+                id=span.span_id,
+                parent_observation_id=span.parent_span_id,
+                name=span.name,
+                model=attrs.get("model"),
+                usage={
+                    "input": attrs.get("input_tokens"),
+                    "output": attrs.get("output_tokens"),
+                    "total": attrs.get("total_tokens"),
+                },
+                start_time=span.start_time,
+                end_time=span.end_time,
+            )
+        else:
+            self.lf.span(
+                trace_id=span.trace_id,
+                id=span.span_id,
+                parent_observation_id=span.parent_span_id,
+                name=span.name,
+                start_time=span.start_time,
+                end_time=span.end_time,
+                metadata=attrs,
+            )
+
+    async def save_log(self, log) -> None:
+        self.lf.event(
+            trace_id=log.trace_id,
+            observation_id=log.span_id,
+            name=log.message,
+            metadata=log.attributes,
+        )
+
+    async def get_trace(self, trace_id): return None
+    async def list_traces(self, limit=50, offset=0): return []
+    async def get_spans_for_trace(self, trace_id): return []
+    async def list_logs(self, trace_id, limit=100, offset=0): return []
+```
+
+## Wiring an integration
+
+```python
+from runtime import AstraServer, TelemetryConfig
+
+server = AstraServer(
+    storage=storage_client,
+    agents=[my_agent],
+    telemetry=TelemetryConfig(db_path=LangfuseBackend(Langfuse())),
+)
+```
+
+<Tip>
+If your sink is rate-limited (Langfuse free tier, vendor APIs), wrap it in a `BatchedBackend` that buffers `save_span` / `save_log` calls and flushes every N items or T milliseconds. The Astra engine awaits each save serially, so a slow sink will back-pressure the trace-end path.
+</Tip>
+
+<Warning>
+`save_log` is called for every `await log(LogLevel.DEBUG, ...)` when `debug=True`. A naive forwarder can flood the upstream. Either filter by level inside the backend or set `TelemetryConfig(debug=False)` in production.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="gear" href="/observability/setup">
+    How `TelemetryConfig(db_path=...)` reaches your custom backend.
+  </Card>
+  <Card title="Querying" icon="magnifying-glass" href="/observability/querying">
+    The read paths your backend can leave unimplemented if it is write-only.
+  </Card>
+</CardGroup>

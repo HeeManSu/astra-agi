@@ -1,0 +1,142 @@
+---
+title: "SSE streaming"
+description: "Server-Sent Events format for /agents/{id}/stream and /teams/{id}/stream."
+icon: "bolt"
+---
+
+The `/agents/{agent_id}/stream` and `/teams/{team_id}/stream` endpoints return a `text/event-stream` response. Each agent or team event is serialized via `event.model_dump_json()` and emitted as a single SSE `data:` frame. Two synthetic frames are appended at the end: a final timing record and a literal `[DONE]` sentinel. Source: [routes/agents.py:127](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/agents.py#L127) and [routes/teams.py:117](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/teams.py#L117).
+
+## Frame format
+
+```
+data: <json payload>\n\n
+```
+
+Astra does not currently emit named `event:` fields, only `data:` frames. Each frame ends with a double newline, per the SSE specification. Consumers should split on `\n\n` and JSON-parse the body. The final two frames are:
+
+```
+data: {"timing_ms": 1234.56}\n\n
+data: [DONE]\n\n
+```
+
+`[DONE]` is a string literal (not JSON). Parse it specially.
+
+## Event types
+
+The payload schema comes from the agent/team event model. Common `type` values:
+
+| `type` | When emitted | Notable fields |
+| --- | --- | --- |
+| `status` | Lifecycle transitions (start, planning, finishing) | `phase` |
+| `code_generated` | Tool-calling models emit raw code or arguments | `code`, `language` |
+| `tool_call` | A tool was selected and is about to execute | `tool`, `arguments` |
+| `tool_result` | Tool completed | `tool`, `result`, `is_error` |
+| `content` | Text delta from the model | `delta`, `index` |
+| `error` | Recoverable or terminal error | `message`, `code` |
+| `done` | Final agent result | `response` |
+
+<Note>
+The exact set of fields depends on the model provider and the agent's middleware. Treat unknown keys as forward-compatible.
+</Note>
+
+## Client examples
+
+<CodeGroup>
+```bash curl
+curl -N -X POST http://localhost:8000/agents/researcher/stream \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"summarize the attention paper"}'
+```
+
+```javascript EventSource
+// EventSource only supports GET, so wrap fetch + ReadableStream:
+const r = await fetch("/agents/researcher/stream", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({message: "summarize the attention paper"}),
+});
+
+const reader = r.body.getReader();
+const decoder = new TextDecoder();
+let buffer = "";
+
+while (true) {
+  const {value, done} = await reader.read();
+  if (done) break;
+  buffer += decoder.decode(value, {stream: true});
+
+  let idx;
+  while ((idx = buffer.indexOf("\n\n")) >= 0) {
+    const frame = buffer.slice(0, idx).trim();
+    buffer = buffer.slice(idx + 2);
+    if (!frame.startsWith("data:")) continue;
+    const payload = frame.slice(5).trim();
+    if (payload === "[DONE]") return;
+    const event = JSON.parse(payload);
+    handle(event);
+  }
+}
+```
+
+```python httpx
+import json
+import httpx
+
+with httpx.stream(
+    "POST",
+    "http://localhost:8000/agents/researcher/stream",
+    headers={"Authorization": f"Bearer {token}"},
+    json={"message": "summarize the attention paper"},
+    timeout=None,
+) as r:
+    buffer = ""
+    for chunk in r.iter_text():
+        buffer += chunk
+        while "\n\n" in buffer:
+            frame, buffer = buffer.split("\n\n", 1)
+            if not frame.startswith("data:"):
+                continue
+            payload = frame[5:].strip()
+            if payload == "[DONE]":
+                break
+            event = json.loads(payload)
+            print(event)
+```
+</CodeGroup>
+
+<Tip>
+`sseclient-py` works too, but Astra's frames are well-formed `data:`-only events, so a manual `\n\n` split is faster and avoids an extra dependency.
+</Tip>
+
+## Reconnection
+
+Astra streams are one-shot: an agent run produces a fresh trace and span tree, so blind reconnection would duplicate work. Recommended strategy:
+
+<Steps>
+  <Step title="Persist thread_id">
+    Always include a stable `thread_id` in the request body. On disconnect, you can re-issue the same prompt and the agent will resume with the prior conversation context from the storage backend.
+  </Step>
+  <Step title="Buffer client-side">
+    Maintain a buffer of received events keyed by `(trace_id, span_id)`. On retry, deduplicate by trace ID.
+  </Step>
+  <Step title="Cap retries">
+    Apply exponential backoff with a small ceiling (3 to 5 attempts). A `503` from the server during streaming usually means the lifespan was torn down; refuse to retry until `/health/readiness` returns 200.
+  </Step>
+</Steps>
+
+<Warning>
+Browsers and proxies often buffer SSE silently. Set `X-Accel-Buffering: no` on any reverse proxy, and avoid running Astra behind ELB classic listeners that do not flush chunked responses.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="REST endpoints" icon="network-wired" href="/runtime/rest-endpoints">
+    Sync `invoke` siblings of the streaming routes.
+  </Card>
+  <Card title="Streaming metrics" icon="gauge-simple-high" href="/observability/streaming-metrics">
+    TTFT and chunk metrics recorded for every stream.
+  </Card>
+</CardGroup>

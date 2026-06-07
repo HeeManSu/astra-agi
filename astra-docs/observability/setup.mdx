@@ -1,0 +1,137 @@
+---
+title: "Setup"
+description: "Configure the observability engine and storage backend."
+icon: "gear"
+---
+
+Astra Observability is opt-in but wired into the runtime by default. You configure it once via `TelemetryConfig` on `AstraServer`, and the FastAPI lifespan instantiates an `ObservabilityEngine`, calls `init()` on the storage backend, and registers the engine as a process-wide singleton so the `trace`, `span`, and `log` context managers can find it.
+
+Source: [engine.py:25](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/engine.py#L25), [instrument.py](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/instrument.py).
+
+## TelemetryConfig
+
+`TelemetryConfig` is declared in the runtime package because it gates lifespan behaviour. See [server.py:26](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L26).
+
+<ParamField path="enabled" type="bool" default="True">
+Master switch. When `False`, the engine is never constructed and the `trace` / `span` / `log` helpers are no-ops.
+</ParamField>
+
+<ParamField path="db_path" type="str | StorageBackend" default='"./observability.db"'>
+Either a path string (interpreted as a SQLite file) or a fully constructed `StorageBackend` instance. Pass an instance when you want Mongo, a custom adapter, or pre-tuned connection pooling.
+</ParamField>
+
+<ParamField path="debug" type="bool" default="False">
+Enables the console debugger and persists `DEBUG`-level logs. In production, leave this `False` to avoid a chatty stdout and a fast-growing logs table.
+</ParamField>
+
+## Choosing a backend
+
+<Tabs>
+  <Tab title="SQLite (default)">
+    File-backed, zero ops, perfect for development and single-pod deployments. Uses WAL mode for concurrent reads during writes. Source: [storage/sqlite.py:20](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/storage/sqlite.py#L20).
+
+    ```python
+    from runtime import AstraServer, TelemetryConfig
+
+    server = AstraServer(
+        storage=storage_client,
+        agents=[my_agent],
+        telemetry=TelemetryConfig(
+            enabled=True,
+            db_path="./observability.db",
+            debug=False,
+        ),
+    )
+    ```
+
+    Trade-offs: a single writer at a time, no cross-host replication. Acceptable up to a few thousand traces per minute on local disk.
+  </Tab>
+  <Tab title="MongoDB (multi-node)">
+    Use the `TelemetryMongoDB` adapter directly when you have multiple Astra replicas. Source: [storage/mongodb.py:20](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/storage/mongodb.py#L20).
+
+    ```python
+    from observability.storage.mongodb import TelemetryMongoDB
+    from runtime import AstraServer, TelemetryConfig
+
+    mongo = TelemetryMongoDB(
+        url="mongodb://localhost:27017",
+        db_name="astra_observability",
+    )
+
+    server = AstraServer(
+        storage=storage_client,
+        agents=[my_agent],
+        telemetry=TelemetryConfig(
+            enabled=True,
+            db_path=mongo,   # pass the StorageBackend instance directly
+            debug=False,
+        ),
+    )
+    ```
+
+    The adapter creates indexed collections `astra_obs_traces`, `astra_obs_spans`, and `astra_obs_logs` on `init()`. Tune the client's pool settings before passing it in if you need more than the motor defaults.
+  </Tab>
+</Tabs>
+
+## Plugging in a custom backend
+
+Implement the abstract methods on `StorageBackend` and pass an instance as `db_path`. See [integrations](/observability/integrations) for the contract and worked sketches.
+
+```python
+from observability.storage.base import StorageBackend
+
+class MyBackend(StorageBackend):
+    async def init(self): ...
+    async def close(self): ...
+    async def save_trace(self, trace): ...
+    async def get_trace(self, trace_id): ...
+    async def list_traces(self, limit=50, offset=0): ...
+    async def save_span(self, span): ...
+    async def get_spans_for_trace(self, trace_id): ...
+    async def save_log(self, log): ...
+    async def list_logs(self, trace_id, limit=100, offset=0): ...
+
+telemetry=TelemetryConfig(db_path=MyBackend(...))
+```
+
+## Debug mode
+
+`debug=True` flips two switches:
+
+1. The `ConsoleDebugger` becomes active and writes a structured line for every trace start, trace end, span start, span end, and log event. Useful when you want to see the trace tree during a `pytest -s` run.
+2. `LogLevel.DEBUG` events are persisted instead of being dropped. The engine's `log_event` checks `_debug_mode` before forwarding DEBUG logs to storage; see [engine.py](https://github.com/astra-dev/astra/blob/main/astra/observability/src/observability/engine.py).
+
+Leave it off in production. The signal-to-noise ratio is poor at scale, and the logs table grows quickly.
+
+## Verifying installation
+
+After a `POST /agents/{id}/invoke`, three things should be true:
+
+<Steps>
+  <Step title="A trace exists">
+    `curl -s :8000/observability/traces?limit=1 | jq` should return the just-completed trace with non-zero `duration_ms`.
+  </Step>
+  <Step title="Spans were captured">
+    `curl -s :8000/observability/traces/<trace_id> | jq '.spans | length'` should be at least 2 (the implicit `agent.<id>.invoke` workflow plus one inner span).
+  </Step>
+  <Step title="Metrics aggregate">
+    `curl -s ":8000/observability/metrics?hours=1" | jq '.request_count'` should be at least 1.
+  </Step>
+</Steps>
+
+<Tip>
+The `agent.<id>.invoke` and `agent.<id>.stream` traces are emitted by the runtime routes, not your agent code. You do not need to wrap your invocations in `async with trace(...)`; that wrapping happens at the route layer.
+</Tip>
+
+<Warning>
+The engine is a module-level singleton (see `_engine` in `instrument.py`). If you spin up two `AstraServer` instances in the same process, they will share whichever engine was initialised last. For tests, prefer subprocess isolation.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Traces and spans" icon="chart-network" href="/observability/traces-and-spans">
+    The data model populated by every instrumented call.
+  </Card>
+  <Card title="Integrations" icon="puzzle-piece" href="/observability/integrations">
+    Extend the storage interface to forward traces elsewhere.
+  </Card>
+</CardGroup>

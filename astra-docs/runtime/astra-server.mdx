@@ -1,0 +1,160 @@
+---
+title: "AstraServer"
+description: "Embeddable FastAPI server that exposes agents, teams, threads, tools, auth, health, and observability."
+icon: "server"
+---
+
+`AstraServer` is the single entry point for serving Astra agents and teams over HTTP. Construct it with a `StorageClient`, a list of agents or teams, and optional telemetry and startup-sync configuration; then call `get_app()` to obtain a fully wired FastAPI application. The server class lives in [server.py:63](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L63) and registers seven routers (health, auth, agents, teams, threads, tools, observability), CORS, optional JWT auth middleware, and a lifespan that connects MCP toolkits and runs initial tool sync.
+
+## Constructor
+
+<ParamField path="storage" type="StorageClient" required>
+A `framework.storage.client.StorageClient` instance wrapping the underlying store (Mongo, SQLite, in-memory). Validated at construction; anything else raises `RuntimeError`.
+</ParamField>
+
+<ParamField path="agents" type="list[Agent] | None" default="None">
+Top-level agents to register in the global `agent_registry`. Their `storage` attribute is rebound to the server's default storage if present.
+</ParamField>
+
+<ParamField path="teams" type="list[Team] | None" default="None">
+Top-level teams to register in `team_registry`. Member agents reachable via `team.flat_members` are also picked up by startup tool sync.
+</ParamField>
+
+<ParamField path="name" type="str" default='"Astra Server"'>
+FastAPI app title, surfaced at `/` and in `/openapi.json`.
+</ParamField>
+
+<ParamField path="description" type="str" default='"AI Agent Server"'>
+FastAPI app description.
+</ParamField>
+
+<ParamField path="version" type="str" default='"0.1.0"'>
+API version string returned by `GET /`.
+</ParamField>
+
+<ParamField path="auth_enabled" type="bool" default="True">
+Enable JWT middleware. Effective only when `ASTRA_JWT_SECRET` is set. See the `auth_enabled` property at [server.py:138](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L138).
+</ParamField>
+
+<ParamField path="cors_allowed_origins" type="list[str] | None" default='["*"]'>
+Forwarded to Starlette's `CORSMiddleware`. CORS is added last so it runs first in the request chain and even covers preflight failures.
+</ParamField>
+
+<ParamField path="telemetry" type="TelemetryConfig | None" default="TelemetryConfig()">
+Observability configuration. See below.
+</ParamField>
+
+<ParamField path="startup_sync" type="StartupSyncConfig | None" default="StartupSyncConfig()">
+MCP connect + tool sync behaviour during the FastAPI lifespan. See below.
+</ParamField>
+
+## TelemetryConfig
+
+Defined at [server.py:26](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L26).
+
+<ParamField path="enabled" type="bool" default="True">
+Master switch for the observability engine.
+</ParamField>
+
+<ParamField path="db_path" type="str | StorageBackend" default='"./observability.db"'>
+Either a SQLite path or a fully constructed `StorageBackend` (for example `TelemetryMongoDB(...)`). See [observability/setup](/observability/setup).
+</ParamField>
+
+<ParamField path="debug" type="bool" default="False">
+Enable console debugger and DEBUG-level log persistence.
+</ParamField>
+
+## StartupSyncConfig
+
+Defined at [server.py:42](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/server.py#L42).
+
+<ParamField path="require_mcp_sync" type="bool" default="True">
+Fail startup if any MCP server fails to sync. Set `False` to degrade gracefully.
+</ParamField>
+
+<ParamField path="mcp_connect_timeout_seconds" type="float" default="10.0">
+Per-toolkit timeout for the initial MCP handshake.
+</ParamField>
+
+<ParamField path="mcp_connect_concurrency" type="int" default="10">
+Maximum number of MCP servers connected in parallel.
+</ParamField>
+
+<ParamField path="mcp_list_timeout_seconds" type="float" default="10.0">
+Timeout for `list_tools()` during sync.
+</ParamField>
+
+<ParamField path="mcp_retries" type="int" default="2">
+Retry attempts for transient MCP list failures.
+</ParamField>
+
+<ParamField path="mcp_retry_backoff_seconds" type="float" default="0.5">
+Base exponential backoff between retries.
+</ParamField>
+
+## Wiring the server
+
+<CodeGroup>
+```python minimal.py
+from framework.storage.client import StorageClient
+from framework.storage.backends.sqlite import SQLiteStorage
+from runtime import AstraServer
+
+from my_agents import researcher
+
+storage = StorageClient(storage=SQLiteStorage(db_path="./astra.db"))
+server = AstraServer(storage=storage, agents=[researcher])
+
+app = server.get_app()
+# uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+```python full.py
+from framework.storage.client import StorageClient
+from framework.storage.backends.mongo import MongoDBStorage
+from runtime import AstraServer, TelemetryConfig, StartupSyncConfig
+
+from my_agents import researcher, writer
+from my_teams import support_team
+
+storage = StorageClient(storage=MongoDBStorage(url="mongodb://localhost:27017"))
+
+server = AstraServer(
+    storage=storage,
+    agents=[researcher, writer],
+    teams=[support_team],
+    name="Acme Agent Platform",
+    auth_enabled=True,                       # requires ASTRA_JWT_SECRET
+    cors_allowed_origins=["https://acme.io"],
+    telemetry=TelemetryConfig(
+        enabled=True,
+        db_path="./observability.db",        # or a StorageBackend instance
+        debug=False,
+    ),
+    startup_sync=StartupSyncConfig(
+        require_mcp_sync=True,
+        mcp_connect_concurrency=20,
+        mcp_retries=3,
+    ),
+)
+
+app = server.get_app()
+```
+</CodeGroup>
+
+<Tip>
+`get_app()` caches the FastAPI instance, so calling it twice returns the same app. The server reference is stashed on `app.state.astra_server` for the lifespan to drive `sync_tools()`.
+</Tip>
+
+<Warning>
+`auth_enabled=True` is silently downgraded to `False` when `ASTRA_JWT_SECRET` is unset. Check `server.auth_enabled` before assuming protection is in place.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="REST endpoints" icon="network-wired" href="/runtime/rest-endpoints">
+    Full route reference for agents, teams, threads, and tools.
+  </Card>
+  <Card title="Auth" icon="lock" href="/runtime/auth">
+    JWT flow, environment variables, and the public-path whitelist.
+  </Card>
+</CardGroup>

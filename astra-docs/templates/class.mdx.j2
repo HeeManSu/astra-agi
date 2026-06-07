@@ -1,0 +1,44 @@
+{% from "_macros.j2" import signature_block, param_field, response_field, raises_block, source_link %}
+## {{ cls.name }} {{ source_link(cls.source_url) }}
+
+{{ cls.description }}
+
+{% if cls.init %}
+<Expandable title="Constructor">
+
+{{ signature_block(cls.init) }}
+
+{% if cls.init.params %}
+{% for p in cls.init.params %}
+{{ param_field(p) }}
+{% endfor %}
+{% endif %}
+
+{{ raises_block(cls.init) }}
+
+</Expandable>
+{% endif %}
+
+{% if cls.methods %}
+<Expandable title="Methods">
+
+{% for m in cls.methods %}
+### {{ m.name }} {{ source_link(m.source_url) }}
+
+{{ signature_block(m) }}
+
+{{ m.description }}
+
+{% if m.params %}
+{% for p in m.params %}
+{{ param_field(p) }}
+{% endfor %}
+{% endif %}
+
+{{ response_field(m) }}
+{{ raises_block(m) }}
+
+{% endfor %}
+
+</Expandable>
+{% endif %}

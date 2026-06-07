@@ -1,0 +1,138 @@
+---
+title: "Replay"
+description: "Journal-driven debug, audit, and time-travel for compiled workflows."
+icon: "clock-rotate-left"
+---
+
+<Note>
+ReAct traces capture *what the model said*. Astra captures the *graph it produced and the cursor's exact path through it* — so a failed run can be inspected, diffed, and re-played without consulting the LLM again.
+</Note>
+
+## What gets recorded
+
+Every node visit produces one `WorkflowStep` ([workflow_executor.py:48](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/executor/workflow_executor.py#L48)). The journal is the ordered list of these steps that ends up in `ExecutionResult.steps`.
+
+<ParamField path="node_id" type="str">
+The compiler-assigned id (e.g. `n_3f2a91b8`) of the node that ran.
+</ParamField>
+<ParamField path="type" type="str">
+One of `"action"`, `"transform"`, `"branch"`, `"loop"`, `"respond"`.
+</ParamField>
+<ParamField path="label" type="str">
+Human-readable label baked in at compile time (e.g. `"quote = Macro.fetch_price(...)"`).
+</ParamField>
+<ParamField path="status" type="str">
+`"success"` or `"error"`.
+</ParamField>
+<ParamField path="duration_ms" type="float">
+Wall-clock cost of this single node visit. Loop nodes record one entry per iteration, so the per-tick cost is separable.
+</ParamField>
+<ParamField path="inputs" type="dict[str, Any]">
+For action nodes, the resolved kwargs passed to the tool. For branch nodes, the evaluated condition.
+</ParamField>
+<ParamField path="outputs" type="dict[str, Any]">
+For action nodes, the tool's return value. For transform nodes, `{"expression": ..., "result": ...}`. For branch nodes, `{"condition": ..., "result": True/False}`. For loops, `{"has_items": bool, "current": <item>}`.
+</ParamField>
+<ParamField path="error" type="str | None">
+Populated as `f"{type(exc).__name__}: {exc}"` when `status == "error"`.
+</ParamField>
+
+A timestamp is not stored on the step itself, but every node tick opens an OpenTelemetry span whose `start_time_ns` and `end_time_ns` are persisted by the observability backend.
+
+## Replay vs re-execution
+
+These two words are easy to confuse. Astra treats them as distinct operations.
+
+<Tabs>
+  <Tab title="Replay">
+    Replay is **read-only**. The stored journal is loaded and the recorded `inputs`, `outputs`, and `status` are stepped through. No node code runs, no tool is called, no state is mutated. The cursor advances using the same `find_next_node()` rules as live execution, so replays expose exactly the path the live run took. This is what powers the workflow visualizer in the Astra dashboard and the eval harness.
+  </Tab>
+  <Tab title="Re-execution">
+    Re-execution is **live**. The compiled `ExecutionWorkflow` is fed back into `run_workflow()` ([workflow_executor.py:360](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/executor/workflow_executor.py#L360)) with the same tool map and (optionally) cached tool responses keyed by `node_id + inputs`. The cursor takes the same path because the graph and tool returns are identical, but spans are fresh and timing reflects current latency.
+  </Tab>
+</Tabs>
+
+For deterministic tools — pure functions, fixture-backed mocks — replay and re-execution should produce byte-identical journals.
+
+## Where the journal lives
+
+In-memory, the journal is just the list returned in `ExecutionResult.steps`. Persistently, it is reconstructed from OpenTelemetry spans emitted during the run. Each node visit produces a span with `SpanKind.STEP` (or `SpanKind.TOOL` for `ActionNode`) and a parent `sandbox.run` trace.
+
+Spans are stored by whichever `StorageBackend` is configured (SQLite locally, a remote OTel collector in production). They are read back via the query API in [traces.py:32](https://github.com/astra-dev/astra/blob/main/observability/src/observability/query/traces.py#L32):
+
+```python
+from observability.query.traces import list_traces, get_trace_with_spans
+
+traces = await list_traces(storage, limit=50)
+for trace in traces:
+    full = await get_trace_with_spans(storage, trace.id)
+    step_spans = [s for s in full.spans if s.kind == SpanKind.STEP]
+```
+
+`list_traces()` filters out `server.*` operational traces by default so dashboards show only request traces.
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Debug failed runs" icon="bug">
+    A run that returns `success=False` ships its full journal. The first step with `status="error"` is the culprit; preceding steps show the exact state that led to it.
+  </Card>
+  <Card title="Regression tests" icon="vial">
+    Fixture-backed re-execution lets you assert that a code change does not perturb the graph or the visit order for a corpus of recorded queries.
+  </Card>
+  <Card title="Time-travel during eval" icon="hourglass">
+    During eval, replay every step up to node N, then swap in a different tool implementation and re-execute from there. The cursor model makes this surgical.
+  </Card>
+  <Card title="Audit & compliance" icon="file-shield">
+    Because every tool call is recorded with its resolved kwargs and return value, journals are sufficient evidence of what the system did and why.
+  </Card>
+</CardGroup>
+
+## Reconstructing a run
+
+A minimal replay walks the spans for one trace in start-time order:
+
+```python
+async def replay(storage, trace_id):
+    full = await get_trace_with_spans(storage, trace_id)
+    spans = sorted(full.spans, key=lambda s: s.start_time_ns)
+    for span in spans:
+        if span.kind not in (SpanKind.STEP, SpanKind.TOOL):
+            continue
+        attrs = span.attributes
+        print(
+            f"[{attrs.get('node_type')}] "
+            f"{attrs.get('node_label')} "
+            f"-> {attrs.get('status', 'ok')} "
+            f"({(span.end_time_ns - span.start_time_ns) / 1e6:.1f} ms)"
+        )
+```
+
+For full input/output inspection set `ASTRA_DEBUG=1` before the run — `args_full` and `result_full` are attached to spans only in debug mode ([workflow_executor.py:478](https://github.com/astra-dev/astra/blob/main/framework/src/framework/code_mode/executor/workflow_executor.py#L478)).
+
+## Limitations
+
+<Warning>
+The executor is deterministic; **tools are not**. A journal does not capture the broader system state at the moment a tool ran.
+</Warning>
+
+- **Non-deterministic tool side effects.** A tool that writes to a database, mutates external state, or depends on a moving clock will produce a different observable world the second time it runs. Replay sidesteps this; re-execution does not.
+- **External clock dependence.** `duration_ms` reflects wall-clock latency at the time of the original run. Replay timing reflects when the replay loop printed, not when the work originally happened.
+- **Non-recorded randomness.** If a tool internally calls `random.random()` or `uuid.uuid4()`, those values are visible only in the journal entry's `outputs` — you cannot reseed and replay determinism *into* the tool.
+- **Partial journals on hard crashes.** A process killed mid-tick may not flush the in-flight span. The step is recorded in memory but lost from persistent storage unless the backend supports synchronous writes.
+- **Stub generation drift.** Replay assumes the same compiled `ExecutionWorkflow` is in hand. If the planner LLM regenerated the plan (e.g. tool signatures changed), the new graph and the old journal are no longer aligned.
+
+<Tip>
+For deterministic regression testing, wrap tools in a fixture layer keyed on `(tool_name, inputs)`. The compiler and executor are already deterministic; pinning the tool boundary closes the loop.
+</Tip>
+
+## See also
+
+<CardGroup cols={2}>
+  <Card title="Executor" icon="play" href="/compiler/executor">
+    The runtime that produces the journal.
+  </Card>
+  <Card title="Traces and spans" icon="signs-post" href="/observability/traces-and-spans">
+    How journal entries are persisted and queried.
+  </Card>
+</CardGroup>

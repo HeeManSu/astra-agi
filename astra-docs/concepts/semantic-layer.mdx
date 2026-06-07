@@ -1,0 +1,122 @@
+---
+title: "Semantic Layer"
+description: "The typed schema the planner LLM sees. Astra's primary differentiator."
+icon: "layer-group"
+---
+
+The semantic layer is the structured view of a team's API that Astra hands to the code-gen LLM. Instead of a freeform tool catalog or JSON schemas, the LLM sees real Python: type-hinted classes, `@staticmethod` functions, docstrings, and Pydantic input/output models it can construct. The code it writes against those stubs **is** the workflow.
+
+This is the differentiator. ReAct frameworks feed the model a list of tool descriptions and parse the model's chosen `(tool_name, args)` step by step. Astra feeds the model a typed Python module and lets it write one program.
+
+## The data model
+
+The schema lives in [code_mode/semantic.py:34-341](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/code_mode/semantic.py#L34). It is a tree of dataclasses:
+
+<CardGroup cols={2}>
+  <Card title="EntitySemanticLayer" icon="sitemap">
+    Root. Holds provider id/name/description/instructions and a list of `DomainSchema`. One layer per agent or team.
+  </Card>
+  <Card title="DomainSchema" icon="users-rectangle">
+    One per agent (or MCP toolkit, or nested team). Becomes one Python class in the emitted stubs.
+  </Card>
+  <Card title="ToolSchema" icon="wrench">
+    One per tool. Becomes one `@staticmethod` on the domain class.
+  </Card>
+  <Card title="ParamSchema" icon="input-text">
+    One per input parameter. Becomes a typed function argument with its description in the docstring.
+  </Card>
+</CardGroup>
+
+The schemas are populated from your `ToolSpec` definitions: Pydantic field descriptions, types, defaults, and `Optional` wrappers all flow through into the structured representation. Required vs optional follows a specific rule — see [`_extract_params_from_pydantic`](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/code_mode/semantic.py#L345) in the source.
+
+## What the planner sees
+
+The planner LLM gets a compact view via [`get_planner_context`](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/code_mode/semantic.py#L286): provider metadata plus an `agents` list with id, name, description, instructions, and tool slugs. No parameter schemas, no examples — just enough to pick which agents to involve and the order to call them.
+
+The code-gen LLM gets the full picture. The stub generator at [code_mode/stub_generator.py](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/code_mode/stub_generator.py) walks the semantic layer and emits Python stubs.
+
+## Example generated stub
+
+<AccordionGroup>
+  <Accordion title="What the code-gen LLM sees for a 'Stock Analyst' agent">
+    ```python
+    class stock_analyst:
+        """
+        Stock Analyst — analyzes equities using fundamental data.
+
+        Instructions: You analyze equities. Always cite the source of every number.
+        """
+
+        @staticmethod
+        def get_stock_price(input: GetStockPriceInput) -> GetStockPriceOutput:
+            """
+            Fetch the latest close price for a ticker.
+
+            Parameters:
+                input.symbol (str, required): Ticker symbol, e.g. AAPL
+
+            Returns:
+                GetStockPriceOutput with fields:
+                    symbol (str): Echo of the requested ticker
+                    price (float): Last close in USD
+                    currency (str): Currency code, default "USD"
+
+            Example:
+                result = stock_analyst.get_stock_price(
+                    GetStockPriceInput(symbol="AAPL")
+                )
+                # GetStockPriceOutput(symbol="AAPL", price=228.52, currency="USD")
+            """
+            ...
+
+        @staticmethod
+        def get_earnings(input: GetEarningsInput) -> GetEarningsOutput:
+            """
+            Fetch the most recent earnings report.
+
+            Parameters:
+                input.symbol (str, required): Ticker symbol
+                input.fiscal_year (int, optional): Defaults to most recent
+
+            Returns:
+                GetEarningsOutput with fields:
+                    revenue (float): Revenue in USD
+                    eps (float): Earnings per share
+            """
+            ...
+    ```
+  </Accordion>
+</AccordionGroup>
+
+These stubs are pure Python — the LLM treats them as it would any well-typed library. The output of code generation is a small script:
+
+```python
+price = stock_analyst.get_stock_price(GetStockPriceInput(symbol="AAPL"))
+earnings = stock_analyst.get_earnings(GetEarningsInput(symbol="AAPL"))
+synthesize_response({"price": price.price, "eps": earnings.eps})
+```
+
+That script is what gets parsed, validated, and lowered into the typed graph.
+
+## MCP tools fold in
+
+MCP toolkits attached to an agent are merged into the **same** domain as the agent's native tools (see [agent.py:218-242](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L218)). The planner never sees a distinction — both kinds become `@staticmethod` entries on the same Python class. This means the LLM can interleave native and MCP tool calls inside one workflow without learning a different invocation pattern for each.
+
+The MCP tool's `inputSchema` (a JSON schema returned by the MCP server) is translated to `ParamSchema` entries by [`build_mcp_tool_schemas`](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/code_mode/semantic.py), keeping the abstraction uniform end to end.
+
+## Filtering with allowed slugs
+
+`EntitySemanticLayer.get_tool_stubs_by_tool_slugs(set[str])` returns a copy of the layer containing only the tools in the allowlist. This is the hook for per-query tool gating: the planner chooses an allowed set, the code-gen LLM only sees those stubs, and the typed graph can't reach for anything else even if the LLM tried.
+
+<Tip>
+If your agent picks the wrong tool, the fix is almost always in the semantic layer rather than the planner prompt. Tightening the `description` on the `ToolSpec`, adding rich `Field(description=...)` text to the input model, or providing one good `examples` entry makes the LLM dramatically better at tool selection.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Memory and Storage" icon="database" href="/concepts/memory-and-storage">
+    Conversation history and the storage backends behind it.
+  </Card>
+  <Card title="RAG" icon="magnifying-glass" href="/concepts/rag">
+    Retrieval pipelines that surface as a `retrieve_evidence` tool.
+  </Card>
+</CardGroup>

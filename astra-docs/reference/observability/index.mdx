@@ -1,0 +1,52 @@
+---
+title: "astra-observability"
+description: "Reference for the tracing engine, OpenTelemetry instrumentation, storage backends, query layer, streaming, and debug helpers."
+---
+
+import ReferenceBanner from '/snippets/reference-banner.mdx';
+
+<ReferenceBanner />
+
+`astra-observability` captures every span, message, and tool call that
+flows through a running [`astra-framework`](/reference/framework) app. It
+exposes a tracing engine, OpenTelemetry-compatible instrumentation, a
+pluggable storage layer, a query API, a live-streaming subscriber, and
+debug helpers used by the Playground UI.
+
+Install it with:
+
+```bash
+pip install astra-observability
+```
+
+## Submodules
+
+<CardGroup cols={2}>
+  <Card title="engine" icon="gauge" href="/reference/observability/engine">
+    `TracingEngine`: the in-process tracer that records spans for every run.
+  </Card>
+  <Card title="instrument" icon="plug" href="/reference/observability/instrument">
+    Auto-instrumentation hooks for agents, models, tools, and HTTP clients.
+  </Card>
+  <Card title="tracing" icon="chart-line" href="/reference/observability/tracing">
+    Span types, status codes, and the OpenTelemetry bridge.
+  </Card>
+  <Card title="storage" icon="database" href="/reference/observability/storage">
+    Storage backends: SQLite, Postgres, and OTLP exporters.
+  </Card>
+  <Card title="query" icon="magnifying-glass" href="/reference/observability/query">
+    Query DSL and helpers for filtering, aggregating, and replaying traces.
+  </Card>
+  <Card title="streaming" icon="bolt" href="/reference/observability/streaming">
+    `EventStream`: server-sent events for live trace consumers.
+  </Card>
+  <Card title="debug" icon="bug" href="/reference/observability/debug">
+    Inspection helpers used by the Playground UI and CLI.
+  </Card>
+</CardGroup>
+
+<Note>
+  Pages under this section are auto-generated. Run `python
+  astra-docs/scripts/build-reference.py --package observability --check`
+  locally to see which symbols are missing docstrings.
+</Note>

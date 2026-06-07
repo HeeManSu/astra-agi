@@ -1,0 +1,220 @@
+---
+title: "REST endpoints"
+description: "Every HTTP route exposed by AstraServer, with request and response shapes."
+icon: "network-wired"
+---
+
+`AstraServer` mounts seven routers. All routes accept and return JSON (except the streaming endpoints, which return `text/event-stream`). With `auth_enabled=True`, every non-public path requires `Authorization: Bearer <jwt>`. The public-path whitelist is documented in [middleware.py:10](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/auth/middleware.py#L10).
+
+## Route index
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/` | Server identity and version |
+| GET | `/health`, `/health/liveness`, `/health/readiness`, `/health/startup` | Probes |
+| GET | `/readiness`, `/startup` | Probe aliases |
+| POST | `/auth/token` | Issue a JWT |
+| GET | `/agents`, `/agents/{agent_id}` | List or fetch agents |
+| POST | `/agents/{agent_id}/invoke` | Sync agent run |
+| POST | `/agents/{agent_id}/stream` | SSE agent run |
+| GET | `/teams`, `/teams/{team_id}` | List or fetch teams |
+| POST | `/teams/{team_id}/invoke`, `/teams/{team_id}/stream` | Sync or SSE team run |
+| GET | `/threads`, `/threads/{thread_id}`, `/threads/{thread_id}/messages` | Thread queries |
+| POST | `/threads` | Create thread |
+| DELETE | `/threads/{thread_id}` | Soft-delete |
+| GET | `/tools`, `/tools/{slug}` | List or fetch tool definitions |
+| PUT | `/tools/{slug}` | Update a tool definition |
+| DELETE | `/tools/{slug}` | Remove a tool definition |
+| POST | `/tools/sync` | Re-sync local + MCP tools |
+| GET | `/observability/traces`, `/observability/traces/{trace_id}`, `/observability/traces/{trace_id}/logs`, `/observability/metrics` | Telemetry queries |
+
+## Agents
+
+Source: [routes/agents.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/agents.py).
+
+### `GET /agents`
+
+Returns every agent in the global registry.
+
+<ResponseField name="[]" type="AgentResponse[]">
+Each item is `{id, name, description}`.
+</ResponseField>
+
+### `GET /agents/{agent_id}`
+
+<ParamField path="agent_id" type="string" required>
+The agent's registered ID. Returns 404 if missing.
+</ParamField>
+
+### `POST /agents/{agent_id}/invoke`
+
+Synchronous agent execution.
+
+<ParamField body="message" type="string" required>User prompt.</ParamField>
+<ParamField body="thread_id" type="string">Existing thread to continue; omit to start fresh.</ParamField>
+<ParamField body="context" type="object">Free-form metadata merged with `tool_definitions`.</ParamField>
+
+<ResponseField name="response" type="string | object">Agent output.</ResponseField>
+<ResponseField name="timing_ms" type="number">Wall-clock duration.</ResponseField>
+
+### `POST /agents/{agent_id}/stream`
+
+Same body, but returns SSE. See [SSE streaming](/runtime/sse-streaming) for the frame format.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/agents/researcher/invoke \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"summarize attention is all you need"}'
+```
+
+```python httpx
+import httpx
+r = httpx.post(
+    "http://localhost:8000/agents/researcher/invoke",
+    headers={"Authorization": f"Bearer {token}"},
+    json={"message": "summarize attention is all you need"},
+    timeout=120,
+)
+print(r.json()["response"])
+```
+
+```javascript fetch
+const r = await fetch("/agents/researcher/stream", {
+  method: "POST",
+  headers: {"Authorization": `Bearer ${token}`, "Content-Type": "application/json"},
+  body: JSON.stringify({message: "summarize attention is all you need"}),
+});
+const reader = r.body.getReader();
+```
+</CodeGroup>
+
+## Teams
+
+Source: [routes/teams.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/teams.py). Shape is identical to `/agents`, but resolves against `team_registry`.
+
+`GET /teams`, `GET /teams/{team_id}`, `POST /teams/{team_id}/invoke`, `POST /teams/{team_id}/stream` accept the same `{message, thread_id, context}` body and produce the same `{response, timing_ms}` (sync) or SSE stream.
+
+## Threads
+
+Source: [routes/threads.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/threads.py).
+
+### `GET /threads`
+
+<ParamField query="resource_type" type="string">Filter: `agent`, `team`, `stepper`, or `workflow`.</ParamField>
+<ParamField query="resource_id" type="string">Filter by resource ID.</ParamField>
+<ParamField query="limit" type="integer" default="50">Max threads.</ParamField>
+
+### `POST /threads`
+
+<ParamField body="resource_type" type="string" required />
+<ParamField body="resource_id" type="string" required />
+<ParamField body="resource_name" type="string" required />
+<ParamField body="title" type="string" default='"New Chat"' />
+<ParamField body="metadata" type="object" />
+
+<ResponseField name="id" type="string" />
+<ResponseField name="resource_type" type="string" />
+<ResponseField name="resource_id" type="string" />
+<ResponseField name="resource_name" type="string" />
+<ResponseField name="title" type="string" />
+<ResponseField name="created_at" type="datetime" />
+<ResponseField name="updated_at" type="datetime | null" />
+<ResponseField name="metadata" type="object | null" />
+
+### `GET /threads/{thread_id}`, `GET /threads/{thread_id}/messages`, `DELETE /threads/{thread_id}`
+
+Messages accept `?limit=100`. Delete is a soft-delete and returns `{success, message}`.
+
+## Tools
+
+Source: [routes/tools.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/tools.py).
+
+### `GET /tools`
+
+<ParamField query="search" type="string">Substring match against name, description, or slug.</ParamField>
+<ParamField query="source" type="string">Exact source filter, e.g. `local` or `mcp:filesystem`.</ParamField>
+<ParamField query="page" type="integer" default="1" />
+<ParamField query="page_size" type="integer" default="50" />
+
+<ResponseField name="tools" type="ToolResponse[]" />
+<ResponseField name="total" type="integer" />
+<ResponseField name="page" type="integer" />
+<ResponseField name="page_size" type="integer" />
+
+`ToolResponse` includes `id`, `slug`, `name`, `source`, `description`, `input_schema`, `output_schema`, `required_fields`, `version`, `is_active`, `hash`, `created_at`, `updated_at`.
+
+### `GET/PUT/DELETE /tools/{slug}`
+
+`PUT` accepts any subset of `{name, description, input_schema, output_schema, is_active}` and invalidates the in-process tool cache. `DELETE` removes the definition and invalidates the cache.
+
+### `POST /tools/sync`
+
+Re-runs `AstraServer.sync_tools()` using the current `StartupSyncConfig`. Returns `{message, report}` where `report` matches `SyncReport.to_dict()` (see [tool sync](/runtime/tool-sync)).
+
+## Auth
+
+Source: [routes/auth.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/auth.py).
+
+### `POST /auth/token`
+
+<ResponseField name="access_token" type="string">HS256 JWT.</ResponseField>
+<ResponseField name="token_type" type="string">Always `Bearer`.</ResponseField>
+<ResponseField name="expires_in" type="integer">Seconds. Default `24 * 3600`.</ResponseField>
+
+## Health
+
+Source: [routes/health.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/health.py). See [health probes](/runtime/health-probes) for k8s wiring.
+
+| Path | Status code | Body |
+| --- | --- | --- |
+| `GET /` | 200 | `{message, version}` |
+| `GET /health` | 200 healthy or degraded, 503 starting or unhealthy | `{status, liveness, readiness, startup}` |
+| `GET /health/liveness` | 200 | `{status}` |
+| `GET /health/readiness`, `/readiness` | 200 ready / 503 not ready | readiness payload |
+| `GET /health/startup`, `/startup` | 200 completed / 503 in progress | `{startup, sync}` |
+
+## Observability
+
+Source: [routes/observability.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/observability.py).
+
+### `GET /observability/traces`
+
+<ParamField query="limit" type="integer" default="50" />
+<ParamField query="offset" type="integer" default="0" />
+<ParamField query="include_system" type="boolean" default="false">Include `server.*` traces.</ParamField>
+
+<ResponseField name="traces" type="Trace[]" />
+<ResponseField name="count" type="integer" />
+
+### `GET /observability/traces/{trace_id}`
+
+Returns `{trace, spans}`. 404 if missing.
+
+### `GET /observability/traces/{trace_id}/logs`
+
+<ParamField query="limit" type="integer" default="500" />
+
+Returns `{logs, count}`.
+
+### `GET /observability/metrics`
+
+<ParamField query="hours" type="number" default="24" />
+<ParamField query="max_traces" type="integer" default="500" />
+<ParamField query="include_system" type="boolean" default="false" />
+
+Returns the full `MetricsSnapshot` shape. See [metrics](/observability/metrics) for every field.
+
+<Note>
+All `/observability/*` endpoints return 503 if the engine was disabled via `TelemetryConfig(enabled=False)`.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="SSE streaming" icon="bolt" href="/runtime/sse-streaming">
+    Event frame format for `/agents/.../stream` and `/teams/.../stream`.
+  </Card>
+  <Card title="Auth" icon="lock" href="/runtime/auth">
+    Generate a token and attach it to every request.
+  </Card>
+</CardGroup>

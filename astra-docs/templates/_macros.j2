@@ -1,0 +1,40 @@
+{# Shared macros used by module / class / function templates. #}
+
+{% macro source_link(url) -%}
+{% if url %}<sub>[source]({{ url }})</sub>{% endif %}
+{%- endmacro %}
+
+{% macro render_type(type_str) -%}
+{% if type_str %}{{ type_str | linkify_type }}{% endif %}
+{%- endmacro %}
+
+{% macro param_field(param) -%}
+<ParamField path="{{ param.name }}"{% if param.type_str %} type="{{ param.type_str }}"{% endif %} required={{ param.required | js_bool }}{% if param.default %} default="{{ param.default }}"{% endif %}>
+{{ param.description | default("") }}
+</ParamField>
+{%- endmacro %}
+
+{% macro response_field(func) -%}
+{% if func.returns_type or func.returns_desc %}
+<ResponseField name="returns"{% if func.returns_type %} type="{{ func.returns_type }}"{% endif %}>
+{{ func.returns_desc | default("") }}
+</ResponseField>
+{% endif %}
+{%- endmacro %}
+
+{% macro raises_block(func) -%}
+{% if func.raises %}
+
+**Raises**
+
+{% for exc, desc in func.raises %}
+- `{{ exc }}` -- {{ desc }}
+{% endfor %}
+{% endif %}
+{%- endmacro %}
+
+{% macro signature_block(func) -%}
+```python
+{{ func.signature }}
+```
+{%- endmacro %}

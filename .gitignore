@@ -62,5 +62,8 @@ google_credentials.json
 
 
 paper/
-
 # *.md
+
+agentos-investment-team/
+
+.github

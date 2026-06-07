@@ -41,8 +41,40 @@ export function useChatStream() {
     async ({ text, streamMode }: SendOptions): Promise<void> => {
       if (!text.trim() || !selectedItem || !currentSession) return;
 
-      const sessionKey: SessionKey = currentSession;
       const userMessage = text.trim();
+
+      // Resolve the thread first so the sessionKey we attach the user
+      // message + assistant placeholder to is the same key the chat panel
+      // ends up displaying. Without this, the first send on a fresh
+      // agent/team selection stranded messages on `agent:<id>` while the
+      // panel switched to `thread:<id>` and rendered empty.
+      let threadId: string | null = null;
+      if (currentSession.startsWith("thread:")) {
+        threadId = currentSession.replace("thread:", "");
+      } else {
+        try {
+          const resourceName =
+            typeof selectedItem.data?.name === "string"
+              ? selectedItem.data.name
+              : selectedItem.id;
+          const thread = await createThread(serverUrl, apiKey, {
+            resource_type: selectedItem.type,
+            resource_id: selectedItem.id,
+            resource_name: resourceName,
+            title:
+              userMessage.slice(0, 50) +
+              (userMessage.length > 50 ? "..." : ""),
+          });
+          threadId = thread.id;
+          dispatch(setCurrentSession(`thread:${threadId}`));
+        } catch (err) {
+          console.error("Failed to create thread:", err);
+        }
+      }
+
+      const sessionKey: SessionKey = threadId
+        ? `thread:${threadId}`
+        : currentSession;
 
       dispatch(
         addMessage({
@@ -61,6 +93,7 @@ export function useChatStream() {
       dispatch(clearStreamingContent());
 
       let fullContent = "";
+      let streamErrored = false;
 
       const onChunk = (event: StreamEvent): void => {
         let content = "";
@@ -81,7 +114,22 @@ export function useChatStream() {
             dispatch(updateToolCall({ sessionKey, toolCall }));
           } else if (event.event_type === "synthesize") {
             content = event.data.message;
+          } else if (event.event_type === "error") {
+            // Surface backend errors instead of leaving the assistant
+            // bubble stuck on "Thinking..."
+            streamErrored = true;
+            const msg =
+              typeof event.data.message === "string"
+                ? event.data.message
+                : "Stream error";
+            dispatch(
+              updateLastMessage({
+                sessionKey,
+                content: `Error: ${msg}`,
+              }),
+            );
           }
+          // status / done / code_generated are progress markers; no UI update.
         } else if ("type" in event && event.type === "content") {
           content = event.content;
         } else if ("delta" in event) {
@@ -96,6 +144,17 @@ export function useChatStream() {
       };
 
       const onDone = (): void => {
+        // If the stream closed without any content and no explicit error,
+        // replace the empty placeholder so the bubble doesn't sit on
+        // "Thinking..." forever.
+        if (!fullContent && !streamErrored) {
+          dispatch(
+            updateLastMessage({
+              sessionKey,
+              content: "(no response received)",
+            }),
+          );
+        }
         dispatch(setStreaming(false));
         dispatch(clearStreamingContent());
       };
@@ -113,30 +172,6 @@ export function useChatStream() {
       };
 
       try {
-        let threadId: string | null = null;
-        if (sessionKey.startsWith("thread:")) {
-          threadId = sessionKey.replace("thread:", "");
-        } else {
-          try {
-            const resourceName =
-              typeof selectedItem.data?.name === "string"
-                ? selectedItem.data.name
-                : selectedItem.id;
-            const thread = await createThread(serverUrl, apiKey, {
-              resource_type: selectedItem.type,
-              resource_id: selectedItem.id,
-              resource_name: resourceName,
-              title:
-                userMessage.slice(0, 50) +
-                (userMessage.length > 50 ? "..." : ""),
-            });
-            threadId = thread.id;
-            dispatch(setCurrentSession(`thread:${threadId}`));
-          } catch (err) {
-            console.error("Failed to create thread:", err);
-          }
-        }
-
         if (streamMode) {
           const stream = selectedItem.type === "agent" ? streamAgent : streamTeam;
           await stream(

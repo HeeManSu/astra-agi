@@ -1,0 +1,39 @@
+{/* Reusable provider tabs. Import with: <ProviderTabs /> from this snippet path. */}
+
+<CodeGroup>
+
+```python Gemini
+from framework.models.google import Gemini
+
+model = Gemini("gemini-2.5-flash")
+```
+
+```python Bedrock
+from framework.models.aws import Bedrock
+
+model = Bedrock("anthropic.claude-3-5-sonnet-20241022-v2:0")
+```
+
+```python Anthropic
+# Coming in v0.2
+# from framework.models.anthropic import Anthropic
+# model = Anthropic("claude-sonnet-4-6")
+```
+
+```python OpenAI
+# Coming in v0.2
+# from framework.models.openai import OpenAI
+# model = OpenAI("gpt-4o")
+```
+
+```python Ollama
+# Coming in v0.2
+# from framework.models.ollama import Ollama
+# model = Ollama("llama3.1")
+```
+
+</CodeGroup>
+
+<Note>
+  **Gemini** and **Bedrock** are supported today. **Anthropic**, **OpenAI**, and **Ollama** providers are scheduled for **v0.2**. Track progress on [GitHub](https://github.com/astra-dev/astra/issues).
+</Note>

@@ -1,0 +1,111 @@
+---
+title: "Registry"
+description: "Global agent, team, and storage registries."
+icon: "book"
+---
+
+Astra resolves agent, team, and storage references through three process-global registries. They sit between the FastAPI routes and your code: when `POST /agents/researcher/invoke` arrives, the route looks up `"researcher"` in `agent_registry`. When a thread route needs a database handle, it calls `storage_registry.get_default()`. The pattern lets `AstraServer` accept loose lists of agents and teams without threading them through every route as a dependency.
+
+Source: [registry/registry.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/registry/registry.py).
+
+## The generic Registry
+
+`Registry[T]` is a typed wrapper around a `dict[str, T]` with one extension point: subclasses implement `_get_id(item)` to extract the lookup key. The base class enforces uniqueness; registering the same ID with a different object raises `ValueError`. Registering the same object twice is idempotent.
+
+<ResponseField name="register(item: T) -> None">
+Add an item. Raises `ValueError` on a duplicate identifier when the existing entry is a different object.
+</ResponseField>
+<ResponseField name="get(item_id: str) -> T | None">
+Retrieve by ID. Returns `None` (not a raise) when missing; route handlers convert that to a 404.
+</ResponseField>
+<ResponseField name="list_all() -> list[T]">
+Snapshot of registered items in insertion order. Safe to iterate while the server runs.
+</ResponseField>
+
+## Concrete registries
+
+<AccordionGroup>
+  <Accordion title="AgentRegistry" icon="user">
+    `Registry[Agent]` keyed by `agent.id`. `AstraServer.__init__` walks the `agents` argument and calls `register()` on each. The route handler at [routes/agents.py:48](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/agents.py#L48) reads from this registry.
+  </Accordion>
+  <Accordion title="TeamRegistry" icon="users">
+    `Registry[Team]` keyed by `team.id`. Member agents are not auto-registered here; if you want a team's member agent to be invocable on its own, pass it in the top-level `agents=[...]` list as well.
+  </Accordion>
+  <Accordion title="StorageRegistry" icon="database">
+    Not a `Registry[T]` subclass. It exposes `set_default(storage)` and `get_default()` for a single, well-known storage handle. `AstraServer` validates the storage is a `StorageClient` and stashes it here before agent registration so each agent inherits the same backend.
+  </Accordion>
+</AccordionGroup>
+
+## Module-level singletons
+
+The package re-exports preconstructed instances:
+
+```python
+from runtime.registry import agent_registry, team_registry, storage_registry
+```
+
+These are module-level singletons. There is no scoping by app or tenant. If you embed Astra inside a larger Python process and instantiate more than one `AstraServer`, they share the same registries; design accordingly.
+
+## Programmatic inspection
+
+```python
+from runtime.registry import AgentRegistry, agent_registry, team_registry, storage_registry
+
+# Inspect the global registry after AstraServer has booted:
+print([a.id for a in agent_registry.list_all()])
+print([t.id for t in team_registry.list_all()])
+print(storage_registry.get_default())
+
+# Or instantiate a fresh, isolated registry for tests:
+isolated = AgentRegistry()
+isolated.register(my_agent)
+assert isolated.get(my_agent.id) is my_agent
+```
+
+<Tip>
+For tests, prefer constructing fresh `AgentRegistry()` / `TeamRegistry()` instances rather than mutating the globals. The runtime routes always read the global, so end-to-end tests should mutate the global once per fixture and clean up in teardown.
+</Tip>
+
+## Lifecycle inside AstraServer
+
+The server's constructor performs three registry operations in order:
+
+<Steps>
+  <Step title="set_default(storage)">
+    `_initialize_storage` validates the argument is a `StorageClient` and stamps it into `storage_registry`. Anything else raises `RuntimeError` immediately.
+  </Step>
+  <Step title="register(agent) for each agent">
+    `_initialize_agents` rebinds each agent's `storage` attribute to the default storage, then registers it. Duplicate IDs across the `agents` list raise `ValueError`.
+  </Step>
+  <Step title="register(team) for each team">
+    `_initialize_teams` performs the same dance for teams.
+  </Step>
+</Steps>
+
+After this, the lifespan calls `sync_tools()` which walks both registries (plus `team.flat_members`) to introspect tool schemas. See [tool sync](/runtime/tool-sync).
+
+## Duplicate detection
+
+`Registry.register` allows the same object to be registered twice (idempotent), but rejects a second object with the same ID. This matters when an agent is shared between `AstraServer(agents=[...])` and `Team(members=[...])`: as long as it is the same Python instance, both code paths register it without raising. The `sync_tools()` deduplication uses `id()` comparison for the same reason.
+
+```python
+from runtime.registry import AgentRegistry
+
+reg = AgentRegistry()
+reg.register(agent_a)
+reg.register(agent_a)  # OK, same object
+reg.register(agent_a_copy)  # ValueError: duplicate identifier
+```
+
+<Warning>
+Storage validation is strict. `AstraServer(storage=raw_mongo_client)` raises `RuntimeError`; you must pass `StorageClient(storage=MongoDBStorage(...))`. The wrapping layer is where transactional helpers and the thread/message stores live.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="AstraServer" icon="server" href="/runtime/astra-server">
+    Where the registries are populated.
+  </Card>
+  <Card title="Tool sync" icon="arrows-rotate" href="/runtime/tool-sync">
+    Startup pass that reads the agent and team registries.
+  </Card>
+</CardGroup>

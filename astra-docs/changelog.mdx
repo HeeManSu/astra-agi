@@ -1,0 +1,43 @@
+---
+title: "Changelog"
+description: "Release notes for astra-framework, astra-runtime, and astra-observability."
+icon: "list"
+---
+
+Astra ships frequently. Subscribe to the [GitHub releases feed](https://github.com/astra-dev/astra/releases.atom) for instant updates, or [watch the repo](https://github.com/astra-dev/astra).
+
+<Note>
+  This page is **auto-synced** from [`astra/CHANGELOG.md`](https://github.com/astra-dev/astra/blob/main/astra/CHANGELOG.md). To document a change, edit the source changelog under the `## [Unreleased]` heading.
+</Note>
+
+<Update label="v0.1.2" description="2026-05-26">
+
+### Added
+- First public release of `astra-framework`, `astra-runtime`, and `astra-observability` on PyPI.
+- Restricted Python DSL with AST-level compile-time validation.
+- Five typed node types: action, transform, respond, branch, loop.
+- Deterministic cursor-based executor with zero LLM calls during execution.
+- Replayable execution journal recorded per node visit.
+- `Agent`, `Team`, `TeamMember` primitives with conversational memory and middleware hooks.
+- `@bind_tool` decorator with Pydantic-validated input/output schemas.
+- MCP toolkit support via `MCPToolkit`.
+- Google Gemini and AWS Bedrock model providers.
+- MongoDB and libsql/SQLite storage backends.
+- RAG pipeline with LanceDB vector store, HuggingFace/Gemini/OpenAI embedders, recursive chunking.
+- Embeddable FastAPI server (`AstraServer`) with REST + Server-Sent Events.
+- JWT authentication with environment-configured secret.
+- Observability layer with `ObservabilityEngine`, trace/span/log models, SQLite and MongoDB storage.
+- Streaming metrics with `StreamAccumulator` (TTFT, chunk counts).
+- Aggregated metrics endpoint (`/observability/metrics`) with p50/p95/p99 latency, token rollups, top-N agents/teams/tools/models.
+
+</Update>
+
+<Update label="Unreleased" description="In progress">
+
+### Planned for v0.2
+- Anthropic, OpenAI, and Ollama model providers.
+- Mid-execution replanning for adaptive workflows.
+- TypeScript client SDK.
+- OpenTelemetry forwarder for `astra-observability`.
+
+</Update>

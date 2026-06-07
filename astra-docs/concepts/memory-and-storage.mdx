@@ -1,0 +1,132 @@
+---
+title: "Memory and Storage"
+description: "Conversation memory configuration and the storage backends behind it."
+icon: "database"
+---
+
+Astra separates two concerns most frameworks conflate: **memory** (how much history the LLM sees) and **storage** (where messages actually live). The split keeps the model-facing prompt narrow while letting persistence backends scale independently.
+
+## Memory
+
+`Memory` ([memory/memory.py:16-82](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/memory/memory.py#L16)) decides two things and nothing else: whether history is included in the model prompt, and how much of it.
+
+```python
+from framework.memory import Memory
+
+memory = Memory(
+    add_history_to_messages=True,  # default
+    num_history_turns=5,            # default
+)
+```
+
+<ParamField path="add_history_to_messages" type="bool" required={false} default="True">
+  When `False`, the agent runs stateless — no prior messages are loaded into the prompt. Storage still persists the new turn so you can replay later.
+</ParamField>
+
+<ParamField path="num_history_turns" type="int" required={false} default="5">
+  Number of user-assistant turns to include. Astra loads `2 * num_history_turns` messages from storage (one user + one assistant per turn).
+</ParamField>
+
+Memory has no persistence logic of its own. When the agent needs context, `Memory.get_context(thread_id, storage)` delegates to the storage client's `get_history_as_messages(thread_id, limit=...)`.
+
+<Tip>
+Long histories cost tokens on every turn. The default of 5 turns is calibrated so that a typical multi-agent workflow's input prompt stays under a few thousand tokens. Bump it up when threads are short and intent-laden; bump it down when threads are long and chatty.
+</Tip>
+
+## StorageClient
+
+`StorageClient` ([storage/client.py:23](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/storage/client.py#L23)) is the persistence abstraction. It owns threads, messages, and the queue that fans writes out to whichever backend you configured. The same client interface drives every backend — switching from SQLite to MongoDB is a one-line config change.
+
+Key methods:
+
+<AccordionGroup>
+  <Accordion title="create_thread(...) / get_thread(thread_id) / list_threads(...)">
+    Thread CRUD. Threads are scoped to a `resource_type` ("agent" or "team") and `resource_id`, so an agent's threads and a team's threads stay separate even when sharing a backend.
+  </Accordion>
+  <Accordion title="add_message(thread_id, role, content, ...)">
+    Append a single message. Used internally by `save_user_message` and `save_assistant_message` in [storage/persistence.py](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/storage/persistence.py).
+  </Accordion>
+  <Accordion title="get_history(thread_id, limit=...) / get_history_as_messages(thread_id, limit=...)">
+    Returns persisted turns. The `_as_messages` variant returns the OpenAI-style `{"role": "...", "content": "..."}` shape the model expects.
+  </Accordion>
+  <Accordion title="soft_delete_thread / soft_delete_message">
+    Soft delete — rows are marked deleted but kept on disk. Lets observability and audit features keep working without making thread cleanup destructive.
+  </Accordion>
+</AccordionGroup>
+
+## Backends
+
+Two backends ship today, both implementing the same client interface from [storage/databases/](https://github.com/astra-dev/astra/tree/main/astra/framework/src/framework/storage/databases).
+
+<CodeGroup>
+
+```python MongoDB
+from framework.storage.client import StorageClient
+from framework.storage.databases.mongodb import MongoStorage
+
+storage = StorageClient(
+    backend=MongoStorage(
+        uri="mongodb://localhost:27017",
+        database="astra",
+    ),
+)
+
+agent = Agent(
+    name="Analyst",
+    model=Gemini("gemini-2.5-flash"),
+    instructions="...",
+    storage=storage,
+)
+```
+
+```python SQLite (libsql)
+from framework.storage.client import StorageClient
+from framework.storage.databases.libsql import LibSQLStorage
+
+storage = StorageClient(
+    backend=LibSQLStorage(
+        url="file:./astra.db",
+    ),
+)
+
+agent = Agent(
+    name="Analyst",
+    model=Gemini("gemini-2.5-flash"),
+    instructions="...",
+    storage=storage,
+)
+```
+
+</CodeGroup>
+
+<Note>
+**Pick MongoDB** for multi-process production deployments where many runtime instances share threads, or where you want first-class indexing of message metadata. **Pick libsql / SQLite** for local development, single-process deployments, or embedded use cases where a file is enough.
+</Note>
+
+## The write queue
+
+`StorageClient` writes through an in-process queue ([storage/queue.py](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/storage/queue.py)) so that `agent.invoke()` doesn't block on DB latency. Messages are batched via `_save_messages_batch` and flushed by a background task. Call `await storage.stop()` during graceful shutdown to drain the queue.
+
+## How storage interacts with observability
+
+Storage is a separate concern from observability. The `StorageClient` persists threads and messages — the **conversational** data. The observability engine ([Observability](/concepts/observability)) persists traces, spans, and logs — the **execution** data. They share a storage backend in most deployments but are wired independently, so you can route traces to ClickHouse while keeping conversations in Mongo, for example.
+
+## Threads, ids, and re-entry
+
+Every call to `agent.invoke(query, thread_id=None)` creates a new thread if `thread_id` is `None`, or appends to an existing one if you pass an id. The id round-trips back as the return value of the internal `save_user_message`, so the caller can persist it client-side and continue the conversation next turn:
+
+```python
+thread_id = None
+response = await agent.invoke("What's AAPL doing?", thread_id=thread_id)
+# Later, with the same thread:
+follow_up = await agent.invoke("And MSFT?", thread_id=thread_id)
+```
+
+<CardGroup cols={2}>
+  <Card title="RAG" icon="magnifying-glass" href="/concepts/rag">
+    Retrieval pipelines and how they fold into the agent's tool set.
+  </Card>
+  <Card title="MCP" icon="plug" href="/concepts/mcp">
+    Model Context Protocol toolkits.
+  </Card>
+</CardGroup>

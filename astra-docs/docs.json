@@ -1,0 +1,249 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Astra",
+  "description": "A code-first DSL compiler for multi-agent LLM orchestration.",
+  "colors": {
+    "primary": "#7C5CFF",
+    "light": "#A88BFF",
+    "dark": "#5A3FE6"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/why-compile-not-loop",
+              "concepts/agents",
+              "concepts/teams",
+              "concepts/tools",
+              "concepts/semantic-layer",
+              "concepts/memory-and-storage",
+              "concepts/rag",
+              "concepts/mcp",
+              "concepts/middleware",
+              "concepts/observability",
+              {
+                "group": "Compiler internals",
+                "pages": [
+                  "compiler/dsl-syntax",
+                  "compiler/ast-validator",
+                  "compiler/execution-graph",
+                  "compiler/executor",
+                  "compiler/replay"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Runtime",
+            "pages": [
+              "runtime/astra-server",
+              "runtime/rest-endpoints",
+              "runtime/sse-streaming",
+              "runtime/auth",
+              "runtime/registry",
+              "runtime/tool-sync",
+              "runtime/health-probes"
+            ]
+          },
+          {
+            "group": "Observability",
+            "pages": [
+              "observability/setup",
+              "observability/traces-and-spans",
+              "observability/metrics",
+              "observability/streaming-metrics",
+              "observability/querying",
+              "observability/integrations"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "How-to Guides",
+        "groups": [
+          {
+            "group": "How-to Guides",
+            "pages": [
+              "guides/first-agent",
+              "guides/multi-agent-team",
+              "guides/custom-tool",
+              "guides/mcp-toolkit",
+              "guides/conversational-memory",
+              "guides/rag-knowledge-base",
+              "guides/streaming",
+              "guides/ingest-documents",
+              "guides/custom-middleware",
+              "guides/multi-provider",
+              "guides/tracing-and-replay",
+              "guides/deploying-to-production"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "reference/index"
+            ]
+          },
+          {
+            "group": "astra-framework",
+            "pages": [
+              "reference/framework/index"
+            ]
+          },
+          {
+            "group": "astra-runtime",
+            "pages": [
+              "reference/runtime/index"
+            ]
+          },
+          {
+            "group": "astra-observability",
+            "pages": [
+              "reference/observability/index"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Cookbook",
+        "groups": [
+          {
+            "group": "Examples",
+            "pages": [
+              "cookbook/index",
+              "cookbook/investment-team",
+              "cookbook/market-research",
+              "cookbook/enterprise-teams",
+              "cookbook/limca"
+            ]
+          },
+          {
+            "group": "Comparisons",
+            "pages": [
+              "comparisons/vs-langgraph",
+              "comparisons/vs-crewai",
+              "comparisons/vs-agno",
+              "comparisons/vs-autogen"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Research Paper",
+          "icon": "book-open",
+          "href": "https://github.com/astra-dev/astra/blob/main/paper/main.pdf"
+        },
+        {
+          "anchor": "Benchmarks",
+          "icon": "chart-line",
+          "href": "https://github.com/astra-dev/astra/tree/main/benchmarking"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://astra.dev"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/astra-dev/astra"
+      },
+      {
+        "label": "Playground",
+        "href": "https://github.com/astra-dev/astra/tree/main/astra-playground-ui"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/astra-dev/astra"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/astra-dev/astra",
+      "x": "https://x.com/astra_dev",
+      "discord": "https://discord.gg/astra"
+    },
+    "links": [
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "Contributing",
+            "href": "/contributing"
+          },
+          {
+            "label": "Changelog",
+            "href": "/changelog"
+          },
+          {
+            "label": "Research Paper",
+            "href": "https://github.com/astra-dev/astra/blob/main/paper/main.pdf"
+          },
+          {
+            "label": "Benchmarks",
+            "href": "https://github.com/astra-dev/astra/tree/main/benchmarking"
+          }
+        ]
+      },
+      {
+        "header": "Community",
+        "items": [
+          {
+            "label": "GitHub",
+            "href": "https://github.com/astra-dev/astra"
+          },
+          {
+            "label": "Discord",
+            "href": "https://discord.gg/astra"
+          },
+          {
+            "label": "X / Twitter",
+            "href": "https://x.com/astra_dev"
+          }
+        ]
+      }
+    ]
+  },
+  "search": {
+    "prompt": "Search Astra docs..."
+  },
+  "seo": {
+    "metatags": {
+      "og:site_name": "Astra Documentation",
+      "twitter:card": "summary_large_image"
+    }
+  },
+  "integrations": {
+    "plausible": {
+      "domain": "docs.astra.dev"
+    }
+  }
+}

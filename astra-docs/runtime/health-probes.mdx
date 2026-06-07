@@ -1,0 +1,147 @@
+---
+title: "Health probes"
+description: "Liveness, readiness, and startup endpoints for Kubernetes and other orchestrators."
+icon: "heart-pulse"
+---
+
+`AstraServer` exposes three probe endpoints designed to map onto Kubernetes' `livenessProbe`, `readinessProbe`, and `startupProbe`. Each endpoint reads from `app.state.runtime_health`, a dict the FastAPI lifespan populates as it walks through storage init, observability init, MCP connect, and tool sync. The handlers return 200 or 503 with a structured JSON body. Source: [routes/health.py](https://github.com/astra-dev/astra/blob/main/astra/runtime/src/runtime/routes/health.py).
+
+## Endpoint map
+
+| Path | Probe | 200 condition | 503 condition |
+| --- | --- | --- | --- |
+| `GET /health/liveness` | liveness | process accepts a request | n/a, always 200 unless the process is dead |
+| `GET /health/readiness`, `GET /readiness` | readiness | `readiness.ready == True` | not yet ready or degraded with hard failure |
+| `GET /health/startup`, `GET /startup` | startup | `startup.status == "completed"` | still booting |
+| `GET /health` | aggregated | ready and not degraded | starting or unhealthy |
+
+All probe paths are in the public whitelist; no token required.
+
+## Response shapes
+
+<AccordionGroup>
+  <Accordion title="GET /health/liveness" icon="heartbeat">
+    ```json
+    { "status": "alive" }
+    ```
+    A pure process-up signal. Returns 200 as long as the ASGI app is dispatching.
+  </Accordion>
+  <Accordion title="GET /health/readiness" icon="circle-check">
+    ```json
+    {
+      "status": "ready",
+      "ready": true,
+      "degraded": false,
+      "reason": null
+    }
+    ```
+    `degraded: true` is returned when readiness is achieved but some non-critical subsystem (typically a non-required MCP server) is down. `reason` carries a short machine-readable code like `"startup_state_unavailable"` or `"mcp_unreachable"`.
+  </Accordion>
+  <Accordion title="GET /health/startup" icon="rocket">
+    ```json
+    {
+      "startup": { "status": "completed", "phase": "ready" },
+      "sync": {
+        "mcp_connect": { "filesystem": "ok", "github": "ok" },
+        "report": { "local": {"synced": 3, "unchanged": 12}, ... }
+      }
+    }
+    ```
+    `startup.status` walks `unknown -> starting -> completed` (or `failed`). The `sync` block mirrors the `SyncReport` from [tool sync](/runtime/tool-sync).
+  </Accordion>
+  <Accordion title="GET /health (aggregated)" icon="layer-group">
+    ```json
+    {
+      "status": "healthy",
+      "liveness": { "status": "alive" },
+      "readiness": { ... },
+      "startup": { ... }
+    }
+    ```
+    Status values: `healthy`, `degraded`, `starting`, `unhealthy`. Returns 503 for `starting` and `unhealthy`; 200 for `healthy` and `degraded`.
+  </Accordion>
+</AccordionGroup>
+
+## Kubernetes wiring
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astra
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: astra}
+  template:
+    metadata:
+      labels: {app: astra}
+    spec:
+      containers:
+        - name: astra
+          image: ghcr.io/your-org/astra:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: ASTRA_JWT_SECRET
+              valueFrom:
+                secretKeyRef: {name: astra-secrets, key: jwt}
+          startupProbe:
+            httpGet: {path: /health/startup, port: 8000}
+            periodSeconds: 5
+            failureThreshold: 60   # 5 minutes to finish MCP connect + sync
+          readinessProbe:
+            httpGet: {path: /health/readiness, port: 8000}
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /health/liveness, port: 8000}
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits:   {cpu: "2",  memory: 2Gi}
+```
+
+<Steps>
+  <Step title="Startup probe runs first">
+    Kubernetes pauses the other two probes until the startup probe succeeds once. A generous `failureThreshold` is important because MCP servers can be slow on cold boot.
+  </Step>
+  <Step title="Readiness probe controls Service traffic">
+    Failing this probe removes the pod from the Service endpoints, draining traffic without restarting the container. Use this for "Mongo flapped, give it a minute" scenarios.
+  </Step>
+  <Step title="Liveness probe forces restart">
+    Reserve this for "the process is wedged". Astra's liveness handler is intentionally minimal; do not point it at `/health` or you will restart pods that merely need a moment to reconnect.
+  </Step>
+</Steps>
+
+## Common failure modes
+
+<AccordionGroup>
+  <Accordion title="Mongo unreachable at boot" icon="database">
+    The lifespan calls `storage.init()` and `engine.storage.init()`. Both raise on connection failure. `startup.status` stays `starting` and then transitions to `failed`. Fix: verify `MONGODB_URL`, that the user has read/write on the target DB, and that the Mongo deployment finished its own startup.
+  </Accordion>
+  <Accordion title="MCP server not ready" icon="plug">
+    With `StartupSyncConfig.require_mcp_sync=True`, any MCP handshake failure prevents `startup.status == "completed"`. The startup probe stays 503 and Kubernetes kills the pod after `failureThreshold * periodSeconds`. Either bring the MCP up first (initContainer that waits on its TCP socket) or set `require_mcp_sync=False` to allow degraded readiness.
+  </Accordion>
+  <Accordion title="Observability storage init failure" icon="chart-line">
+    `TelemetryConfig(enabled=True)` requires `db_path` to be writeable. SQLite failures surface as `RuntimeError` in the lifespan; Mongo failures bubble through `TelemetryMongoDB.init()`. The readiness payload carries `reason: "observability_init_failed"` so dashboards can flag the cause.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Run `curl -s :8000/health | jq` against any running instance to see all four sub-states in one shot; this is the fastest way to triage a `starting` pod stuck in CrashLoopBackOff.
+</Tip>
+
+<Warning>
+Do not put `/health/readiness` behind authentication. If you proxy Astra through an API gateway, exempt every path that starts with `/health` and the bare `/readiness` and `/startup` aliases.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="AstraServer" icon="server" href="/runtime/astra-server">
+    `StartupSyncConfig` controls the startup phase.
+  </Card>
+  <Card title="Tool sync" icon="arrows-rotate" href="/runtime/tool-sync">
+    Sync report visible at `/health/startup`.
+  </Card>
+</CardGroup>

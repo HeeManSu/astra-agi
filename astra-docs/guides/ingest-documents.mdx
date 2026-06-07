@@ -1,0 +1,193 @@
+---
+title: "Ingest documents"
+description: "Use ingest(), ingest_batch(), and ingest_directory() for single docs, bulk uploads, and crawls."
+icon: "file-arrow-up"
+---
+
+<Note>
+**Prerequisites**
+
+- Python 3.12+
+- `pip install astra-framework sentence-transformers lancedb`
+- An `Agent` configured with `rag_pipeline=` (see [Build a RAG knowledge base](/guides/rag-knowledge-base))
+</Note>
+
+The `Agent` exposes three ingestion entry points that all forward to the underlying `Rag` pipeline. They differ only in what they accept and how they batch. Source: [agents/agent.py:336](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L336) (`ingest`), [:378](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L378) (`ingest_batch`), [:404](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/agents/agent.py#L404) (`ingest_directory`).
+
+## The three methods, side by side
+
+The shared setup:
+
+```python shared_setup.py
+import asyncio
+from framework.agents import Agent
+from framework.models.google import Gemini
+from framework.rag import HuggingFaceEmbedder, LanceDB, Pipeline, Rag, RagContext
+from framework.rag.stages import ChunkStage, EmbedStage, ReadStage, RetrieveStage, StoreStage
+
+
+def make_agent() -> Agent:
+    context = RagContext(
+        embedder=HuggingFaceEmbedder(model="sentence-transformers/all-MiniLM-L6-v2"),
+        vector_db=LanceDB(uri="./kb.lance"),
+        config={"default_top_k": 5},
+    )
+    rag = Rag(
+        context=context,
+        ingest_pipeline=Pipeline(
+            name="ingest",
+            stages=[ReadStage(), ChunkStage(chunk_size=512, chunk_overlap=50), EmbedStage(), StoreStage()],
+        ),
+        query_pipeline=Pipeline(name="query", stages=[RetrieveStage(top_k=5)]),
+    )
+    return Agent(
+        name="Docs Bot",
+        instructions="Answer strictly from retrieved context.",
+        model=Gemini("gemini-2.5-flash"),
+        rag_pipeline=rag,
+    )
+```
+
+<CodeGroup>
+
+```python ingest_single.py
+# Single document: pick exactly one of path, url, or text.
+import asyncio
+from shared_setup import make_agent
+
+
+async def main():
+    agent = make_agent()
+
+    # 1. From raw text
+    content_id_a = await agent.ingest(
+        text="Astra compiles LLM-generated Python into a typed execution graph.",
+        name="intro",
+        metadata={"team": "platform", "version": "1.0"},
+    )
+
+    # 2. From a local file
+    content_id_b = await agent.ingest(
+        path="./docs/architecture.md",
+        name="architecture",
+        metadata={"category": "design"},
+    )
+
+    # 3. From a URL
+    content_id_c = await agent.ingest(
+        url="https://example.com/whitepaper.pdf",
+        name="whitepaper",
+    )
+
+    print(f"Ingested: {content_id_a}, {content_id_b}, {content_id_c}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+```python ingest_batch.py
+# Bulk: hand it a list of dicts. Each dict mirrors ingest() kwargs.
+import asyncio
+from shared_setup import make_agent
+
+
+async def main():
+    agent = make_agent()
+
+    items = [
+        {"text": "Astra teams delegate to specialist agents.", "name": "teams"},
+        {"text": "Memory replays the last N turns.", "name": "memory"},
+        {"path": "./docs/tools.md", "name": "tools", "metadata": {"section": "guide"}},
+    ]
+
+    ids = await agent.ingest_batch(items)
+    print(f"Ingested {len(ids)} items")
+    for i, cid in enumerate(ids):
+        # Failed items are returned as the string "error: <message>"
+        status = "ok" if not cid.startswith("error:") else "failed"
+        print(f"  [{status}] {items[i].get('name')} -> {cid}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+```python ingest_directory.py
+# Crawl: glob a directory, optionally recursive.
+import asyncio
+from pathlib import Path
+
+from shared_setup import make_agent
+
+
+async def main():
+    agent = make_agent()
+
+    # Seed a directory tree for the demo.
+    Path("./docs/a").mkdir(parents=True, exist_ok=True)
+    Path("./docs/b").mkdir(parents=True, exist_ok=True)
+    Path("./docs/a/intro.md").write_text("Astra is a multi-agent framework.")
+    Path("./docs/b/advanced.md").write_text("Code mode generates Python and runs it in a sandbox.")
+    Path("./docs/skip.txt").write_text("This file is .txt and will be skipped by the *.md pattern.")
+
+    ids = await agent.ingest_directory(
+        directory="./docs",
+        pattern="*.md",     # only Markdown
+        recursive=True,     # include subdirectories
+    )
+    print(f"Ingested {len(ids)} files (expected 2)")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</CodeGroup>
+
+## Pick the right method
+
+| Method | Best for | Trade-off |
+| --- | --- | --- |
+| `ingest()` | One document, full control over metadata | One round trip per call |
+| `ingest_batch()` | A short list (10-200) of heterogeneous items | Single pipeline run; failed items returned as `error: ...` strings |
+| `ingest_directory()` | A folder of similarly-shaped files | Less metadata control; only files matching `pattern` |
+
+`ingest_batch` and `ingest_directory` both delegate to `ingest` per item under the hood (see [rag/pipeline.py:205](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/rag/pipeline.py#L205) and [:216](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/rag/pipeline.py#L216)). They do **not** parallelize. For large corpora (10k+ files), build your own concurrency wrapper with `asyncio.gather` and a semaphore.
+
+## Idempotency and re-ingest
+
+The pipeline uses a chunk id derived from content + metadata. Re-ingesting the same content with the same `name` and `metadata` overwrites existing chunks in the vector store. If you change the `name`, you create a parallel copy. The recommended pattern is: pick a stable `name` per logical document (a filename, an external system id) and let re-ingest update it in place when content changes.
+
+<Tip>
+**Watch the file pattern.** `ingest_directory` defaults to `pattern="*.txt"`. Set it to `"*.md"` for Markdown or `"*"` for everything (then filter by extension in your own wrapper). Recursive globs use `Path.rglob`, non-recursive uses `Path.glob`.
+</Tip>
+
+<Warning>
+**Batch error handling.** `ingest_batch` does not stop on failure (see [rag/pipeline.py:207-213](https://github.com/astra-dev/astra/blob/main/astra/framework/src/framework/rag/pipeline.py#L207)). It catches each exception and replaces the content id with `"error: <message>"`. Always scan the returned list for items starting with `error:` before declaring success.
+</Warning>
+
+## Verify it worked
+
+<Steps>
+  <Step title="Run one example">
+    Each of the three scripts should print non-zero content IDs and create or update `./kb.lance/` on disk.
+  </Step>
+  <Step title="Query the result">
+    Add `print(await agent.invoke("Summarise what was ingested."))`. The agent should mention text from the documents.
+  </Step>
+  <Step title="Inspect the batch report">
+    For `ingest_batch.py`, no item should be marked `failed`. If one is, the printed `error: ...` message tells you which file or URL failed.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Build a RAG knowledge base" icon="book" href="/guides/rag-knowledge-base">
+    The full pipeline architecture.
+  </Card>
+  <Card title="Trace and replay a run" icon="magnifying-glass" href="/guides/tracing-and-replay">
+    Diagnose ingestion errors with the observability layer.
+  </Card>
+</CardGroup>

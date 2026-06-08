@@ -173,4 +173,4 @@ The compound is the easiest way to develop end-to-end: pick **Investment Team: S
 
 ## License
 
-Apache 2.0 — see [`framework/LICENSE`](framework/LICENSE).
+MIT — see [`../LICENSE`](../LICENSE).

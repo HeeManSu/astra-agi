@@ -141,4 +141,4 @@ This project is under active development. If something doesn't work, open an iss
 
 ## License
 
-Apache 2.0. See [`astra/framework/LICENSE`](astra/framework/LICENSE).
+MIT. See [`LICENSE`](LICENSE).

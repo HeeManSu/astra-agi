@@ -5,7 +5,7 @@ Embedded server for running AI agents.
 ## Installation
 
 ```bash
-pip install astra-runtime
+pip install astra-server
 ```
 
 ## Quick Start

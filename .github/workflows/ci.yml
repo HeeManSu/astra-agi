@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-packages
+
+      - name: Run ruff format check
+        run: uv run ruff format --check .
+
+      - name: Run ruff lint
+        run: uv run ruff check .
+
+  test:
+    name: Test (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [framework, observability, runtime]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-packages
+
+      - name: Run tests
+        working-directory: astra/${{ matrix.package }}
+        run: |
+          if [ -d "tests" ]; then
+            uv run pytest tests/ -v --tb=short
+          else
+            echo "No tests directory found for ${{ matrix.package }}, skipping"
+          fi

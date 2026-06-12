@@ -56,9 +56,7 @@ class MonetaryPolicyInput(BaseModel):
 
 
 class MonetaryPolicyOutput(BaseModel):
-    result: dict = Field(
-        description="Dict with fed_funds_rate, rate_trend, 10y/2y yields, spread, policy_stance"
-    )
+    result: dict = Field(description="Dict with fed_funds_rate, rate_trend, 10y/2y yields, spread, policy_stance")
 
 
 monetary_policy_spec = ToolSpec(
@@ -205,9 +203,7 @@ class LiquidityCreditInput(BaseModel):
 
 
 class LiquidityCreditOutput(BaseModel):
-    result: dict = Field(
-        description="Dict with financial conditions index, credit spread, liquidity/risk regime"
-    )
+    result: dict = Field(description="Dict with financial conditions index, credit spread, liquidity/risk regime")
 
 
 liquidity_credit_spec = ToolSpec(

@@ -8,6 +8,7 @@ Same logic as Astra, plain functions instead of ToolSpec/bind_tool.
 from os import getenv
 
 from langchain_core.tools import tool
+
 try:
     from fredapi import Fred
 except ImportError as e:

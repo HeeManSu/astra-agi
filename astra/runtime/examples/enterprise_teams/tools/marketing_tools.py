@@ -136,7 +136,9 @@ GENERATE_CONTENT_CALENDAR_SPEC = ToolSpec(
 async def generate_content_calendar(
     input: GenerateContentCalendarInput,
 ) -> GenerateContentCalendarOutput:
-    items = [f"Week {i + 1}: {input.campaign_name} primary content" for i in range(max(1, input.weeks))]
+    items = [
+        f"Week {i + 1}: {input.campaign_name} primary content" for i in range(max(1, input.weeks))
+    ]
     return GenerateContentCalendarOutput(calendar=items)
 
 

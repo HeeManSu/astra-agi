@@ -17,6 +17,4 @@ def datetime_context() -> str:
 
 # Exa MCP URL for web search (free tier available at exa.ai)
 EXA_API_KEY = getenv("EXA_API_KEY", "")
-EXA_MCP_URL = (
-    f"https://mcp.exa.ai/mcp?exaApiKey={EXA_API_KEY}&tools=web_search_exa" if EXA_API_KEY else ""
-)
+EXA_MCP_URL = f"https://mcp.exa.ai/mcp?exaApiKey={EXA_API_KEY}&tools=web_search_exa" if EXA_API_KEY else ""

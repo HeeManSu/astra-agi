@@ -8,6 +8,7 @@ Same logic as Astra, plain functions.
 from __future__ import annotations
 
 from langchain_core.tools import tool
+
 try:
     import yfinance as yf
 except ImportError as e:

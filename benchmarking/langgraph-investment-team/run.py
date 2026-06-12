@@ -64,6 +64,7 @@ QUERIES = {
 
 def _enable_langchain_logging() -> None:
     import langchain
+
     langchain.debug = True
     langchain.verbose = True
 
@@ -99,8 +100,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--query", choices=list(QUERIES.keys()), default="Q7")
     parser.add_argument("--trial", type=int, default=0)
-    parser.add_argument("--out-dir", type=str, default=None,
-                        help="Override output dir. Default: runs/langgraph/<query>_trial<N>/")
+    parser.add_argument(
+        "--out-dir", type=str, default=None, help="Override output dir. Default: runs/langgraph/<query>_trial<N>/"
+    )
     args = parser.parse_args()
 
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
@@ -134,12 +136,14 @@ def main() -> int:
     class _Tee:
         def __init__(self, *streams):
             self._streams = streams
+
         def write(self, data):
             for s in self._streams:
                 try:
                     s.write(data)
                 except Exception:
                     pass
+
         def flush(self):
             for s in self._streams:
                 try:
@@ -173,22 +177,28 @@ def main() -> int:
 
     (out_dir / "response.txt").write_text(response or "")
     import json
-    (out_dir / "result.json").write_text(json.dumps({
-        "framework":         "langgraph",
-        "query_id":          query_id,
-        "trial":             args.trial,
-        "ok":                ok,
-        "error":             err,
-        "attempts_used":     attempts_used,
-        "num_llm_calls":     summary.num_calls,
-        "prompt_tokens":     summary.prompt_tokens,
-        "completion_tokens": summary.completion_tokens,
-        "thoughts_tokens":   summary.thoughts_tokens,
-        "total_tokens":      summary.total_tokens,
-        "wall_ms":           round(wall_ms, 2),
-        "llm_latency_ms":    round(summary.llm_latency_ms, 2),
-        "response_chars":    len(response or ""),
-    }, indent=2))
+
+    (out_dir / "result.json").write_text(
+        json.dumps(
+            {
+                "framework": "langgraph",
+                "query_id": query_id,
+                "trial": args.trial,
+                "ok": ok,
+                "error": err,
+                "attempts_used": attempts_used,
+                "num_llm_calls": summary.num_calls,
+                "prompt_tokens": summary.prompt_tokens,
+                "completion_tokens": summary.completion_tokens,
+                "thoughts_tokens": summary.thoughts_tokens,
+                "total_tokens": summary.total_tokens,
+                "wall_ms": round(wall_ms, 2),
+                "llm_latency_ms": round(summary.llm_latency_ms, 2),
+                "response_chars": len(response or ""),
+            },
+            indent=2,
+        )
+    )
 
     print()
     print("=" * 72)

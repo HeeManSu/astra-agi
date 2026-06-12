@@ -3,6 +3,7 @@
 
 Exits non-zero if any page is missing `title` or `description`, or sets `noindex: true`.
 """
+
 from __future__ import annotations
 
 import argparse

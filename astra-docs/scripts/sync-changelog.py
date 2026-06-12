@@ -4,6 +4,7 @@
 Reads the upstream changelog from the monorepo and rewrites
 `astra-docs/changelog.mdx` using Mintlify `<Update>` blocks per release.
 """
+
 from __future__ import annotations
 
 import argparse

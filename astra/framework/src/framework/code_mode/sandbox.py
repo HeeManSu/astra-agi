@@ -847,9 +847,7 @@ class Sandbox:
 
                 # Escape curly braces to prevent .format() from interpreting them
                 escaped_output = raw_output.replace("{", "{{").replace("}", "}}")
-                escaped_instructions = agent_instructions_text.replace("{", "{{").replace(
-                    "}", "}}"
-                )
+                escaped_instructions = agent_instructions_text.replace("{", "{{").replace("}", "}}")
 
                 prompt = RESPONSE_FORMAT_PROMPT.format(
                     provider_name=semantic.provider_name,
@@ -952,11 +950,7 @@ class Sandbox:
                     "planned_step_count": len(json_content.get("steps", [])),
                     "planned_tool_count": len(planned_tool_slugs),
                     "summary_preview": preview(summary),
-                    **(
-                        {"summary_full": summary, "planner_raw": content}
-                        if debug
-                        else {}
-                    ),
+                    **({"summary_full": summary, "planner_raw": content} if debug else {}),
                 }
             )
 
@@ -997,9 +991,7 @@ class Sandbox:
                 semantic_layer = self.provider.build_semantic_layer(tool_definitions)
                 save_debug_artifact(
                     "semantic_layer.json",
-                    json.dumps(
-                        semantic_layer.to_dict(), indent=2, ensure_ascii=False, default=str
-                    ),
+                    json.dumps(semantic_layer.to_dict(), indent=2, ensure_ascii=False, default=str),
                 )
                 print("Saved semantic layer to .debug/semantic_layer.json")
                 update_span(

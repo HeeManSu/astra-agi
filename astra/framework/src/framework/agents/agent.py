@@ -704,9 +704,7 @@ class Agent:
         async def _push(evt: dict[str, Any]) -> None:
             await event_queue.put(evt)
 
-        exec_task = asyncio.create_task(
-            sandbox.execute_dsl(timeout=exec_timeout, on_event=_push)
-        )
+        exec_task = asyncio.create_task(sandbox.execute_dsl(timeout=exec_timeout, on_event=_push))
 
         try:
             while not exec_task.done() or not event_queue.empty():
@@ -752,11 +750,11 @@ class Agent:
                     attributes={"input_length": len(formatted_output)},
                 ):
                     await log(LogLevel.INFO, "Running output middlewares")
-                    formatted_output, error = await self._run_output_middleware(
-                        formatted_output
-                    )
+                    formatted_output, error = await self._run_output_middleware(formatted_output)
                     if error:
-                        await log(LogLevel.ERROR, "Output middleware blocked response", {"error": error})
+                        await log(
+                            LogLevel.ERROR, "Output middleware blocked response", {"error": error}
+                        )
                         yield StreamEvent(event_type="error", data={"message": error})
                         return
                     await log(LogLevel.INFO, "Output middleware passed")
@@ -767,7 +765,9 @@ class Agent:
                     attributes={
                         "thread_id": thread_id or "new",
                         "message_length": len(formatted_output),
-                        "storage_backend": self.storage.__class__.__name__ if self.storage else "none",
+                        "storage_backend": self.storage.__class__.__name__
+                        if self.storage
+                        else "none",
                     },
                 ):
                     await save_assistant_message(self.storage, thread_id, formatted_output)

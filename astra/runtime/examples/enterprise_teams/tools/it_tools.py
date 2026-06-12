@@ -42,7 +42,9 @@ async def classify_incident_severity(
         f"affected_users={input.affected_users}, impact=${input.revenue_impact_per_hour}/h, "
         f"data_loss={input.data_loss}"
     )
-    return ClassifyIncidentSeverityOutput(severity=sev, response_sla_minutes=sla, rationale=rationale)
+    return ClassifyIncidentSeverityOutput(
+        severity=sev, response_sla_minutes=sla, rationale=rationale
+    )
 
 
 class GenerateRunbookTasksInput(BaseModel):
@@ -67,7 +69,9 @@ GENERATE_RUNBOOK_TASKS_SPEC = ToolSpec(
 async def generate_runbook_tasks(
     input: GenerateRunbookTasksInput,
 ) -> GenerateRunbookTasksOutput:
-    rollback_needed = "deploy" in input.incident_type.lower() or "release" in input.incident_type.lower()
+    rollback_needed = (
+        "deploy" in input.incident_type.lower() or "release" in input.incident_type.lower()
+    )
     tasks = [
         f"Declare incident for {input.service_name}",
         "Collect logs, traces, and recent deploy metadata",
@@ -150,7 +154,9 @@ async def calculate_error_budget(input: CalculateErrorBudgetInput) -> CalculateE
     allowed = max(0.0, 100.0 - input.slo_target_percent)
     used = max(0.0, input.slo_target_percent - input.observed_uptime_percent)
     remaining = round(max(0.0, allowed - used), 3)
-    status = "healthy" if remaining > (allowed * 0.5) else "warning" if remaining > 0 else "exhausted"
+    status = (
+        "healthy" if remaining > (allowed * 0.5) else "warning" if remaining > 0 else "exhausted"
+    )
     return CalculateErrorBudgetOutput(budget_remaining_percent=remaining, burn_status=status)
 
 
@@ -206,7 +212,9 @@ ESTIMATE_CAPACITY_HEADROOM_SPEC = ToolSpec(
 async def estimate_capacity_headroom(
     input: EstimateCapacityHeadroomInput,
 ) -> EstimateCapacityHeadroomOutput:
-    headroom = round(100.0 - max(input.current_utilization_percent, input.projected_peak_percent), 2)
+    headroom = round(
+        100.0 - max(input.current_utilization_percent, input.projected_peak_percent), 2
+    )
     action = "Scale up capacity" if headroom < 15 else "Capacity sufficient"
     return EstimateCapacityHeadroomOutput(headroom_percent=headroom, action=action)
 
@@ -257,7 +265,9 @@ MAP_INCIDENT_DEPENDENCIES_SPEC = ToolSpec(
 async def map_incident_dependencies(
     input: MapIncidentDependenciesInput,
 ) -> MapIncidentDependenciesOutput:
-    depth = 1 if input.impacted_service_count <= 2 else 2 if input.impacted_service_count <= 5 else 3
+    depth = (
+        1 if input.impacted_service_count <= 2 else 2 if input.impacted_service_count <= 5 else 3
+    )
     return MapIncidentDependenciesOutput(dependency_depth=depth)
 
 

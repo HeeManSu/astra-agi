@@ -55,9 +55,7 @@ market_data_spec = ToolSpec(
     examples=[
         {
             "input": {"symbol": "AAPL"},
-            "output": {
-                "result": '{"current_price": 178.5, "market_cap": "$2.75T", "free_cashflow": "$105.0B"}'
-            },
+            "output": {"result": '{"current_price": 178.5, "market_cap": "$2.75T", "free_cashflow": "$105.0B"}'},
         }
     ],
 )
@@ -83,26 +81,16 @@ def get_current_market_data(input: MarketDataInput) -> MarketDataOutput:
         }
         return MarketDataOutput(result=data)
     except Exception as e:
-        return MarketDataOutput(
-            result={"error": f"Error fetching market data for {input.symbol}: {e}"}
-        )
+        return MarketDataOutput(result={"error": f"Error fetching market data for {input.symbol}: {e}"})
 
 
 # 2. calculate_dcf
 class DcfInput(BaseModel):
     symbol: str = Field(description="Stock ticker symbol")
-    growth_rate: float = Field(
-        default=0.10, description="Expected FCF growth rate (e.g. 0.10 for 10%)"
-    )
-    discount_rate: float = Field(
-        default=0.10, gt=0, description="Discount rate / WACC (e.g. 0.10 for 10%)"
-    )
-    terminal_growth: float = Field(
-        default=0.03, ge=0, description="Terminal growth rate (e.g. 0.03 for 3%)"
-    )
-    projection_years: int = Field(
-        default=5, ge=1, description="Number of years to project (default 5)"
-    )
+    growth_rate: float = Field(default=0.10, description="Expected FCF growth rate (e.g. 0.10 for 10%)")
+    discount_rate: float = Field(default=0.10, gt=0, description="Discount rate / WACC (e.g. 0.10 for 10%)")
+    terminal_growth: float = Field(default=0.03, ge=0, description="Terminal growth rate (e.g. 0.03 for 3%)")
+    projection_years: int = Field(default=5, ge=1, description="Number of years to project (default 5)")
 
 
 class DcfOutput(BaseModel):
@@ -211,10 +199,7 @@ class MultipleValuationOutput(BaseModel):
 
 multiple_valuation_spec = ToolSpec(
     name="calculate_multiple_valuation",
-    description=(
-        "Get relative valuation using price multiples: trailing P/E, forward P/E, "
-        "EV/EBITDA, P/B, PEG ratio."
-    ),
+    description=("Get relative valuation using price multiples: trailing P/E, forward P/E, EV/EBITDA, P/B, PEG ratio."),
     input_schema=MultipleValuationInput,
     output_schema=MultipleValuationOutput,
     examples=[
@@ -262,9 +247,7 @@ def calculate_multiple_valuation(input: MultipleValuationInput) -> MultipleValua
         }
         return MultipleValuationOutput(result=data)
     except Exception as e:
-        return MultipleValuationOutput(
-            result={"error": f"Error calculating multiples for {input.symbol}: {e}"}
-        )
+        return MultipleValuationOutput(result={"error": f"Error calculating multiples for {input.symbol}: {e}"})
 
 
 # 4. calculate_margin_of_safety

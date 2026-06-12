@@ -224,7 +224,9 @@ async def sync_tools(request: Request) -> dict[str, Any]:
 
     # Sync tools to DB
     report = await runtime.sync_tools(
-        mcp_list_timeout_seconds=float(getattr(startup_sync_config, "mcp_list_timeout_seconds", 10.0)),
+        mcp_list_timeout_seconds=float(
+            getattr(startup_sync_config, "mcp_list_timeout_seconds", 10.0)
+        ),
         mcp_retries=int(getattr(startup_sync_config, "mcp_retries", 2)),
         mcp_retry_backoff_seconds=float(
             getattr(startup_sync_config, "mcp_retry_backoff_seconds", 0.5)

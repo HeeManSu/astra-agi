@@ -6,7 +6,6 @@ Analyst agent. Only the binding shape differs: each function is wrapped
 with CrewAI's `@tool` decorator.
 """
 
-
 try:
     import yfinance as yf
 except ImportError as e:

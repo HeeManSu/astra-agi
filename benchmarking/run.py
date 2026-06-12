@@ -31,11 +31,11 @@ ALL_QUERIES = ("Q1", "Q2", "Q3", "Q6", "Q7", "Q9")
 # Each framework directory must contain a run.py with the same
 # CLI contract (--query Q --trial N --out-dir <path>).
 SIDE_DIR = {
-    "agno":      BENCH_ROOT / "agno-investment-team",
-    "autogen":   BENCH_ROOT / "autogen-investment-team",
-    "crewai":    BENCH_ROOT / "crewai-investment-team",
+    "agno": BENCH_ROOT / "agno-investment-team",
+    "autogen": BENCH_ROOT / "autogen-investment-team",
+    "crewai": BENCH_ROOT / "crewai-investment-team",
     "langgraph": BENCH_ROOT / "langgraph-investment-team",
-    "astra":     BENCH_ROOT / "astra-invesment-team",
+    "astra": BENCH_ROOT / "astra-invesment-team",
 }
 
 
@@ -60,9 +60,18 @@ def run_trial(framework: str, query: str, trial: int) -> dict | None:
     t0 = time.perf_counter()
     try:
         proc = subprocess.run(
-            ["uv", "run", "python", "run.py",
-             "--query", query, "--trial", str(trial),
-             "--out-dir", str(out_dir)],
+            [
+                "uv",
+                "run",
+                "python",
+                "run.py",
+                "--query",
+                query,
+                "--trial",
+                str(trial),
+                "--out-dir",
+                str(out_dir),
+            ],
             cwd=side.as_posix(),
             env=_clean_env(),
             capture_output=True,
@@ -84,8 +93,7 @@ def run_trial(framework: str, query: str, trial: int) -> dict | None:
         return None
     result = json.loads(result_path.read_text())
     print(
-        f"ok in {dt:.1f}s  calls={result['num_llm_calls']}  "
-        f"tokens={result['total_tokens']}",
+        f"ok in {dt:.1f}s  calls={result['num_llm_calls']}  tokens={result['total_tokens']}",
         flush=True,
     )
     return result
@@ -102,20 +110,15 @@ def main() -> int:
     args = p.parse_args()
 
     # Build the matrix
-    matrix = [
-        (args.framework, q, t)
-        for q in args.queries
-        for t in range(args.trials)
-    ]
+    matrix = [(args.framework, q, t) for q in args.queries for t in range(args.trials)]
     if args.dry_run:
         print(f"Matrix: {len(matrix)} trials")
         for fw, q, t in matrix:
             done = already_done(fw, q, t) and not args.force
-            print(f"  [{ 'SKIP' if done else 'TODO' }] {fw}/{q}/trial{t}")
+            print(f"  [{'SKIP' if done else 'TODO'}] {fw}/{q}/trial{t}")
         return 0
 
-    pending = [(fw, q, t) for (fw, q, t) in matrix
-               if args.force or not already_done(fw, q, t)]
+    pending = [(fw, q, t) for (fw, q, t) in matrix if args.force or not already_done(fw, q, t)]
     skipped = len(matrix) - len(pending)
     print(f"Matrix: {len(matrix)} trials  Pending: {len(pending)}  Skipped (cached): {skipped}")
 

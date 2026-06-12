@@ -15,6 +15,8 @@ def _now_utc() -> datetime:
     (`+00:00`), so browsers parse it as UTC instead of local time.
     """
     return datetime.now(timezone.utc)
+
+
 from enum import Enum
 from typing import Any
 import uuid

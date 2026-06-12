@@ -10,6 +10,7 @@ Exit code:
   0 - all model-instantiating pages import ProviderTabs (or are explicitly exempt)
   1 - at least one page builds a model inline without the shared snippet
 """
+
 from __future__ import annotations
 
 import argparse

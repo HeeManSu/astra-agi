@@ -93,9 +93,7 @@ async def run_team(team_id: str, request: TeamRunRequest):
         },
     ):
         await log(LogLevel.INFO, "Invoke started")
-        response = await team.invoke(
-            request.message, thread_id=request.thread_id, context=context
-        )
+        response = await team.invoke(request.message, thread_id=request.thread_id, context=context)
 
     duration_ms = (time.time() - start_time) * 1000
     sys.stdout.write(f"[TIMING] Team '{team_id}' invoke completed in {duration_ms:.2f}ms\n")

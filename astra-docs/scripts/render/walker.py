@@ -94,7 +94,11 @@ def _section_value(section: Any) -> Any:
     return getattr(section, "value", "")
 
 
-def _split_doc(docstring: Any) -> tuple[str, dict[str, str], list[tuple[str, str | None, str]], list[tuple[str, str]], str | None]:
+def _split_doc(
+    docstring: Any,
+) -> tuple[
+    str, dict[str, str], list[tuple[str, str | None, str]], list[tuple[str, str]], str | None
+]:
     """Unpack a docstring into (description, arg_docs, raises, returns).
 
     Returns:
@@ -157,9 +161,7 @@ def _split_doc(docstring: Any) -> tuple[str, dict[str, str], list[tuple[str, str
 
     description = "\n\n".join(p for p in description_parts if p).strip()
     examples_md = (
-        "\n\n```python\n" + "\n\n".join(examples_md_parts) + "\n```"
-        if examples_md_parts
-        else None
+        "\n\n```python\n" + "\n\n".join(examples_md_parts) + "\n```" if examples_md_parts else None
     )
     if examples_md:
         description = (description + "\n\n**Examples**\n" + examples_md).strip()

@@ -58,6 +58,7 @@ def _messages_to_text(messages: list[dict[str, Any]]) -> str:
         parts.append(f"[{role}] {content}")
     return "\n".join(parts)
 
+
 # aioboto3 for async SigV4 signing
 try:
     import aioboto3  # type: ignore[import-untyped]  # noqa: F401

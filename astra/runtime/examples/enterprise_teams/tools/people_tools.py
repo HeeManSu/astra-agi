@@ -114,9 +114,8 @@ async def identify_training_gaps(
     else:
         priority = "low"
 
-    recommendation = (
-        f"Team {input.team_name} should run a 30-day enablement sprint on: "
-        + (", ".join(missing) if missing else "no critical gaps")
+    recommendation = f"Team {input.team_name} should run a 30-day enablement sprint on: " + (
+        ", ".join(missing) if missing else "no critical gaps"
     )
 
     return IdentifyTrainingGapsOutput(
@@ -217,7 +216,9 @@ async def assess_attrition_risk(input: AssessAttritionRiskInput) -> AssessAttrit
 
 class PlanHeadcountInput(BaseModel):
     current_team_size: int = Field(description="Current team size")
-    projected_workload_growth_percent: float = Field(description="Projected workload growth percent")
+    projected_workload_growth_percent: float = Field(
+        description="Projected workload growth percent"
+    )
 
 
 class PlanHeadcountOutput(BaseModel):
@@ -235,7 +236,9 @@ PLAN_HEADCOUNT_SPEC = ToolSpec(
 
 @bind_tool(PLAN_HEADCOUNT_SPEC)
 async def plan_headcount(input: PlanHeadcountInput) -> PlanHeadcountOutput:
-    hires = max(0, int(round((input.current_team_size * input.projected_workload_growth_percent) / 100.0)))
+    hires = max(
+        0, int(round((input.current_team_size * input.projected_workload_growth_percent) / 100.0))
+    )
     return PlanHeadcountOutput(
         recommended_hires=hires,
         rationale=f"Projected growth of {input.projected_workload_growth_percent}% suggests {hires} hires",
@@ -288,7 +291,9 @@ SCORE_ROLE_COMPETITIVENESS_SPEC = ToolSpec(
 async def score_role_competitiveness(
     input: ScoreRoleCompetitivenessInput,
 ) -> ScoreRoleCompetitivenessOutput:
-    score = max(0, min(100, int((input.salary_percentile * 0.6) + (input.remote_flexibility_score * 0.4))))
+    score = max(
+        0, min(100, int((input.salary_percentile * 0.6) + (input.remote_flexibility_score * 0.4)))
+    )
     return ScoreRoleCompetitivenessOutput(competitiveness_score=score)
 
 

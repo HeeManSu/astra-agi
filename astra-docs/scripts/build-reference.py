@@ -125,7 +125,9 @@ def main(argv: list[str] | None = None) -> int:
 
     xref = XrefIndex.load(xref_path)
     package_url_root = f"/reference/{package}"
-    modules = walk_package(pkg_obj, repo_root=repo_root, xref=xref, package_url_root=package_url_root)
+    modules = walk_package(
+        pkg_obj, repo_root=repo_root, xref=xref, package_url_root=package_url_root
+    )
     print(f"[build-reference] discovered {len(modules)} modules")
 
     # --check mode: report missing docstrings and exit.

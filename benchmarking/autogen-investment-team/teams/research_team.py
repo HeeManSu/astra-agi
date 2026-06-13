@@ -111,7 +111,5 @@ research_team = SelectorGroupChat(
     model_client=make_model_client(),
     selector_prompt=SELECTOR_PROMPT,
     allow_repeated_speaker=False,
-    termination_condition=(
-        AllAnalystsSpokenTermination(ANALYST_NAMES) | MaxMessageTermination(40)
-    ),
+    termination_condition=(AllAnalystsSpokenTermination(ANALYST_NAMES) | MaxMessageTermination(40)),
 )

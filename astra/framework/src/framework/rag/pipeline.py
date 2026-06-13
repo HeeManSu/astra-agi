@@ -192,11 +192,7 @@ class Rag:
                 {
                     "content_id": content_id,
                     "stage_count": len(self.ingest_pipeline.stages),
-                    **(
-                        {"raw_content_preview": preview(text or "")}
-                        if debug and text
-                        else {}
-                    ),
+                    **({"raw_content_preview": preview(text or "")} if debug and text else {}),
                 }
             )
             await log(LogLevel.INFO, "RAG ingest complete", {"content_id": content_id})

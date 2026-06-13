@@ -43,9 +43,7 @@ def _col(df: pd.DataFrame, name: str) -> pd.Series:
 # 1. get_price_history
 class PriceHistoryInput(BaseModel):
     symbol: str = Field(description="Stock ticker symbol (e.g. AAPL, NVDA)")
-    days: int = Field(
-        default=20, description="Number of recent trading days to return (default 20)"
-    )
+    days: int = Field(default=20, description="Number of recent trading days to return (default 20)")
 
 
 class PriceHistoryOutput(BaseModel):
@@ -113,9 +111,7 @@ rsi_spec = ToolSpec(
     description="Calculate the Relative Strength Index (RSI) for a stock. Returns value and overbought/oversold signal.",
     input_schema=RsiInput,
     output_schema=RsiOutput,
-    examples=[
-        {"input": {"symbol": "AAPL"}, "output": {"result": '{"rsi": 55.3, "signal": "neutral"}'}}
-    ],
+    examples=[{"input": {"symbol": "AAPL"}, "output": {"result": '{"rsi": 55.3, "signal": "neutral"}'}}],
 )
 
 
@@ -162,9 +158,7 @@ class MacdInput(BaseModel):
 
 
 class MacdOutput(BaseModel):
-    result: dict = Field(
-        description="Dict with MACD line, signal line, histogram, and crossover signal"
-    )
+    result: dict = Field(description="Dict with MACD line, signal line, histogram, and crossover signal")
 
 
 macd_spec = ToolSpec(
@@ -172,9 +166,7 @@ macd_spec = ToolSpec(
     description="Calculate MACD (12/26/9) for a stock. Returns MACD line, signal line, histogram, and crossover direction.",
     input_schema=MacdInput,
     output_schema=MacdOutput,
-    examples=[
-        {"input": {"symbol": "AAPL"}, "output": {"result": '{"macd": 2.1, "signal_line": 1.8}'}}
-    ],
+    examples=[{"input": {"symbol": "AAPL"}, "output": {"result": '{"macd": 2.1, "signal_line": 1.8}'}}],
 )
 
 
@@ -232,9 +224,7 @@ moving_averages_spec = ToolSpec(
     description="Calculate 20/50/200-day SMAs and classify trend based on price position relative to MAs.",
     input_schema=MovingAveragesInput,
     output_schema=MovingAveragesOutput,
-    examples=[
-        {"input": {"symbol": "AAPL"}, "output": {"result": '{"sma_20": 175.3, "trend": "bullish"}'}}
-    ],
+    examples=[{"input": {"symbol": "AAPL"}, "output": {"result": '{"sma_20": 175.3, "trend": "bullish"}'}}],
 )
 
 
@@ -248,15 +238,11 @@ def calculate_moving_averages(input: MovingAveragesInput) -> MovingAveragesOutpu
 
         sma20_series = _as_series(close.rolling(20).mean(), "sma20")
         sma50_series = _as_series(close.rolling(50).mean(), "sma50")
-        sma200_series = (
-            _as_series(close.rolling(200).mean(), "sma200") if len(close) >= 200 else None
-        )
+        sma200_series = _as_series(close.rolling(200).mean(), "sma200") if len(close) >= 200 else None
 
         sma20 = round(float(sma20_series.iloc[-1]), 2)
         sma50 = round(float(sma50_series.iloc[-1]), 2)
-        sma200: float | str = (
-            round(float(sma200_series.iloc[-1]), 2) if sma200_series is not None else "N/A"
-        )
+        sma200: float | str = round(float(sma200_series.iloc[-1]), 2) if sma200_series is not None else "N/A"
 
         # Trend classification
         above_20 = price > sma20
@@ -370,11 +356,7 @@ def detect_trend(input: TrendInput) -> TrendOutput:
         # 52-week range position
         high_52w = float(close.max())
         low_52w = float(close.min())
-        range_pct = (
-            round((price - low_52w) / (high_52w - low_52w) * 100, 1)
-            if high_52w != low_52w
-            else 50.0
-        )
+        range_pct = round((price - low_52w) / (high_52w - low_52w) * 100, 1) if high_52w != low_52w else 50.0
 
         data = {
             "symbol": input.symbol,
@@ -455,9 +437,7 @@ def detect_support_resistance(input: SupportResistanceInput) -> SupportResistanc
                     clustered[-1] = round((clustered[-1] + lvl) / 2, 2)
             return clustered
 
-        resistance = (
-            [r for r in cluster(resistance_levels) if r > price][-3:] if resistance_levels else []
-        )
+        resistance = [r for r in cluster(resistance_levels) if r > price][-3:] if resistance_levels else []
         support = [s for s in cluster(support_levels) if s < price][:3] if support_levels else []
 
         nearest_support: float | str = max(support) if support else "N/A"

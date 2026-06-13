@@ -137,11 +137,15 @@ def _render_text_or_json(obj: Any) -> str:
                 chunks.append(p["text"])
             if p.get("function_call"):
                 fc = p["function_call"]
-                chunks.append(f"  -> TOOL CALL: {fc.get('name')}({_short_json(fc.get('args', {}))})")
+                chunks.append(
+                    f"  -> TOOL CALL: {fc.get('name')}({_short_json(fc.get('args', {}))})"
+                )
             if p.get("function_response"):
                 fr = p["function_response"]
                 resp = fr.get("response", fr.get("result", fr))
-                chunks.append(f"  <- TOOL RESULT [{fr.get('name')}]: {_short_json(resp, limit=400)}")
+                chunks.append(
+                    f"  <- TOOL RESULT [{fr.get('name')}]: {_short_json(resp, limit=400)}"
+                )
     return "\n".join(chunks)
 
 
@@ -170,7 +174,9 @@ def _to_jsonable(obj: Any) -> Any:
         return {"__bytes_len__": len(obj)}
     if hasattr(obj, "__dict__"):
         try:
-            return {str(k): _to_jsonable(v) for k, v in obj.__dict__.items() if not k.startswith("_")}
+            return {
+                str(k): _to_jsonable(v) for k, v in obj.__dict__.items() if not k.startswith("_")
+            }
         except Exception:
             pass
     return str(obj)
@@ -264,7 +270,9 @@ class TokenCounter:
         self._call_counter += 1
         return self._call_counter
 
-    def _dump_request(self, idx: int, method_name: str, is_async: bool, is_stream: bool, kwargs: dict) -> str:
+    def _dump_request(
+        self, idx: int, method_name: str, is_async: bool, is_stream: bool, kwargs: dict
+    ) -> str:
         """Write request kwargs to call_NNN_request.json. Returns relative path."""
         path = self.out_dir / f"call_{idx:03d}_request.json"
         payload = {
@@ -277,7 +285,9 @@ class TokenCounter:
         path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
         return path.name
 
-    def _dump_response(self, idx: int, response: Any, latency_ms: float, request_kwargs: dict | None = None) -> str:
+    def _dump_response(
+        self, idx: int, response: Any, latency_ms: float, request_kwargs: dict | None = None
+    ) -> str:
         """Write response to call_NNN_response.json. Returns relative path."""
         path = self.out_dir / f"call_{idx:03d}_response.json"
         payload = {
@@ -294,7 +304,9 @@ class TokenCounter:
                 pass
         return path.name
 
-    def _write_log_block(self, idx: int, request_kwargs: dict, response_jsonable: Any, latency_ms: float) -> None:
+    def _write_log_block(
+        self, idx: int, request_kwargs: dict, response_jsonable: Any, latency_ms: float
+    ) -> None:
         """Append a human-readable per-call block to the log file.
 
         Format mirrors what Agno's debug_mode=True prints natively, so an
@@ -313,8 +325,10 @@ class TokenCounter:
 
         fp.write(f"\nMODEL: {model}\n")
         if isinstance(config, dict):
-            fp.write(f"GENERATION CONFIG: temperature={config.get('temperature')}, "
-                     f"thinking_config={config.get('thinking_config')}\n")
+            fp.write(
+                f"GENERATION CONFIG: temperature={config.get('temperature')}, "
+                f"thinking_config={config.get('thinking_config')}\n"
+            )
 
         # System instruction
         fp.write("\n----- SYSTEM INSTRUCTION -----\n")
@@ -338,8 +352,16 @@ class TokenCounter:
 
         # Response
         fp.write("\n\n----- RESPONSE -----\n")
-        usage = (response_jsonable or {}).get("usage_metadata", {}) if isinstance(response_jsonable, dict) else {}
-        candidates = (response_jsonable or {}).get("candidates", []) if isinstance(response_jsonable, dict) else []
+        usage = (
+            (response_jsonable or {}).get("usage_metadata", {})
+            if isinstance(response_jsonable, dict)
+            else {}
+        )
+        candidates = (
+            (response_jsonable or {}).get("candidates", [])
+            if isinstance(response_jsonable, dict)
+            else []
+        )
         if candidates:
             content = candidates[0].get("content", {}) if isinstance(candidates[0], dict) else {}
             for part in content.get("parts", []) or []:
@@ -374,6 +396,7 @@ class TokenCounter:
         dump_response = self._dump_response
 
         if not is_async and not is_stream:
+
             def wrapped(self, *args, **kwargs):
                 idx = next_idx()
                 req_path = dump_request(idx, method_name, False, False, kwargs)
@@ -381,20 +404,28 @@ class TokenCounter:
                 response = original(self, *args, **kwargs)
                 dt_ms = (time.perf_counter() - t0) * 1000
                 resp_path = dump_response(idx, response, dt_ms, kwargs)
-                _record(records, response, idx, method_name, False, False, dt_ms, req_path, resp_path)
+                _record(
+                    records, response, idx, method_name, False, False, dt_ms, req_path, resp_path
+                )
                 return response
+
             return wrapped
 
         if not is_async and is_stream:
+
             def wrapped(self, *args, **kwargs):
                 idx = next_idx()
                 req_path = dump_request(idx, method_name, False, True, kwargs)
                 t0 = time.perf_counter()
                 stream = original(self, *args, **kwargs)
-                return _wrap_sync_stream(stream, records, idx, method_name, dump_response, req_path, t0)
+                return _wrap_sync_stream(
+                    stream, records, idx, method_name, dump_response, req_path, t0
+                )
+
             return wrapped
 
         if is_async and not is_stream:
+
             async def wrapped(self, *args, **kwargs):
                 idx = next_idx()
                 req_path = dump_request(idx, method_name, True, False, kwargs)
@@ -402,8 +433,11 @@ class TokenCounter:
                 response = await original(self, *args, **kwargs)
                 dt_ms = (time.perf_counter() - t0) * 1000
                 resp_path = dump_response(idx, response, dt_ms, kwargs)
-                _record(records, response, idx, method_name, True, False, dt_ms, req_path, resp_path)
+                _record(
+                    records, response, idx, method_name, True, False, dt_ms, req_path, resp_path
+                )
                 return response
+
             return wrapped
 
         # async streaming
@@ -412,7 +446,10 @@ class TokenCounter:
             req_path = dump_request(idx, method_name, True, True, kwargs)
             t0 = time.perf_counter()
             stream = await original(self, *args, **kwargs)
-            return _wrap_async_stream(stream, records, idx, method_name, dump_response, req_path, t0)
+            return _wrap_async_stream(
+                stream, records, idx, method_name, dump_response, req_path, t0
+            )
+
         return wrapped
 
 

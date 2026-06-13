@@ -183,9 +183,7 @@ def _execute_loop(
     if node.as_var.startswith("("):
         names = [n.strip() for n in node.as_var.strip("()").split(",")]
         if len(names) != len(value):
-            raise ValueError(
-                f"Cannot unpack {len(value)} values into {len(names)} names"
-            )
+            raise ValueError(f"Cannot unpack {len(value)} values into {len(names)} names")
         for name, v in zip(names, value):
             state[name] = v
     else:
@@ -245,9 +243,7 @@ async def _execute_action(
         value = evaluate_expression(expr, state)
         if param_name.startswith("**"):
             if not isinstance(value, dict):
-                raise TypeError(
-                    f"** spread expected dict, got {type(value).__name__}"
-                )
+                raise TypeError(f"** spread expected dict, got {type(value).__name__}")
             resolved_args.update(value)
         else:
             resolved_args[param_name] = value
@@ -499,9 +495,7 @@ async def run_workflow(
                                 "args_preview": preview(meta["inputs"]),
                                 "result_preview": preview(meta["outputs"]),
                                 "result_type": type(meta["outputs"]).__name__,
-                                "is_async": asyncio.iscoroutinefunction(
-                                    tools.get(node.tool)
-                                ),
+                                "is_async": asyncio.iscoroutinefunction(tools.get(node.tool)),
                                 **(
                                     {
                                         "args_full": meta["inputs"],

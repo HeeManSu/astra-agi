@@ -601,9 +601,7 @@ class Team:
         async def _push(evt: dict[str, Any]) -> None:
             await event_queue.put(evt)
 
-        exec_task = asyncio.create_task(
-            sandbox.execute_dsl(timeout=exec_timeout, on_event=_push)
-        )
+        exec_task = asyncio.create_task(sandbox.execute_dsl(timeout=exec_timeout, on_event=_push))
 
         try:
             while not exec_task.done() or not event_queue.empty():

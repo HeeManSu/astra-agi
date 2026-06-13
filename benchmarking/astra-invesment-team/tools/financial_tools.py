@@ -49,9 +49,7 @@ class FinancialStatementsInput(BaseModel):
 
 
 class FinancialStatementsOutput(BaseModel):
-    result: dict = Field(
-        description="Dict with revenue, net income, operating CF for last 4 periods"
-    )
+    result: dict = Field(description="Dict with revenue, net income, operating CF for last 4 periods")
 
 
 financial_statements_spec = ToolSpec(

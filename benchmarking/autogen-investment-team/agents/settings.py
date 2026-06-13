@@ -52,4 +52,3 @@ outside your role. Always produce your assigned section using the OUTPUT FORMAT
 below, scoped to whichever symbol(s) the query names.
 
 """
-

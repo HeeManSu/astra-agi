@@ -114,8 +114,8 @@ def _to_genai_contents(messages: Sequence[LLMMessage]) -> tuple[str, list[gtypes
 
         if isinstance(m, UserMessage):
             # m.content is str | list[str | Image]; benchmark is text-only.
-            text = m.content if isinstance(m.content, str) else " ".join(
-                str(c) for c in m.content if isinstance(c, str)
+            text = (
+                m.content if isinstance(m.content, str) else " ".join(str(c) for c in m.content if isinstance(c, str))
             )
             contents.append(gtypes.Content(role="user", parts=[gtypes.Part(text=text)]))
             continue
@@ -123,9 +123,7 @@ def _to_genai_contents(messages: Sequence[LLMMessage]) -> tuple[str, list[gtypes
         if isinstance(m, AssistantMessage):
             # content is str | list[FunctionCall]
             if isinstance(m.content, str):
-                contents.append(
-                    gtypes.Content(role="model", parts=[gtypes.Part(text=m.content)])
-                )
+                contents.append(gtypes.Content(role="model", parts=[gtypes.Part(text=m.content)]))
             else:
                 # list of FunctionCall
                 parts: list[gtypes.Part] = []
@@ -134,11 +132,7 @@ def _to_genai_contents(messages: Sequence[LLMMessage]) -> tuple[str, list[gtypes
                         args = json.loads(fc.arguments) if isinstance(fc.arguments, str) else fc.arguments
                     except Exception:
                         args = {"raw_arguments": fc.arguments}
-                    parts.append(
-                        gtypes.Part(
-                            function_call=gtypes.FunctionCall(name=fc.name, args=args or {})
-                        )
-                    )
+                    parts.append(gtypes.Part(function_call=gtypes.FunctionCall(name=fc.name, args=args or {})))
                 contents.append(gtypes.Content(role="model", parts=parts))
             continue
 
@@ -155,9 +149,7 @@ def _to_genai_contents(messages: Sequence[LLMMessage]) -> tuple[str, list[gtypes
                     response_obj = {"result": fr.content}
                 parts.append(
                     gtypes.Part(
-                        function_response=gtypes.FunctionResponse(
-                            name=fr.name or "tool", response=response_obj
-                        )
+                        function_response=gtypes.FunctionResponse(name=fr.name or "tool", response=response_obj)
                     )
                 )
             contents.append(gtypes.Content(role="user", parts=parts))
@@ -200,9 +192,7 @@ class GeminiChatCompletionClient(ChatCompletionClient):
     ):
         self._model = model
         self._temperature = temperature
-        self._thinking_config = thinking_config or gtypes.ThinkingConfig(
-            thinking_budget=0, include_thoughts=False
-        )
+        self._thinking_config = thinking_config or gtypes.ThinkingConfig(thinking_budget=0, include_thoughts=False)
 
         api_key = getenv("GOOGLE_API_KEY") or getenv("GEMINI_API_KEY")
         if not api_key:
@@ -242,13 +232,9 @@ class GeminiChatCompletionClient(ChatCompletionClient):
         # AutoGen passes "auto" / "required" / "none" by default; map them to
         # google.genai's tool_config when appropriate.
         if tool_choice == "required" and genai_tools:
-            config.tool_config = gtypes.ToolConfig(
-                function_calling_config=gtypes.FunctionCallingConfig(mode="ANY")
-            )
+            config.tool_config = gtypes.ToolConfig(function_calling_config=gtypes.FunctionCallingConfig(mode="ANY"))
         elif tool_choice == "none":
-            config.tool_config = gtypes.ToolConfig(
-                function_calling_config=gtypes.FunctionCallingConfig(mode="NONE")
-            )
+            config.tool_config = gtypes.ToolConfig(function_calling_config=gtypes.FunctionCallingConfig(mode="NONE"))
 
         # Single SDK call — this hits the DebugCounter-patched method.
         response = await self._client.aio.models.generate_content(
@@ -334,9 +320,7 @@ class GeminiChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total
 
-    def count_tokens(
-        self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = ()
-    ) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = ()) -> int:
         # Rough estimate — Gemini's count_tokens API would require another call.
         # Returning a coarse estimate is fine because AutoGen only uses this
         # for budget bookkeeping (we do not enforce a budget in this benchmark).
@@ -348,9 +332,7 @@ class GeminiChatCompletionClient(ChatCompletionClient):
                     total_chars += len(p.text)
         return max(1, total_chars // 4)
 
-    def remaining_tokens(
-        self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = ()
-    ) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = ()) -> int:
         # 1M-ish context window minus rough used estimate. Don't enforce.
         return 1_000_000 - self.count_tokens(messages, tools=tools)
 

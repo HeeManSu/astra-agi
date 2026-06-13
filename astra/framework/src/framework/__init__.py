@@ -31,4 +31,3 @@ __all__ = [
     "build_entity_semantic_layer",
     "generate_stubs",
 ]
-

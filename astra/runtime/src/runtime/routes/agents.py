@@ -99,9 +99,7 @@ async def run_agent(agent_id: str, request: AgentRunRequest):
         },
     ):
         await log(LogLevel.INFO, "Invoke started")
-        response = await agent.invoke(
-            request.message, thread_id=request.thread_id, context=context
-        )
+        response = await agent.invoke(request.message, thread_id=request.thread_id, context=context)
 
     duration_ms = (time.time() - start_time) * 1000
     sys.stdout.write(f"[TIMING] Agent '{agent_id}' invoke completed in {duration_ms:.2f}ms\n")

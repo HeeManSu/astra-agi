@@ -141,7 +141,9 @@ async def classify_churn_risk(input: ClassifyChurnRiskInput) -> ClassifyChurnRis
         risk = "medium"
     else:
         risk = "low"
-    return ClassifyChurnRiskOutput(risk=risk, note=f"health={input.health_score}, p1={input.unresolved_p1_count}")
+    return ClassifyChurnRiskOutput(
+        risk=risk, note=f"health={input.health_score}, p1={input.unresolved_p1_count}"
+    )
 
 
 class EstimateResolutionEffortInput(BaseModel):
@@ -350,4 +352,6 @@ SUMMARIZE_ACCOUNT_RISKS_SPEC = ToolSpec(
 async def summarize_account_risks(
     input: SummarizeAccountRisksInput,
 ) -> SummarizeAccountRisksOutput:
-    return SummarizeAccountRisksOutput(summary=f"{input.account_name} churn risk is {input.churn_risk}")
+    return SummarizeAccountRisksOutput(
+        summary=f"{input.account_name} churn risk is {input.churn_risk}"
+    )

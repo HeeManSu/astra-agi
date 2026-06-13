@@ -401,7 +401,11 @@ class ToolDefinitionStore(BaseStore[ToolDefinition]):
             for slug, row in zip(insert_slugs, insert_rows, strict=False):
                 saved_by_slug[slug] = ToolDefinition(**row)
 
-        return [saved_by_slug[definition.slug] for definition in definitions if definition.slug in saved_by_slug]
+        return [
+            saved_by_slug[definition.slug]
+            for definition in definitions
+            if definition.slug in saved_by_slug
+        ]
 
     async def get_hashes_by_slugs(self, slugs: list[str]) -> dict[str, str]:
         """

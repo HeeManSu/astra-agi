@@ -69,6 +69,7 @@ jobs:
 
       - name: Comment report on PR
         if: always()
+        continue-on-error: true
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: docstring-coverage

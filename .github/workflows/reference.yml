@@ -34,14 +34,15 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Set up Python
-        run: uv python install 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install Astra packages
-        run: |
-          uv pip install --system -e astra/framework -e astra/runtime -e astra/observability
+        run: uv sync --all-packages
 
       - name: Install build deps
-        run: uv pip install --system -r astra-docs/scripts/requirements.txt
+        run: uv pip install -r astra-docs/scripts/requirements.txt
 
       - name: Run docstring check
         id: check
@@ -55,7 +56,7 @@ jobs:
               echo "### \`astra-$pkg\`"
               echo
               echo '```'
-              python astra-docs/scripts/build-reference.py --package "$pkg" --check 2>&1
+              uv run python astra-docs/scripts/build-reference.py --package "$pkg" --check 2>&1
               status=$?
               echo '```'
               echo
@@ -95,26 +96,27 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Set up Python
-        run: uv python install 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install Astra packages
-        run: |
-          uv pip install --system -e astra/framework -e astra/runtime -e astra/observability
+        run: uv sync --all-packages
 
       - name: Install build deps
-        run: uv pip install --system -r astra-docs/scripts/requirements.txt
+        run: uv pip install -r astra-docs/scripts/requirements.txt
 
       - name: Build reference MDX
         run: |
           for pkg in framework runtime observability; do
-            python astra-docs/scripts/build-reference.py \
+            uv run python astra-docs/scripts/build-reference.py \
               --package "$pkg" \
               --out "astra-docs/reference/$pkg" \
               --emit-nav "astra-docs/reference/$pkg/_nav.json"
           done
 
       - name: Rebuild llms.txt
-        run: python astra-docs/scripts/build-llms-txt.py
+        run: uv run python astra-docs/scripts/build-llms-txt.py
 
       - name: Open refresh PR
         uses: peter-evans/create-pull-request@v6
